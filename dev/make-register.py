@@ -52,6 +52,7 @@ for p in S["pms"]:
     ws.cell(2, 2).number_format = "mmm d, yyyy"
 
 ws = wb.create_sheet("Checklist Results"); tab(ws, H["CHK"])
+ws = wb.create_sheet("JO Log"); tab(ws, H["JO"])
 ws = wb.create_sheet("Audit Trail"); tab(ws, H["AUD"])
 if S["items"]:
     ws.append([now, "", "INITIAL LOAD", "ICTU", "Masterlist started with %d unit(s) and %d PM record(s) carried over from the ICTU files." % (len(S["items"]), len(S["pms"])), "Template"])
@@ -66,12 +67,14 @@ for i in range(n):
 
 ws = wb.create_sheet("About")
 about = [["ICT Inventory and PMS Register (ICTU)"], [],
- ["What this is", "The records behind the ICT Inventory and PMS app: the equipment masterlist, the PM Log, the checklist answers of each PM and the audit trail."],
+ ["What this is", "The records behind the ICT Inventory and PMS app: the equipment masterlist, the PM Log, the checklist answers of each PM, the Job Order Log and the audit trail."],
  ["PM form", "%s Rev. %s, %s" % (H["FORM"]["code"], H["FORM"]["rev"], H["FORM"]["title"])],
+ ["JO form", "%s Rev. %s, %s (ADM-HIMS-P-03 ICTU Service Procedure)" % (H["JOF"]["code"], H["JOF"]["rev"], H["JOF"]["title"])],
  ["App version", H["V"]],
  ["Inventory", "One row per unit. Equipment ID (ICT-0001 and up) is given by the app. You may paste new rows here with the ID blank; the app fills it in the next time it opens."],
  ["PM Log", "One row per PM activity. The first 21 columns match ICTU_Preventive_Maintenance_Log.xlsx. PM Ref. No. continues the PM-YYYY-NNN series. Wrong entries are voided, never deleted."],
  ["Checklist Results", "The Done / Issue / N/A answer of every checklist item, by PM Ref. No."],
+ ["JO Log", "One row per job order. The first 33 columns match the old ICTU Job Order Log, so its rows can be pasted here. JO No. is ICTU-YYYY-NNNN. Cancelled job orders stay on record."],
  ["Lists", "Choices shown in the app. Edit these to add offices, staff, equipment types and their default PM frequency."],
  ["PM frequency", "Monthly, Quarterly, Semi-Annual, Annual, or Not scheduled (checked with its PC) for monitors, keyboards, hubs and other parts of a PC set."],
  ["Protection", "After setup, every tab can be edited by hand only by the Sheet owner. The app writes through Apps Script with the ICTU passcode."]]

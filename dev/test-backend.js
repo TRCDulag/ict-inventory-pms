@@ -106,4 +106,53 @@ ok(L.lists.offices.includes('Dietary Unit') && L.lists.offices.includes('Motor P
 const aud2 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ok(aud2.includes('OFFICE ADDED') && aud2.includes('EMPLOYEE ADDED'), 'audit has office and employee adds');
 
+// job orders: public request, ICTU update, numbering, targets, privacy of the public answers
+const pub = req => JSON.parse(be.code.api(JSON.stringify(Object.assign({ device: 'phone' }, req))));
+let P0 = pub({ action: 'publicInit' });
+ok(P0.ok && P0.offices.includes('Cash Unit') && !JSON.stringify(P0).includes('Juan'), 'public init lists sections, no names');
+let E = pub({ action: 'eqInfo', id: 'ict-2' });
+ok(!E.ok, 'bad code shape refused');
+E = pub({ action: 'eqInfo', id: 'ICT-0002' });
+ok(E.ok && E.item.id === 'ICT-0002' && E.item.endUser === undefined && E.item.serial === undefined && E.jobs.length === 0, 'eqInfo hides names and serials');
+ok(!pub({ action: 'submitJO', jo: { lastName: 'Cruz', unit: 'Cash Unit', description: 'x', types: ['ID printing'] } }).ok, 'first name required');
+ok(!pub({ action: 'submitJO', jo: { lastName: 'Cruz', firstName: 'Ana', unit: 'Cash Unit', description: 'x' } }).ok, 'type of request required');
+let S = pub({ action: 'submitJO', jo: { lastName: 'Cruz', firstName: 'Ana', mi: 'B', unit: 'Cash Unit', description: 'Printer jams', types: ['Printer / scanner problem'],
+  equipmentId: 'ict-0002', urgent: 'Yes', urgentReason: 'Payroll today', consent: true } });
+ok(S.ok && /^ICTU-\d{4}-0001$/.test(S.jo), 'first JO number: ' + S.jo + ' ' + S.error);
+ok(S.request.equipmentId === 'ICT-0002' && S.request.priority === 'P2 - High' && S.request.status === 'Received' && S.request.model, 'equipment filled, urgent is P2: ' + JSON.stringify(S.request).slice(0, 200));
+ok(S.request.target && S.request.target > S.request.logged, 'target set from priority: ' + S.request.logged + ' -> ' + S.request.target);
+ok(pub({ action: 'eqInfo', id: 'ICT-0002' }).jobs[0].jo === S.jo, 'open JO shows on the QR page');
+ok(!pub({ action: 'saveJO', jo: { jo: S.jo, status: 'Resolved' } }).ok, 'saveJO needs the passcode');
+be.gas._props.JO_LAST_2026 = '41';
+let S2 = call({ action: 'saveJO', jo: { lastName: 'Lopez', firstName: 'Argie', unit: 'ICTU', description: 'Network check', types: ['LAN / cabling / network point'], priority: 'P4 - Planned' }, by: 'James Adrian M. Elona' });
+ok(S2.ok && /-0042$/.test(S2.jo.jo), 'ICTU-logged JO continues from JO_LAST: ' + (S2.jo && S2.jo.jo) + ' ' + S2.error);
+r = call({ action: 'saveJO', jo: { jo: S.jo, status: 'In Progress', priority: 'P3 - Normal', classification: 'Simple', service: 'On-site' }, by: 'Argie R. Lopez' });
+ok(r.ok && r.jo.status === 'In Progress' && r.jo.receivedBy === 'Argie R. Lopez' && r.jo.receivedAt && !r.jo.finishedAt, 'in progress: received by and time filled');
+ok(/Status set to In Progress by Argie R. Lopez/.test(r.jo.history), 'history kept');
+r = call({ action: 'saveJO', jo: { jo: S.jo, status: 'Resolved', findings: 'Worn roller', action: 'Cleaned roller', personnel: 'Argie R. Lopez', csmSpeed: 'Very Satisfied' }, by: 'Argie R. Lopez' });
+ok(r.ok && r.jo.finishedAt && r.jo.withinTarget === 'Yes', 'resolved now is within target: ' + r.jo.withinTarget);
+ok(call({ action: 'saveJO', jo: { jo: S.jo, status: 'Resolved' } }).unchanged, 'unchanged JO save detected');
+ok(!call({ action: 'saveJO', jo: { jo: S.jo, status: 'Fixed' } }).ok, 'unknown status refused');
+ok(!call({ action: 'saveJO', jo: { jo: S.jo, equipmentId: 'ICT-9999' } }).ok, 'unknown equipment refused');
+r = call({ action: 'saveJO', jo: { jo: S2.jo.jo, equipmentId: 'ICT-0003', status: 'Beyond Economical Repair' }, markUnserviceable: true, by: 'James Adrian M. Elona' });
+ok(r.ok && r.item && r.item.condition === 'Unserviceable' && r.item.nextDue === '', 'beyond repair marks the unit unserviceable');
+L = call({ action: 'load' });
+ok(L.jos.length === 2 && L.joForm.code === 'COH-IDN-F-01', 'load returns job orders');
+const jl = be.gas._ss.getSheetByName('JO Log');
+ok(jl._data[0][0] === 'Date/Time Logged' && jl._data[0][1] === 'JO No.' && jl._data[0].length >= 53, 'JO Log keeps the old column order');
+// the old online form still works when pointed here
+r = JSON.parse(be.code.doPost({ postData: { contents: JSON.stringify({ key: 'trcd-ictu-jo', kind: 'submit', id: 'abc-1', requested_at: 'Oct 28, 2026  9:05 AM',
+  last_name: 'Reyes', first_name: 'Jose', unit: 'Cash Unit', description: 'No internet', types: 'No internet / slow connection; Wi-Fi access', urgent: 'No', consent: 'Yes' }) } }).text);
+ok(r.ok && /-0043$/.test(r.jo), 'old form gets the next JO no.: ' + r.jo);
+r = JSON.parse(be.code.doPost({ postData: { contents: JSON.stringify({ key: 'trcd-ictu-jo', kind: 'action', id: 'abc-1', action: 'Printed' }) } }).text);
+ok(r.ok, 'old form print action logged');
+L = call({ action: 'load' });
+const old = L.jos.find(j => j.lastName === 'Reyes');
+ok(old.requestedAt === '2026-10-28 09:05' && old.types.length === 2 && /Printed/.test(old.history), 'old form fields mapped: ' + old.requestedAt);
+// target skips the weekend: Friday 3 PM, P2 (1 working day) -> Monday 3 PM
+ok(be.ctx.target_('2026-10-30 15:00', 'P2 - High') === '2026-11-02 15:00', 'P2 target skips the weekend: ' + be.ctx.target_('2026-10-30 15:00', 'P2 - High'));
+ok(be.ctx.target_('2026-10-28 09:00', 'P1 - Critical') === '2026-10-28 13:00', 'P1 is 4 hours');
+const aud3 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
+ok(aud3.includes('JOB ORDER RECEIVED') && aud3.includes('JOB ORDER UPDATED'), 'audit has job orders');
+
 console.log('backend: ' + n + ' checks passed');

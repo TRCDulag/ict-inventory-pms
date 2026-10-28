@@ -67,6 +67,7 @@ function createGas() {
     const x = new Date(d.getTime() + TZ_OFFSET);
     const Y = x.getUTCFullYear(), M = x.getUTCMonth(), D = x.getUTCDate(), h = x.getUTCHours(), m = x.getUTCMinutes(), s = x.getUTCSeconds();
     const map = { 'yyyy': String(Y), 'yyyy-MM': Y + '-' + pad(M + 1), 'yyyy-MM-dd': Y + '-' + pad(M + 1) + '-' + pad(D),
+      'yyyy-MM-dd HH:mm': Y + '-' + pad(M + 1) + '-' + pad(D) + ' ' + pad(h) + ':' + pad(m),
       'yyyy-MM-dd HHmmss': Y + '-' + pad(M + 1) + '-' + pad(D) + ' ' + pad(h) + pad(m) + pad(s),
       'MMM d, yyyy h:mm a': MON[M] + ' ' + D + ', ' + Y + ' ' + (h % 12 || 12) + ':' + pad(m) + ' ' + (h < 12 ? 'AM' : 'PM') };
     if (!(f in map)) throw new Error('mock formatDate: unsupported pattern ' + f);
@@ -97,6 +98,7 @@ function createGas() {
       base64Decode: s => [...Buffer.from(s, 'base64')],
       base64Encode: b => Buffer.from(b).toString('base64'),
       computeDigest: (alg, text) => [...crypto.createHash('sha256').update(text, 'utf8').digest()].map(b => b > 127 ? b - 256 : b),
+      getUuid: () => crypto.randomUUID(),
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }
     },
     _ss: ss, _props: props, _files: files
@@ -109,7 +111,7 @@ function loadBackend() {
   const gas = createGas();
   const ctx = vm.createContext(Object.assign({ console, Date }, gas));
   const src = fs.readFileSync(path.join(__dirname, '..', 'apps-script', 'Code.gs'), 'utf8');
-  vm.runInContext(src + '\n;this.__exports = { setup, verifyRecords, handle_, doGet, doPost, api, lists_ };', ctx, { filename: 'Code.gs' });
+  vm.runInContext(src + '\n;this.__exports = { setup, verifyRecords, handle_, doGet, doPost, api, lists_ }; this.target_ = target_;', ctx, { filename: 'Code.gs' });
   return { gas, code: ctx.__exports, ctx };
 }
 

@@ -29,21 +29,28 @@
   h2, h3, h4 { color: var(--head); }
 
   /* shell: navy header, side menu on the mint frame, white work area */
-  header.bar { position: sticky; top: 0; z-index: 20; background: var(--navy); color: #fff; display: flex; align-items: center; gap: 18px; padding: 8px 18px; min-height: 72px; padding-top: max(8px, env(safe-area-inset-top)); }
-  .org { display: flex; align-items: center; gap: 4px; flex: none; }
-  .org img { height: 50px; width: 50px; object-fit: contain; }
-  .org img.bp { width: 54px; }
-  .org .t { border-left: 1.5px solid rgba(255,255,255,.85); margin-left: 6px; padding-left: 7px; font-size: 10.5px; line-height: 1.15; letter-spacing: .01em; }
-  .org .t b { display: block; font-size: 13.5px; }
-  .org .t .c { font-weight: 700; font-size: 11.5px; }
-  .org .t i { display: block; font-size: 8.5px; font-weight: 700; opacity: .9; }
-  .apptitle { flex: 1; min-width: 0; }
-  .apptitle b { display: block; font-size: 18px; font-weight: 600; }
-  .apptitle span { font-size: 13px; opacity: .8; }
-  header.bar .who { font-size: 13px; text-align: right; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-  header.bar .who span { opacity: .8; }
-  header.bar .who button { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 8px; padding: 6px 12px; font: inherit; font-weight: 500; cursor: pointer; min-height: 36px; }
-  header.bar .who button:hover { background: rgba(255,255,255,.1); }
+  header.bar { position: sticky; top: 0; z-index: 20; background: var(--navy); color: #fff; display: flex; align-items: center; gap: 14px; padding: 8px 18px; min-height: 72px; padding-top: max(8px, env(safe-area-inset-top)); box-shadow: 0 2px 10px rgba(16,24,40,.18); }
+  .seals { display: flex; align-items: center; flex: none; }
+  .seals img { height: 46px; width: 46px; border-radius: 50%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .seals img + img { margin-left: 5px; }
+  .apptitle { flex: 1; min-width: 0; padding-left: 14px; border-left: 1px solid rgba(255,255,255,.22); }
+  .apptitle b { display: block; font-size: 19px; font-weight: 600; letter-spacing: .005em; line-height: 1.2; }
+  .apptitle span { font-size: 13px; color: rgba(255,255,255,.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .hbtn { text-decoration: none; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.06); color: #fff; border: 1px solid rgba(255,255,255,.22); border-radius: 10px; padding: 6px 12px; min-height: 44px; font: inherit; font-size: 14.5px; font-weight: 500; cursor: pointer; }
+  .hbtn:hover { background: rgba(255,255,255,.14); }
+  .hbtn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .hbtn .av { width: 30px; height: 30px; border-radius: 50%; background: #fff; color: var(--navy); font-weight: 700; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+  .hbtn .mt { text-align: left; line-height: 1.15; }
+  .hbtn .mt small { display: block; font-size: 11.5px; color: rgba(255,255,255,.7); }
+  .menu { position: relative; }
+  .menupanel { position: absolute; right: 0; top: calc(100% + 8px); width: 270px; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px rgba(31,42,69,.22); padding: 6px; z-index: 40; }
+  .menupanel .mh { padding: 10px 12px 8px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--line-2); margin-bottom: 4px; }
+  .menupanel .mh b { display: block; color: var(--navy); font-size: 14.5px; }
+  .menupanel button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 10px 12px; min-height: 44px; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .menupanel button:hover, .menupanel button:focus-visible { background: var(--mint); }
+  .menupanel button svg { width: 19px; height: 19px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .menupanel button.danger { color: var(--bad); } .menupanel button.danger svg { stroke: var(--bad); }
+  .menupanel hr { border: 0; border-top: 1px solid var(--line-2); margin: 4px 0; }
   .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 72px); }
   nav.tabs { background: #fff; border-right: 1px solid var(--line-2); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 72px; align-self: start; height: calc(100vh - 72px); }
   nav.tabs button { display: flex; align-items: center; gap: 12px; background: transparent; color: var(--ink); border: 1px solid transparent; border-radius: 10px; padding: 10px 14px; min-height: 46px; font: inherit; font-size: 15.5px; font-weight: 500; cursor: pointer; text-align: left; }
@@ -56,10 +63,10 @@
   section.view > h2 { font-size: 26px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
   section.view > .lead { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
   @media (max-width: 899px) {
-    header.bar { gap: 10px; padding: 8px 12px; min-height: 60px; }
-    .org .t { display: none; }
-    .org img { height: 40px; width: 40px; } .org img.bp { display: none; }
-    .apptitle b { font-size: 16px; } .apptitle span, header.bar .who span { display: none; }
+    header.bar { gap: 8px; padding: 8px 10px; min-height: 60px; }
+    .seals img { height: 38px; width: 38px; }
+    .apptitle { padding-left: 8px; } .apptitle b { font-size: 16px; } .apptitle span { display: none; }
+    .hbtn { padding: 6px 8px; } .hbtn .mt, .hbtn .lbl { display: none; }
     .shell { display: block; }
     nav.tabs { flex-direction: row; height: auto; position: sticky; top: 60px; z-index: 15; overflow-x: auto; scrollbar-width: none; border-right: 0; border-bottom: 1px solid var(--line-2); padding: 6px 8px; }
     nav.tabs::-webkit-scrollbar { display: none; }
@@ -76,17 +83,24 @@
   @media (max-width: 640px) { .panel { padding: 16px; } }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
   .grid .wide { grid-column: 1 / -1; }
+  .grid.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid.g3 .span2 { grid-column: span 2; }
+  @media (max-width: 700px) { .grid.g3 { grid-template-columns: 1fr; } .grid.g3 .span2 { grid-column: auto; } }
   label.f { display: block; font-size: 14px; font-weight: 600; color: var(--head); }
   label.f > span.req::after { content: " *"; color: var(--bad); }
   input, select, textarea { width: 100%; margin-top: 5px; font: inherit; font-size: 16px; font-weight: 400; color: var(--ink); background: var(--field); border: 1px solid #C3D3CC; border-radius: var(--r-ctl); padding: 10px 12px; min-height: 46px; }
   textarea { min-height: 76px; resize: vertical; }
   input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 3px rgba(11,75,170,.18); border-color: var(--brand); border-radius: var(--r-ctl); }
   input[readonly] { background: var(--mint); }
-  .addline { display: flex; gap: 8px; align-items: flex-end; }
-  .addline > label { flex: 1; min-width: 0; }
-  .addline > .btn { flex: none; margin-bottom: 0; }
-  .fieldnote { font-size: 13px; color: var(--warn); margin-top: 4px; }
-  .fieldnote button { background: none; border: 0; color: var(--brand); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
+  /* pick lists: type to filter; the last line adds a new entry */
+  input.combo { padding-right: 34px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235E6B78' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  .cpanel { position: fixed; z-index: 80; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 34px rgba(31,42,69,.2); overflow: auto; padding: 4px; font-weight: 400; }
+  .cpanel .opt { display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .cpanel .opt small { display: block; color: var(--muted); font-size: 13px; }
+  .cpanel .opt[aria-selected="true"] { background: var(--honeydew); }
+  .cpanel .opt.add { position: sticky; bottom: -4px; background: #fff; border-top: 1px solid var(--line-2); border-radius: 0 0 8px 8px; color: var(--brand); font-weight: 600; margin-top: 2px; }
+  .cpanel .opt.add[aria-selected="true"] { background: var(--brand-soft); }
+  .cpanel .none { padding: 8px 10px; color: var(--muted); font-size: 14px; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); border-radius: var(--r-ctl); padding: 10px 18px; min-height: 46px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; }
   .btn:hover { background: var(--brand-hover); }
   .btn.ghost { background: #fff; color: var(--brand); border-color: var(--line); }
@@ -113,7 +127,7 @@
   @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } .filters .q { grid-column: 1 / -1; } }
 
   /* tiles */
-  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
   .tile:hover { border-color: var(--brand-line); }
   .tile .lb { font-size: 14px; color: var(--muted); font-weight: 600; }
@@ -122,6 +136,36 @@
   .tile.bad { background: var(--bad-soft); border-color: #E8C4C2; } .tile.bad .val { color: var(--bad); }
   .tile.warn { background: var(--warn-soft); border-color: #EBD98A; } .tile.warn .val { color: var(--warn); }
   @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
+  table.list tfoot td { padding: 0; border-top: 1px solid var(--line); }
+  .addrow { display: flex; align-items: center; gap: 10px; width: 100%; background: #F6FBF9; border: 0; padding: 14px 16px; font: inherit; font-size: 15.5px; font-weight: 600; color: var(--brand); cursor: pointer; text-align: left; border-radius: 0 0 var(--r) var(--r); }
+  .addrow:hover { background: var(--brand-soft); }
+  .addrow .plus { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
+  /* data privacy notice */
+  .privacy { display: flex; gap: 12px; align-items: flex-start; border-top: 1px solid var(--line); margin-top: 28px; padding-top: 16px; color: var(--muted); font-size: 13.5px; }
+  .privacy svg { width: 22px; height: 22px; flex: none; stroke: var(--muted); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+  .privacy b { color: var(--head); }
+  .privacy p { margin: 2px 0 0; max-width: 900px; }
+  #lock .privacy, #pub .privacy { border-top-color: rgba(255,255,255,.25); color: rgba(255,255,255,.85); max-width: 640px; margin: 0; }
+  #lock .privacy b, #pub .privacy b { color: #fff; } #lock .privacy svg, #pub .privacy svg { stroke: #fff; }
+  /* job orders */
+  .types { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 6px 18px; }
+  .types h4 { margin: 8px 0 2px; font-size: 13px; letter-spacing: .03em; color: var(--navy); }
+  label.cb { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; padding: 4px 0; cursor: pointer; font-weight: 400; }
+  label.cb input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; }
+  .hist { white-space: pre-line; font-size: 13px; color: var(--muted); background: #F6FBF9; border-radius: 8px; padding: 10px 12px; max-height: 140px; overflow: auto; }
+  /* public pages (no passcode): request ICT help, equipment status from a QR label */
+  #pub { min-height: 100vh; min-height: 100dvh; background: var(--navy) center / cover no-repeat fixed; padding: 0 0 32px; }
+  #pub .pubhead { display: flex; align-items: center; gap: 12px; padding: 14px 18px; color: #fff; max-width: 900px; margin: 0 auto; }
+  #pub .pubhead b { display: block; font-size: 18px; } #pub .pubhead span { font-size: 13px; opacity: .8; }
+  #pub .pubwrap { max-width: 900px; margin: 0 auto; padding: 0 12px; display: flex; flex-direction: column; gap: 14px; }
+  #pub .panel { margin: 0; }
+  .eqhero { display: flex; gap: 14px; align-items: center; }
+  .eqhero .code { font-size: 30px; font-weight: 700; color: var(--navy); letter-spacing: .01em; }
+  /* scanner */
+  .scanbox { position: relative; background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 3; }
+  .scanbox video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scanbox .aim { position: absolute; inset: 18%; border: 3px solid rgba(255,255,255,.85); border-radius: 14px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); }
+
 
   /* tables and lists */
   .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
@@ -247,6 +291,26 @@
   .sheet thead { display: table-header-group; }
   .sheet tr { break-inside: avoid; }
   .pagebreak { break-after: page; }
+  .labels { display: grid; grid-template-columns: repeat(3, 66mm); grid-auto-rows: 35mm; gap: 2mm 3mm; font-family: Arial, Helvetica, sans-serif; color: #000; }
+  .lbl-card { border: .4pt dashed #999; border-radius: 2mm; padding: 2mm; display: flex; gap: 2mm; align-items: center; overflow: hidden; break-inside: avoid; }
+  .lbl-card svg { width: 28mm; height: 28mm; flex: none; }
+  .lbl-card .t { min-width: 0; font-size: 6.5pt; line-height: 1.2; }
+  .lbl-card .t .o { font-weight: bold; font-size: 6pt; letter-spacing: .02em; }
+  .lbl-card .t .id { font-weight: bold; font-size: 13pt; margin: .6mm 0; }
+  .lbl-card .t .s { font-size: 6pt; color: #333; margin-top: .6mm; }
+  .poster { text-align: center; font-family: Arial, Helvetica, sans-serif; color: #000; padding-top: 8mm; }
+  .poster h1 { font-size: 30pt; margin: 8mm 0 2mm; color: #1F2A45; }
+  .poster p { font-size: 14pt; margin: 2mm 0; }
+  .poster svg { width: 110mm; height: 110mm; margin: 8mm auto 4mm; display: block; }
+  .sheet .jo td.lb { font-weight: bold; white-space: nowrap; }
+  .sheet .jo td.sm, .sheet .sm { font-size: 7.4pt; }
+  .sheet .xs { font-size: 6.6pt; }
+  .sheet .jo th.dk { background: #1F2A45; color: #fff; }
+  .sheet .jo td.desc { height: 14mm; }
+  .sheet .jo td.tall { height: 9mm; }
+  .sheet .jo td.sig { height: 11mm; vertical-align: bottom; text-align: center; font-weight: normal; }
+  .sheet .jo .v { font-weight: bold; color: #0b2a6b; }
+  .sheet .fbar { border-top: 1pt solid #1F2A45; margin-top: 2mm; padding-top: 1mm; font-size: 6.6pt; text-align: center; }
   @media print {
     body { background: #fff; }
     body.printing > *:not(#printArea) { display: none !important; }
@@ -270,15 +334,85 @@
     <p class="hint" id="urlToggleWrap"><a href="#" id="urlToggle">Change the Google Sheet link</a></p>
     <div class="ver" id="lockVer"></div>
   </form>
+  <div class="card" style="padding:18px 24px">
+    <p class="s" style="margin:0 0 10px;text-align:left"><b style="color:var(--navy)">Not ICTU?</b> You can still ask for ICT help or check a unit.</p>
+    <div class="row"><a class="btn" href="#request" id="lockReq" style="flex:1">Request ICT help (job order)</a></div>
+    <form class="row" id="lockCodeForm" style="margin-top:10px;flex-wrap:nowrap"><input id="lockCode" placeholder="Equipment code, e.g. ICT-0001" style="margin:0" autocomplete="off"><button class="btn ghost" type="submit">View</button></form>
+  </div>
+  <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+  <div><b>Data privacy notice</b><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173). Only ICTU personnel can open or change the records, and every change is logged. Please do not copy or share the data for any other purpose. For corrections or concerns, please reach the ICT Unit.</p></div></footer>
+</div>
+
+<!-- ============ public pages: request ICT help, equipment status (no passcode) ============ -->
+<div id="pub" class="hidden">
+  <div class="pubhead"><div class="seals"><img class="pDoh" alt="DOH"><img class="pTrc" alt="TRC Dulag"></div>
+    <div style="flex:1;min-width:0"><b>ICT Unit Help Desk</b><span>DOH Treatment and Rehabilitation Center Dulag</span></div>
+    <a class="hbtn" href="#" id="pubIctu">ICTU sign in</a></div>
+  <div class="pubwrap">
+    <!-- equipment status after scanning its QR label -->
+    <div class="panel hidden" id="pubEq"></div>
+    <!-- job order request (Part I of COH-IDN-F-01) -->
+    <form class="hidden" id="reqForm" autocomplete="off" novalidate>
+      <div class="panel">
+        <h3>ICTU Job Order Request <span class="sub">Form COH-IDN-F-01</span></h3>
+        <p class="hint" style="margin:0 0 6px">Fill this in and tap Submit. You get a JO number right away. Print the form or save it as PDF, sign it, and bring or send it to the ICT Unit.</p>
+        <div id="reqEq" class="eqcard hidden" style="margin-top:8px"></div>
+      </div>
+      <div class="panel"><h3>Requestor</h3>
+        <div class="grid">
+          <label class="f"><span class="req">Last name</span><input id="rLn" autocomplete="family-name"></label>
+          <label class="f"><span class="req">First name</span><input id="rFn" autocomplete="given-name"></label>
+          <label class="f">M.I.<input id="rMi" maxlength="3"></label>
+          <label class="f">Position<input id="rPos"></label>
+          <label class="f"><span class="req">Section / unit</span><input id="rUnit" class="combo"></label>
+          <label class="f">Contact / local no.<input id="rContact" type="tel"></label>
+          <label class="f">How are you sending this?<select id="rMode"><option>Walk-in</option><option>Phone</option><option>Chat</option><option>E-mail</option></select></label>
+        </div></div>
+      <div class="panel"><h3>Equipment or system</h3>
+        <div class="grid">
+          <label class="f">Equipment code (on the ICTU sticker)<input id="rEqId" placeholder="ICT-0001"></label>
+          <label class="f">Equipment / system<input id="rEquip" placeholder="e.g. Printer, Desktop PC, TRAIS"></label>
+          <label class="f">Brand / model<input id="rModel" placeholder="e.g. Epson L3210"></label>
+          <label class="f">Property / serial no.<input id="rSerial"></label>
+          <label class="f">Location<input id="rLoc" placeholder="Building / room"></label>
+          <label class="f">Is it urgently needed?<select id="rUrgent"><option value="No">No</option><option value="Yes">Yes, operations stopped or deadline today</option></select></label>
+          <label class="f wide hidden" id="rUrgWrap"><span class="req">Reason it is urgent</span><input id="rUrgReason"></label>
+        </div></div>
+      <div class="panel"><h3>Type of request <span class="sub">check all that apply</span></h3>
+        <p class="hint" style="margin:0 0 4px">Items marked * need the approval of your Section / Unit Head.</p>
+        <div class="types" id="rTypes"></div>
+        <label class="f" style="margin-top:10px">Others (please specify)<input id="rOthers"></label></div>
+      <div class="panel"><h3>Problem or request</h3>
+        <label class="f"><span class="req">Brief description</span><textarea id="rDesc" maxlength="400" placeholder="What happened, any error message, and when it started"></textarea></label>
+        <p class="hint">Short explanation only. ICTU personnel will do the detailed diagnosis.</p>
+        <label class="f" style="margin-top:10px">Section / Unit Head (name, for items marked *)<input id="rHead"></label>
+        <label class="cb" style="margin-top:10px"><input type="checkbox" id="rConsent"> I allow ICTU to access or back up files on the device only as needed for this service (RA 10173, Data Privacy Act).</label>
+        <div class="msg" id="reqMsg" role="status"></div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="reqSend" type="submit">Submit request</button></div></div>
+    </form>
+    <div class="panel hidden" id="reqDone"></div>
+    <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+  <div><b>Data privacy notice</b><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173). Only ICTU personnel can open or change the records, and every change is logged. Please do not copy or share the data for any other purpose. For corrections or concerns, please reach the ICT Unit.</p></div></footer>
+  </div>
 </div>
 
 <!-- ============ app ============ -->
 <div id="app" class="hidden">
 <header class="bar">
-  <div class="org"><img id="hdDoh" alt="DOH"><img id="hdTrc" alt="TRC Dulag"><img class="bp" id="hdBp" alt="Bagong Pilipinas">
-    <div class="t">Republic of the Philippines<b>Department of Health</b><span class="c">TREATMENT AND REHABILITATION CENTER DULAG</span><br>Brgy. Highway, Dulag, Leyte<i>ISO 9001:2015 CERTIFIED | PRIME HRM AGENCY ACCREDITED: RESOLUTION NO. 2501361</i></div></div>
-  <div class="apptitle"><b>ICT Inventory and PMS</b><span>ICT Unit, TRC Dulag</span></div>
-  <div class="who"><span id="syncState"></span><button id="reloadBtn" type="button">Refresh</button><button id="lockOut" type="button">Lock</button></div>
+  <div class="seals"><img id="hdDoh" alt="Department of Health"><img id="hdTrc" alt="TRC Dulag"></div>
+  <div class="apptitle"><b>ICT Inventory and PMS</b><span>ICT Unit, DOH Treatment and Rehabilitation Center Dulag</span></div>
+  <button class="hbtn" id="scanBtn" type="button" title="Scan or type an equipment code"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h3v3H8zM13 13h3v3h-3zM13 9h3M8 15h3"/></svg><span class="lbl">Scan code</span></button>
+  <div class="menu">
+    <button class="hbtn" id="menuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menuPanel"><span class="av">IT</span><span class="mt">ICTU<small id="syncState"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="menupanel hidden" id="menuPanel" role="menu">
+      <div class="mh"><b>ICT Unit</b>Opened with the ICTU passcode</div>
+      <button role="menuitem" id="reloadBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Refresh data</button>
+      <button role="menuitem" id="mScan" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/></svg>Scan or type an equipment code</button>
+      <button role="menuitem" id="mReq" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg>Open the staff request page</button>
+      <hr>
+      <button role="menuitem" id="lockOut" class="danger" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Lock the app</button>
+    </div>
+  </div>
 </header>
 <div class="shell">
   <nav class="tabs" role="tablist" aria-label="Sections">
@@ -286,6 +420,7 @@
     <button role="tab" data-v="inv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>Inventory</button>
     <button role="tab" data-v="sched"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h2M14 14h2M8 17h2"/></svg>PMS Schedule<span class="badge hidden" id="navLate"></span></button>
     <button role="tab" data-v="pm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Do PM</button>
+    <button role="tab" data-v="jo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8 12l2.5 2.5L16 9"/></svg>Job Orders<span class="badge hidden" id="navJo" style="background:var(--brand)"></span></button>
     <button role="tab" data-v="recs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>PM Records</button>
     <button role="tab" data-v="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Reports and Forms</button>
   </nav>
@@ -297,10 +432,16 @@
       <button class="tile" data-go="sched" id="tLateT"><div class="lb">Overdue or never done</div><div class="val" id="tLate">0</div><div class="sm">needs PM now</div></button>
       <button class="tile" data-go="sched" id="tDueT"><div class="lb">Due this month</div><div class="val" id="tDue">0</div><div class="sm" id="tDueS"></div></button>
       <button class="tile" data-go="recs"><div class="lb">PM done this quarter</div><div class="val" id="tDone">0</div><div class="sm" id="tDoneS"></div></button>
+      <button class="tile" data-go="jo" id="tJoT"><div class="lb">Open job orders</div><div class="val" id="tJo">0</div><div class="sm" id="tJoS"></div></button>
     </div>
+
     <div class="panel">
       <h3>Needs PM <span class="sub">overdue first, then this month and the next 30 days</span></h3>
       <div id="homeDue"></div>
+    </div>
+    <div class="panel">
+      <h3>Open job orders <span class="sub">by priority, then the oldest</span></h3>
+      <div id="homeJo"></div>
     </div>
     <div class="panel">
       <h3>Latest PM records</h3>
@@ -315,21 +456,22 @@
     <div class="panel">
       <div class="filters">
         <label class="f q">Search<input id="iQ" type="search" placeholder="Brand, serial, property tag, end user, ID"></label>
-        <label class="f">Office / section<select id="iOffice"></select></label>
+        <label class="f">Section / unit<select id="iOffice"></select></label>
         <label class="f">Equipment type<select id="iType"></select></label>
         <label class="f">Condition<select id="iCond"></select></label>
       </div>
       <div class="row" style="margin-top:12px">
-        <button class="btn" id="addEq" type="button">Add equipment</button>
-        <span class="spacer"></span>
         <span class="hint" id="iCount" style="margin:0"></span>
+        <span class="spacer"></span>
+        <button class="btn ghost small" id="iLabels" type="button">Print QR labels</button>
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
       </div>
     </div>
     <div class="tablewrap"><table class="list" id="iTable"><thead><tr>
-      <th>ID</th><th>Equipment</th><th class="hide-m">Serial no.</th><th class="hide-m">Property tag</th><th>Office / end user</th><th class="hide-m">Condition</th><th>Next PM</th>
-    </tr></thead><tbody></tbody></table></div>
+      <th>ID</th><th>Equipment</th><th class="hide-m">Serial no.</th><th class="hide-m">Property tag</th><th>Section / end user</th><th class="hide-m">Condition</th><th>Next PM</th>
+    </tr></thead><tbody></tbody>
+    <tfoot><tr><td colspan="7"><button class="addrow" id="addEq" type="button"><span class="plus">+</span>Add equipment to the masterlist</button></td></tr></tfoot></table></div>
   </section>
 
   <!-- SCHEDULE -->
@@ -339,7 +481,7 @@
     <div class="panel">
       <div class="filters">
         <label class="f">Year<select id="sYear"></select></label>
-        <label class="f">Office / section<select id="sOffice"></select></label>
+        <label class="f">Section / unit<select id="sOffice"></select></label>
         <label class="f">Equipment type<select id="sType"></select></label>
         <label class="f">Show<select id="sShow"><option value="">All scheduled units</option><option value="late">Overdue only</option><option value="month">Due this month</option></select></label>
       </div>
@@ -379,8 +521,8 @@
             <label class="f"><span class="req">Date</span><input id="pDate" type="date" required></label>
             <label class="f">Time start<input id="pStart" type="time"></label>
             <label class="f">Time end<input id="pEnd" type="time"></label>
-            <div class="addline"><label class="f">Office / section<input id="pOffice" list="dlOffices" autocomplete="off"></label><button class="btn ghost small" type="button" data-addoffice="pOffice">Add office</button></div>
-            <div><div class="addline"><label class="f">End user<input id="pEndUser" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="pEndUser">Add employee</button></div><div class="fieldnote hidden"></div></div>
+            <label class="f">End user<input id="pEndUser" class="combo" data-combo="emp"></label>
+            <label class="f">Section / unit<input id="pOffice" class="combo" data-combo="office"></label>
             <label class="f">Maintenance type<select id="pPmType"><option>Scheduled PM</option><option>Unscheduled / On Request</option></select></label>
             <label class="f">Main work done (for the PM Log)<select id="pActivity"></select></label>
             <label class="f">PM frequency<input id="pFreq" readonly></label>
@@ -432,7 +574,7 @@
           <h3>E. Conforme</h3>
           <div class="grid">
             <label class="f"><span class="req">Performed by (ICT personnel)</span><select id="pBy"></select></label>
-            <div><div class="addline"><label class="f">Acknowledged by (end user)<input id="pAck" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="pAck">Add employee</button></div><div class="fieldnote hidden"></div></div>
+            <label class="f">Acknowledged by (end user)<input id="pAck" class="combo" data-combo="emp"></label>
             <label class="f">Verified by (Head, ICT Unit)<select id="pVer"></select></label>
           </div>
           <p class="hint">The end user may sign below on this phone or tablet (optional). The printed form also has signature lines for signing by hand.</p>
@@ -460,6 +602,29 @@
     </tr></thead><tbody></tbody></table></div>
   </section>
 
+  <!-- JOB ORDERS -->
+  <section class="view hidden" id="v-jo">
+    <h2>Job orders</h2>
+    <p class="lead">ICTU Job Order Log (COH-IDN-F-01, ADM-HIMS-P-03). Requests filed by staff on the request page or from a QR label land here. Click one to work on it.</p>
+    <div class="panel">
+      <div class="filters">
+        <label class="f q">Search<input id="jQ" type="search" placeholder="JO No., name, section, equipment, problem"></label>
+        <label class="f">Show<select id="jShow"><option value="open">Open (not yet closed)</option><option value="late">Open and past target</option><option value="">All job orders</option></select></label>
+        <label class="f">Priority<select id="jPri"><option value="">All priorities</option><option value="none">No priority yet</option></select></label>
+        <label class="f">Month<select id="jMonth"></select></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="newJo" type="button">Log a job order</button>
+        <span class="hint" id="jCount" style="margin:0"></span><span class="spacer"></span>
+        <button class="btn ghost small" id="jPoster" type="button">Print request QR poster</button>
+        <button class="btn ghost small" id="jCsv" type="button">Download for Excel</button>
+      </div>
+    </div>
+    <div class="tablewrap"><table class="list" id="jTable"><thead><tr>
+      <th>JO No.</th><th>Logged</th><th>Requestor / section</th><th class="hide-m">Equipment / problem</th><th>Priority</th><th>Status</th><th class="hide-m">Target</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
   <!-- REPORTS -->
   <section class="view hidden" id="v-reports">
     <h2>Reports and forms</h2>
@@ -479,9 +644,20 @@
       <div class="row" style="margin-top:12px"><button class="btn" id="qPrint" type="button">Print report</button><button class="btn ghost" id="qCsv" type="button">Download the quarter for Excel</button></div>
     </div>
     <div class="panel">
+      <h3>Monthly ICTU Job Order Report <span class="sub">ADM-HIMS-P-03, step 12</span></h3>
+      <div class="grid">
+        <label class="f">Month<select id="mrMonth"></select></label>
+        <label class="f">Prepared by<select id="mrBy"></select></label>
+        <label class="f">Noted by<select id="mrNoted"></select></label>
+        <label class="f wide">Corrective or preventive actions (one per line, leave blank if none)<textarea id="mrCar"></textarea></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="mrPrint" type="button">Print monthly JO report</button></div>
+    </div>
+    <div class="panel">
       <h3>Blank forms and lists</h3>
       <div class="row">
         <button class="btn ghost" id="blankForm" type="button">Print a blank PMS checklist (COH-IDN-F-02)</button>
+        <button class="btn ghost" id="blankJo" type="button">Print a blank job order form (COH-IDN-F-01)</button>
         <button class="btn ghost" id="rPrintInv" type="button">Print the inventory masterlist</button>
         <button class="btn ghost" id="rPrintSched" type="button">Print this year's PMS schedule</button>
         <button class="btn ghost" id="rCsvAll" type="button">Download the whole PM Log for Excel</button>
@@ -492,6 +668,8 @@
       <p class="hint" id="aboutTxt" style="margin:0"></p>
     </div>
   </section>
+  <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+  <div><b>Data privacy notice</b><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173). Only ICTU personnel can open or change the records, and every change is logged. Please do not copy or share the data for any other purpose. For corrections or concerns, please reach the ICT Unit.</p></div></footer>
 </main>
 </div>
 
@@ -504,25 +682,25 @@
     <div class="dh"><h3 id="eqTitle">Equipment</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
     <div class="db">
       <div id="eqView"></div>
-      <div id="eqEdit" class="grid">
+      <div id="eqEdit" class="grid g3">
         <label class="f"><span class="req">Equipment type</span><select id="eType" required></select></label>
         <label class="f"><span class="req">Brand / model</span><input id="eBrand" required></label>
         <label class="f">Serial no.<input id="eSerial"></label>
         <label class="f">Property tag no.<input id="eTag"></label>
-        <label class="f wide">Description / specs<input id="eDesc" placeholder="For example: Core i5, 8 GB RAM, 512 GB SSD"></label>
-        <div class="addline"><label class="f"><span class="req">Office / section</span><input id="eOffice" list="dlOffices" autocomplete="off" required></label><button class="btn ghost small" type="button" data-addoffice="eOffice">Add office</button></div>
-        <div><div class="addline"><label class="f">End user<input id="eEndUser" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="eEndUser">Add employee</button></div><div class="fieldnote hidden"></div></div>
-        <div><div class="addline"><label class="f">Accountable officer (PAR / ICS)<input id="eAcc" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="eAcc">Add employee</button></div><div class="fieldnote hidden"></div></div>
         <label class="f">Source document (RIS / PAR / ICS no.)<input id="eSource"></label>
         <label class="f">Date acquired<input id="eAcq" type="date"></label>
-        <label class="f">Unit cost (PHP)<input id="eCost" inputmode="decimal"></label>
-        <label class="f">Warranty until<input id="eWarr" type="date"></label>
+        <label class="f wide">Description / specs<input id="eDesc" placeholder="For example: Core i5, 8 GB RAM, 512 GB SSD"></label>
+        <label class="f">End user<input id="eEndUser" class="combo" data-combo="emp"></label>
+        <label class="f"><span class="req">Section / unit</span><input id="eOffice" class="combo" data-combo="office" required></label>
+        <label class="f">Accountable officer (PAR / ICS)<input id="eAcc" class="combo" data-combo="emp"></label>
         <label class="f">Computer name / IP<input id="eComp"></label>
         <label class="f">OS installed<input id="eOs" list="dlOs"></label>
         <label class="f">MS Office installed<input id="eMso" list="dlMso"></label>
+        <label class="f">Unit cost (PHP)<input id="eCost" inputmode="decimal"></label>
+        <label class="f">Warranty until<input id="eWarr" type="date"></label>
         <label class="f">PM frequency<select id="eFreq"></select></label>
         <label class="f">Condition<select id="eCond"></select></label>
-        <label class="f wide">Remarks<input id="eRem"></label>
+        <label class="f span2">Remarks<input id="eRem"></label>
       </div>
       <div class="msg" id="eqMsg" role="status"></div>
     </div>
@@ -537,19 +715,92 @@
   <div class="df"><button class="btn danger" id="pmVoid" type="button">Void this record</button><span class="spacer"></span><button class="btn" id="pmPrint" type="button">Print the filled form</button></div>
 </dialog>
 
-<datalist id="dlOffices"></datalist>
-<datalist id="dlEmployees"></datalist>
+<!-- job order dialog (ICTU side) -->
+<dialog id="joDlg">
+  <form id="joForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="joTitle">Job order</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <h4 style="margin:0 0 8px">Part I. Request details</h4>
+      <div class="grid g3">
+        <label class="f"><span class="req">Requestor</span><input id="jName" class="combo" data-combo="emp" placeholder="Type a name"></label>
+        <label class="f">Position<input id="jPos"></label>
+        <label class="f"><span class="req">Section / unit</span><input id="jUnit" class="combo" data-combo="office"></label>
+        <label class="f">Contact / local no.<input id="jContact"></label>
+        <label class="f">Date / time of request<input id="jReqAt" type="datetime-local"></label>
+        <label class="f">Mode of request<select id="jMode"><option>Walk-in</option><option>Phone</option><option>Chat</option><option>E-mail</option></select></label>
+        <label class="f">Equipment code<input id="jEq" class="combo" data-combo="eq" placeholder="ICT-0001, or leave blank"></label>
+        <label class="f">Equipment / system<input id="jEquip"></label>
+        <label class="f">Brand / model<input id="jModel"></label>
+        <label class="f">Property / serial no.<input id="jSerial"></label>
+        <label class="f">Location<input id="jLoc"></label>
+        <label class="f">Urgently needed?<select id="jUrgent"><option value="No">No</option><option value="Yes">Yes</option></select></label>
+        <label class="f wide">Reason it is urgent<input id="jUrgReason"></label>
+      </div>
+      <h4 style="margin:16px 0 4px">Type of request</h4>
+      <div class="types" id="jTypes"></div>
+      <div class="grid g3" style="margin-top:10px">
+        <label class="f wide">Others (please specify)<input id="jOthers"></label>
+        <label class="f wide"><span class="req">Brief description</span><textarea id="jDesc" maxlength="600"></textarea></label>
+        <label class="f">Section / Unit Head<input id="jHead"></label>
+        <label class="cb span2" style="align-self:end;min-height:46px;align-items:center"><input type="checkbox" id="jConsent" style="margin:0"> Data privacy consent given (RA 10173)</label>
+      </div>
+      <h4 style="margin:18px 0 8px">Part II. ICTU assessment and action</h4>
+      <div class="grid g3">
+        <label class="f">Priority<select id="jPriority"><option value="">Not set yet</option><option>P1 - Critical</option><option>P2 - High</option><option>P3 - Normal</option><option>P4 - Planned</option></select></label>
+        <label class="f">Status<select id="jStatus"><option>Received</option><option>In Progress</option><option>On Hold</option><option>Referred</option><option>Resolved</option><option>Resolved - temporary fix</option><option>Beyond Economical Repair</option><option>Cancelled</option></select></label>
+        <label class="f">Received by<select id="jRecvBy"></select></label>
+        <label class="f">Serviced by (ICTU personnel)<select id="jBy"></select></label>
+        <label class="f">Date / time received<input id="jRecvAt" type="datetime-local"></label>
+        <label class="f">Date / time started<input id="jStart" type="datetime-local"></label>
+        <label class="f">Date / time finished<input id="jEnd" type="datetime-local"></label>
+        <label class="f">Classification<select id="jClass"><option value="">Not set</option><option>Simple</option><option>Complex</option><option>Highly Technical</option></select></label>
+        <label class="f">Mode of service<select id="jService"><option value="">Not set</option><option>Remote</option><option>On-site</option><option>Pulled out</option></select></label>
+        <label class="f">Pulled out on<input id="jPulled" type="date"></label>
+        <label class="f">Returned on<input id="jReturned" type="date"></label>
+        <label class="f">Parts used / needed<input id="jParts"></label>
+        <label class="f wide">Findings / cause<textarea id="jFind"></textarea></label>
+        <label class="f wide">Action taken<textarea id="jAction"></textarea></label>
+        <label class="f">PR no. or referred to<input id="jNote" placeholder="Supplier, KMITS or ISP"></label>
+        <label class="f span2">Remarks<input id="jRem"></label>
+      </div>
+      <h4 style="margin:18px 0 8px">Part III. Client feedback <span class="sub" style="font-weight:400;color:var(--muted)">copy from the signed form</span></h4>
+      <div class="grid g3">
+        <label class="f">Speed of service<select id="jCsmS" class="csm"></select></label>
+        <label class="f">Quality of the solution<select id="jCsmQ" class="csm"></select></label>
+        <label class="f">Courtesy of ICTU personnel<select id="jCsmC" class="csm"></select></label>
+        <label class="f wide">Suggestions<input id="jSugg"></label>
+      </div>
+      <div id="joHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="joHist"></div></div>
+      <div class="msg" id="joMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost" type="button" id="joPrint">Print the form</button><span class="spacer"></span><button class="btn" type="button" id="joSave">Save</button></div>
+  </form>
+</dialog>
+
+<!-- scan or type an equipment code -->
+<dialog id="scanDlg" class="small">
+  <form id="scanForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Find equipment by its code</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="scanbox hidden" id="scanBox"><video id="scanVid" playsinline muted></video><div class="aim"></div></div>
+      <p class="hint" id="scanHint"></p>
+      <label class="f">Equipment code<input id="scanCode" placeholder="ICT-0001"></label>
+      <div class="msg" id="scanMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Close</button><button class="btn" type="submit">Open</button></div>
+  </form>
+</dialog>
 
 <!-- add office / add employee -->
 <dialog id="offDlg" class="small">
   <form id="offForm" method="dialog" autocomplete="off">
-    <div class="dh"><h3>Add office</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="dh"><h3>Add a section or unit</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
     <div class="db">
-      <label class="f"><span class="req">Office / unit name</span><input id="oName" required placeholder="For example: Dietary Unit"></label>
-      <p class="hint">Use the full name the office uses in its memos. It is added to the Lists tab of the Sheet and shows in every office list.</p>
+      <label class="f"><span class="req">Section / unit name</span><input id="oName" required placeholder="For example: Dietary Unit"></label>
+      <p class="hint">Use the full name the section uses in its memos. It is added to the Lists tab of the Sheet and shows in every section list.</p>
       <div class="msg" id="offMsg" role="status"></div>
     </div>
-    <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="offSave">Add office</button></div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="offSave">Add section</button></div>
   </form>
 </dialog>
 <dialog id="empDlg" class="small">
@@ -560,7 +811,7 @@
       <div class="grid">
         <label class="f wide"><span class="req">Full name</span><input id="emName" required placeholder="First name, middle initial, surname"></label>
         <label class="f wide">Position<input id="emPos"></label>
-        <label class="f wide"><span class="req">Office / unit</span><input id="emOffice" list="dlOffices" required></label>
+        <label class="f wide"><span class="req">Section / unit</span><input id="emOffice" class="combo" data-combo="office" required></label>
       </div>
       <div class="msg" id="empMsg" role="status"></div>
     </div>
@@ -573,15 +824,21 @@
 
 <div id="printArea"></div>
 
+<script>%%QRCODE_LIB%%</script>
 <script>
 // Paste the /exec URL here so the file works from a PC or web host without typing the link.
 const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyZfBU_2nFesgP3UQRnoyDDf0ZXaLA_psBQwwNGXeuE-1RokPMd4SaEZWSWl7GUD6gDog/exec";
 
+// Where the QR labels point. Scanning one opens this page with #eq=ICT-0001.
+const PUBLIC_URL = "https://trcdulag.github.io/ict-inventory-pms/";
+
 const LOGO_DOH = "%%LOGO_DOH%%";
 const LOGO_TRC = "%%LOGO_TRC%%";
 const LOGO_BP = "%%LOGO_BP%%";
+const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
+const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.2.0";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -599,7 +856,7 @@ const FREQ = { "Monthly": 1, "Quarterly": 3, "Semi-Annual": 6, "Annual": 12 };
 const NOT_SCHEDULED = "Not scheduled (checked with its PC)";
 
 let PIN = store.sget("pin") || "";
-let D = { inventory: [], pms: [], lists: { types: [], offices: [], staff: [], activities: [], conditions: [] }, form: {}, today: "" };
+let D = { inventory: [], pms: [], jos: [], employees: [], masterlist: {}, lists: { types: [], offices: [], staff: [], activities: [], conditions: [] }, form: {}, joForm: {}, today: "" };
 
 // ---------- connection ----------
 function gsUrl() { return (store.get("gsUrl") || DEFAULT_URL).trim(); }
@@ -727,8 +984,10 @@ function applies(item, kinds) { return item[2] === "*" || item[2].split(" ").som
 
 // ---------- start ----------
 function initLock() {
-  $("lock").style.backgroundImage = "linear-gradient(rgba(31,42,69,.35), rgba(31,42,69,.35)), url(" + WALLPAPER + ")";
-  $("hdDoh").src = LOGO_DOH; $("hdTrc").src = LOGO_TRC; $("hdBp").src = LOGO_BP;
+  const wall = "linear-gradient(rgba(31,42,69,.35), rgba(31,42,69,.35)), url(" + WALLPAPER + ")";
+  $("lock").style.backgroundImage = wall; $("pub").style.backgroundImage = "linear-gradient(rgba(31,42,69,.72), rgba(31,42,69,.72)), url(" + WALLPAPER + ")";
+  $("hdDoh").src = SEAL_DOH; $("hdTrc").src = SEAL_TRC;
+  document.querySelectorAll(".pDoh").forEach(i => i.src = SEAL_DOH); document.querySelectorAll(".pTrc").forEach(i => i.src = SEAL_TRC);
   $("lockVer").textContent = "Version " + APP_VERSION;
   $("urlIn").value = gsUrl();
   const needUrl = !GAS && !gsUrl();
@@ -748,22 +1007,54 @@ function initLock() {
     } catch (err) { msg("lockMsg", errText(err), "err"); }
     finally { $("lockBtn").disabled = false; }
   };
+  $("lockCodeForm").onsubmit = e => { e.preventDefault(); const c = codeOf($("lockCode").value); if (c) location.hash = "eq=" + c; else $("lockCode").focus(); };
+  window.addEventListener("hashchange", route);
+  route();
+}
+// Public pages (no passcode) come from the hash: #request, #request&eq=ICT-0001, #eq=ICT-0001.
+let wantEq = "";
+function route() {
+  const h = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+  const eq = (h.match(/(?:^|&)eq=([^&]+)/) || [])[1] || "";
+  if (/^request/.test(h)) return showPublic("request", codeOf(eq));
+  if (/^eq=/.test(h)) {
+    if (PIN && !$("app").classList.contains("hidden")) { const c = codeOf(eq); history.replaceState(null, "", "#inv"); show("inv"); if (byId(c)) openEq(c); return; }
+    if (PIN) { wantEq = codeOf(eq); return showLock(); }
+    return showPublic("eq", codeOf(eq));
+  }
+  if (!$("pub").classList.contains("hidden")) showLock();
+  else if (!$("app").classList.contains("hidden")) { const v = h.split("&")[0]; if (VIEWS.includes(v)) show(v); }
+  else showLock();
+}
+let lockStarted = false;
+function showLock() {
+  $("pub").classList.add("hidden");
+  if (!$("app").classList.contains("hidden")) return;
+  $("lock").classList.remove("hidden");
+  if (lockStarted) return; lockStarted = true;
   if (PIN) { $("pinIn").value = PIN; $("lockForm").requestSubmit(); }
   else $("pinIn").focus();
 }
+// "ict 1", "ICT-0001" or a scanned link -> "ICT-0001"
+function codeOf(t) {
+  const m = String(t || "").toUpperCase().match(/ICT[\s-]*0*(\d{1,6})\b/);
+  return m ? "ICT-" + m[1].padStart(4, "0") : "";
+}
 function msg(id, t, cls) { const el = $(id); el.textContent = t || ""; el.className = "msg" + (cls ? " " + cls : ""); }
 
+const VIEWS = ["home", "inv", "sched", "pm", "recs", "jo", "reports"];
 function openApp(j) {
   take(j);
-  $("lock").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("lock").classList.add("hidden"); $("pub").classList.add("hidden"); $("app").classList.remove("hidden");
   fillPickers();
   renderAll();
   const v = (location.hash || "").replace("#", "");
-  show(["home", "inv", "sched", "pm", "recs", "reports"].includes(v) ? v : "home");
+  if (wantEq) { show("inv"); if (byId(wantEq)) openEq(wantEq); wantEq = ""; return; }
+  show(VIEWS.includes(v) ? v : "home");
 }
 function take(j) {
-  D = { inventory: j.inventory || [], pms: j.pms || [], lists: j.lists, form: j.form || {}, today: j.today || isoDate(new Date()), version: j.version, appUrl: j.appUrl,
-    employees: j.employees || [], masterlist: j.masterlist || {} };
+  D = { inventory: j.inventory || [], pms: j.pms || [], jos: j.jos || [], lists: j.lists, form: j.form || {}, joForm: j.joForm || {}, today: j.today || isoDate(new Date()),
+    version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {} };
   $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 async function reload() {
@@ -771,8 +1062,20 @@ async function reload() {
   try { const j = await api({ action: "load" }); if (j.ok) { take(j); fillPickers(true); renderAll(); } else $("syncState").textContent = j.error; }
   catch (e) { $("syncState").textContent = "Offline, showing the last data"; }
 }
-$("reloadBtn").onclick = reload;
-$("lockOut").onclick = () => { store.sset("pin", null); PIN = ""; location.reload(); };
+// header menu: Refresh, scan, request page, Lock
+function menuOpen(on) { $("menuPanel").classList.toggle("hidden", !on); $("menuBtn").setAttribute("aria-expanded", on ? "true" : "false"); if (on) $("menuPanel").querySelector("button").focus(); }
+$("menuBtn").onclick = e => { e.stopPropagation(); menuOpen($("menuPanel").classList.contains("hidden")); };
+document.addEventListener("click", e => { if (!e.target.closest(".menu")) menuOpen(false); });
+$("menuPanel").addEventListener("keydown", e => {
+  const b = [...$("menuPanel").querySelectorAll("button")], i = b.indexOf(document.activeElement);
+  if (e.key === "Escape") { menuOpen(false); $("menuBtn").focus(); }
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); b[(i + (e.key === "ArrowDown" ? 1 : b.length - 1)) % b.length].focus(); }
+});
+$("reloadBtn").onclick = () => { menuOpen(false); reload(); };
+$("mScan").onclick = () => { menuOpen(false); openScan(); };
+$("scanBtn").onclick = () => openScan();
+$("mReq").onclick = () => { menuOpen(false); window.open(PUBLIC_URL + "#request", "_blank", "noopener"); };
+$("lockOut").onclick = () => { store.sset("pin", null); PIN = ""; location.hash = ""; location.reload(); };
 
 // ---------- navigation ----------
 function show(v) {
@@ -780,7 +1083,7 @@ function show(v) {
   document.querySelectorAll("section.view").forEach(s => s.classList.toggle("hidden", s.id !== "v-" + v));
   $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
   if (v === "pm") setTimeout(sizePad, 30);
-  try { history.replaceState(null, "", "#" + v); } catch (e) {}
+  try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) {}
   window.scrollTo(0, 0);
 }
 document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => show(b.dataset.v));
@@ -792,9 +1095,7 @@ function fillPickers(keep) {
   const offices = officeList();
   const types = [...new Set(L.types.map(t => t[0]).concat(D.inventory.map(i => i.type)).filter(Boolean))];
   const keepVal = (id, html) => { const v = $(id).value; $(id).innerHTML = html; if (keep) $(id).value = v; };
-  $("dlOffices").innerHTML = offices.map(o => "<option>" + esc(o) + "</option>").join("");
-  $("dlEmployees").innerHTML = D.employees.map(e => '<option value="' + esc(e.name) + '">' + esc([e.position, e.office].filter(Boolean).join(", ")) + "</option>").join("");
-  keepVal("iOffice", opts(offices, "All offices")); keepVal("sOffice", opts(offices, "All offices"));
+  keepVal("iOffice", opts(offices, "All sections")); keepVal("sOffice", opts(offices, "All sections"));
   keepVal("iType", opts(types, "All types")); keepVal("sType", opts(types, "All types"));
   keepVal("iCond", '<option value="">In service (all but disposed)</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
   keepVal("eType", opts(L.types.map(t => t[0])));
@@ -804,11 +1105,18 @@ function fillPickers(keep) {
   const staff = L.staff.map(s => s[0]);
   keepVal("pBy", opts(staff, "Pick a name")); keepVal("pVer", opts(staff, "(leave for signing by hand)"));
   keepVal("qBy", opts(staff)); keepVal("qNoted", opts(staff));
+  keepVal("jRecvBy", opts(staff, "Not yet")); keepVal("jBy", opts(staff, "Not yet")); keepVal("mrBy", opts(staff)); keepVal("mrNoted", opts(staff));
+  document.querySelectorAll("select.csm").forEach(sel => keepVal(sel.id, opts(CSM, "Not rated")));
+  const months = [...new Set(D.jos.map(j => j.logged.slice(0, 7)).concat([todayStr().slice(0, 7)]))].filter(Boolean).sort().reverse();
+  keepVal("jMonth", '<option value="">All months</option>' + months.map(m => '<option value="' + m + '">' + monthName(m) + "</option>").join(""));
+  keepVal("mrMonth", months.map(m => '<option value="' + m + '">' + monthName(m) + "</option>").join(""));
+  keepVal("jPri", '<option value="">All priorities</option>' + opts(JO_PRIORITY) + '<option value="none">No priority yet</option>');
   if (!keep) {
     const head = L.staff.find(s => /head/i.test(s[1]));
     if (head) { $("pVer").value = head[0]; $("qNoted").value = head[0]; }
     const other = L.staff.find(s => !/head/i.test(s[1]));
-    if (other) $("qBy").value = other[0];
+    if (other) { $("qBy").value = other[0]; $("mrBy").value = other[0]; }
+    if (head) $("mrNoted").value = head[0];
     $("qPos").value = (L.staff.find(s => s[0] === $("qBy").value) || [])[1] || "";
   }
   const y = new Date().getFullYear();
@@ -819,13 +1127,13 @@ function fillPickers(keep) {
   const qs = [...new Set(D.pms.map(p => p.quarter).filter(Boolean))].sort().reverse();
   keepVal("rQtr", opts(qs, "All quarters"));
   $("aboutTxt").textContent = "Version " + (D.version || "") + ". The PM form follows " + (D.form.code || "COH-IDN-F-02") + " Rev. " + (D.form.rev || "01") +
-    ". Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of offices, equipment types, ICT staff and work types are in the Lists tab of the Sheet. " +
+    " and the job order form follows " + (D.joForm.code || "COH-IDN-F-01") + " Rev. " + (D.joForm.rev || "01") + " (ADM-HIMS-P-03). Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of sections, equipment types, ICT staff and work types are in the Lists tab of the Sheet. " +
     (D.masterlist.found ? "Employee names come from the Masterlist tab (" + D.masterlist.count + " permanent staff) plus " + D.masterlist.added + " added in the app."
       : "No Masterlist tab was found in the Sheet, so only employees added in the app are listed. Paste the HR masterlist into a tab named Masterlist.");
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
-function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); }
+function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); }
 
 // ---------- home ----------
 function renderHome() {
@@ -850,11 +1158,20 @@ function renderHome() {
       <span>${esc(nice(p.date))}, ${esc(p.office)}, by ${esc(p.personnel)}</span></div>${statusChip(p.status)}
       <button class="btn ghost small" data-rec="${esc(p.ref)}" type="button">Open</button></div>`).join("")
     : '<div class="empty">No PM records yet.</div>';
+  const open = D.jos.filter(joOpen).sort(joSort), lateJo = open.filter(joLate);
+  $("tJo").textContent = open.length; $("tJoT").className = "tile" + (lateJo.length ? " bad" : "");
+  $("tJoS").textContent = lateJo.length ? lateJo.length + " past the target time" : "all within target";
+  $("navJo").textContent = open.length; $("navJo").classList.toggle("hidden", !open.length);
+  $("homeJo").innerHTML = open.length ? open.slice(0, 8).map(j => `<div class="due-item"><div class="t"><b>${esc(j.jo)}  ${esc(joWho(j))}, ${esc(j.unit)}</b>
+      <span>${esc(joWhat(j))}${j.equipmentId ? " (" + esc(j.equipmentId) + ")" : ""}. Logged ${esc(niceDt(j.logged))}</span></div>
+      ${priChip(j.priority)} ${joChip(j)}<button class="btn ghost small" data-jo="${esc(j.jo)}" type="button">Open</button></div>`).join("")
+    : '<div class="empty">No open job orders.</div>';
   bindRowButtons($("v-home"));
 }
 function bindRowButtons(root) {
   root.querySelectorAll("[data-pm]").forEach(b => b.onclick = e => { e.stopPropagation(); startPM(b.dataset.pm); });
   root.querySelectorAll("[data-rec]").forEach(b => b.onclick = e => { e.stopPropagation(); openRec(b.dataset.rec); });
+  root.querySelectorAll("[data-jo]").forEach(b => b.onclick = e => { e.stopPropagation(); openJo(b.dataset.jo); });
 }
 
 // ---------- inventory ----------
@@ -890,23 +1207,29 @@ function eqViewMode() {
   const it = eqCur;
   $("eqTitle").textContent = it.id + "  " + it.brand;
   $("eqEdit").classList.add("hidden"); $("eqView").classList.remove("hidden");
-  const hist = pmsOf(it.id);
+  const hist = smHistory(it.id);
   const kv = [["Equipment type", it.type], ["Brand / model", it.brand], ["Description / specs", it.desc], ["Serial no.", it.serial],
-    ["Property tag no.", it.tag], ["Office / section", it.office], ["End user", it.endUser], ["Accountable officer", it.accountable],
+    ["Property tag no.", it.tag], ["Section / unit", it.office], ["End user", it.endUser], ["Accountable officer", it.accountable],
     ["Source document", it.source], ["Date acquired", nice(it.acquired)], ["Unit cost", it.cost ? "PHP " + Number(it.cost).toLocaleString("en-PH", { minimumFractionDigits: 2 }) : ""],
     ["Warranty until", nice(it.warranty)], ["Computer name / IP", it.compName], ["OS installed", it.os], ["MS Office installed", it.msOffice],
     ["PM frequency", it.freq], ["Last PM", it.lastPm ? nice(it.lastPm) + " (" + it.lastRef + ")" : "None yet"], ["Remarks", it.remarks],
     ["Last updated", it.updatedAt ? it.updatedAt + (it.updatedBy ? " by " + it.updatedBy : "") : ""]].filter(r => r[1]);
   $("eqView").innerHTML = `<div class="row" style="margin-bottom:10px">${condChip(it.condition)} ${dueChip(it)}</div>
     <dl class="kv">${kv.map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>
-    <h4 style="margin:16px 0 6px">PM history</h4>
-    ${hist.length ? `<div class="tablewrap"><table class="list"><thead><tr><th>PM Ref. No.</th><th>Date</th><th>Work done</th><th>By</th><th>Status</th></tr></thead><tbody>
-      ${hist.map(p => `<tr data-r="${esc(p.ref)}"><td><b>${esc(p.ref)}</b></td><td>${esc(nice(p.date))}</td><td>${esc(p.activity)}<div class="s">${esc(p.findings === "None" ? "" : p.findings)}</div></td><td>${esc(p.personnel)}</td><td>${statusChip(p.status)}</td></tr>`).join("")}
-      </tbody></table></div>` : '<p class="hint">No PM saved for this unit yet.</p>'}`;
-  $("eqView").querySelectorAll("tr[data-r]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openRec(tr.dataset.r); });
-  $("eqFoot").innerHTML = `<button class="btn ghost" type="button" id="eqEditBtn">Edit details</button><span class="spacer"></span>` +
+    <h4 style="margin:16px 0 6px">Service and maintenance history <span style="font-weight:400;color:var(--muted)">PMs and job orders</span></h4>
+    ${hist.length ? `<div class="tablewrap"><table class="list"><thead><tr><th>Reference</th><th>Date</th><th>Work done or problem</th><th>By</th><th>Status</th></tr></thead><tbody>
+      ${hist.map(h => `<tr data-${h.kind}="${esc(h.ref)}"><td><b>${esc(h.ref)}</b></td><td class="num">${esc(nice(h.date))}</td><td>${esc(h.what)}<div class="s">${esc(h.detail)}</div></td><td>${esc(h.by)}</td><td>${h.chip}</td></tr>`).join("")}
+      </tbody></table></div>` : '<p class="hint">No PM or job order for this unit yet.</p>'}`;
+  $("eqView").querySelectorAll("tr[data-pm]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openRec(tr.dataset.pm); });
+  $("eqView").querySelectorAll("tr[data-jo]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openJo(tr.dataset.jo); });
+  $("eqFoot").innerHTML = `<button class="btn ghost" type="button" id="eqEditBtn">Edit details</button>
+    <button class="btn ghost" type="button" id="eqQrBtn">Print QR label</button><button class="btn ghost" type="button" id="eqSmBtn">Print S&amp;M history</button><span class="spacer"></span>
+    <button class="btn ghost" type="button" id="eqJoBtn">New job order</button>` +
     (it.condition !== "Disposed" ? `<button class="btn" type="button" id="eqPmBtn">Start PM</button>` : "");
   $("eqEditBtn").onclick = eqEditMode;
+  $("eqQrBtn").onclick = () => printLabels([it]);
+  $("eqSmBtn").onclick = () => printSm(it);
+  $("eqJoBtn").onclick = () => { $("eqDlg").close(); openJo(null, it.id); };
   if ($("eqPmBtn")) $("eqPmBtn").onclick = () => { $("eqDlg").close(); startPM(it.id); };
 }
 function eqEditMode() {
@@ -917,7 +1240,6 @@ function eqEditMode() {
     eAcc: it.accountable, eSource: it.source, eAcq: it.acquired, eCost: it.cost, eWarr: it.warranty, eComp: it.compName, eOs: it.os,
     eMso: it.msOffice, eFreq: it.freq || defFreq(it.type), eCond: it.condition, eRem: it.remarks };
   Object.keys(f).forEach(k => $(k).value = f[k] == null ? "" : f[k]);
-  clearNotes($("eqEdit"));
   $("eqFoot").innerHTML = (eqCur ? `<button class="btn ghost" type="button" id="eqBack">Back</button>` : "") +
     `<span class="spacer"></span><button class="btn" type="button" id="eqSave">${eqCur ? "Save changes" : "Add to masterlist"}</button>`;
   if ($("eqBack")) $("eqBack").onclick = () => { msg("eqMsg", ""); eqViewMode(); };
@@ -931,7 +1253,7 @@ async function saveEq() {
     desc: $("eDesc").value, office: $("eOffice").value, endUser: $("eEndUser").value, accountable: $("eAcc").value, source: $("eSource").value,
     acquired: $("eAcq").value, cost: $("eCost").value, warranty: $("eWarr").value, compName: $("eComp").value, os: $("eOs").value,
     msOffice: $("eMso").value, freq: $("eFreq").value, condition: $("eCond").value, remarks: $("eRem").value };
-  if (!item.brand.trim() || !item.office.trim()) { msg("eqMsg", "Brand / model and office / section are needed.", "err"); return; }
+  if (!item.brand.trim() || !item.office.trim()) { msg("eqMsg", "Brand / model and section / unit are needed.", "err"); return; }
   if (item.condition === "Disposed" && eqCur && eqCur.condition !== "Disposed" &&
       !confirm("Mark " + eqCur.id + " as Disposed? It stays in the records but leaves the masterlist and the PMS schedule.")) return;
   $("eqSave").disabled = true; msg("eqMsg", "Saving…");
@@ -947,8 +1269,8 @@ async function saveEq() {
 }
 document.querySelectorAll("dialog [data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
 
-// ---------- offices and employees (masterlist in the Sheet, plus ones added here) ----------
-const key = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+// ---------- sections and employees (masterlist in the Sheet, plus ones added here) ----------
+const key = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 function officeList() {
   const seen = {}, out = [];
   D.lists.offices.concat(D.employees.map(e => e.office), D.inventory.map(i => i.office)).forEach(o => {
@@ -956,28 +1278,92 @@ function officeList() {
   return out.sort((a, b) => a.localeCompare(b));
 }
 function findEmp(name) { const k = key(name); return k ? D.employees.find(e => key(e.name) === k) : null; }
-// The office field that goes with an employee field, filled in when it is still blank.
-const EMP_OFFICE = { eEndUser: "eOffice", pEndUser: "pOffice" };
-function checkEmp(input) {
-  const note = input.closest(".addline").parentElement.querySelector(".fieldnote");
-  const v = input.value.trim(), e = findEmp(v);
-  if (e && e.name !== v) input.value = e.name;
-  if (e && EMP_OFFICE[input.id] && !$(EMP_OFFICE[input.id]).value.trim()) $(EMP_OFFICE[input.id]).value = e.office;
-  const show = v && !e;
-  note.classList.toggle("hidden", !show);
-  if (show) {
-    note.innerHTML = 'Not on the employee list. <button type="button">Add ' + esc(v) + ' as an employee</button>';
-    note.querySelector("button").onclick = () => openEmp(input.id);
+
+// A pick list on a text box: type to filter, arrows and Enter to choose, and the last line adds a new entry.
+function combo(input, cfg) {
+  const panel = document.createElement("div");
+  panel.className = "cpanel hidden"; panel.setAttribute("role", "listbox"); panel.id = input.id + "List";
+  input.closest("label").after(panel);
+  input.setAttribute("role", "combobox"); input.setAttribute("aria-autocomplete", "list"); input.setAttribute("aria-controls", panel.id);
+  input.setAttribute("aria-expanded", "false"); input.autocomplete = "off";
+  let rows = [], act = -1, isOpen = false;
+  const words = t => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  function render() {
+    const q = words(input.value).trim().split(/[\s,.]+/).filter(Boolean);
+    const all = cfg.source();
+    const hit = all.filter(r => { const t = words(r.value + " " + (r.sub || "")); return q.every(w => t.includes(w)); });
+    rows = hit.slice(0, 80);
+    const typed = input.value.trim(), exact = all.some(r => key(r.value) === key(typed));
+    if (cfg.add) rows.push({ add: true, label: cfg.add(typed, exact) });
+    panel.innerHTML = (hit.length ? "" : `<div class="none">${typed ? "Nothing on the list matches." : "The list is empty."}</div>`) +
+      rows.map((r, i) => `<button type="button" tabindex="-1" class="opt${r.add ? " add" : ""}" role="option" data-i="${i}" aria-selected="${i === act}">${r.add ? esc(r.label) : esc(r.value) + (r.sub ? "<small>" + esc(r.sub) + "</small>" : "")}</button>`).join("");
   }
+  function place() {
+    const r = input.getBoundingClientRect(), below = innerHeight - r.bottom, up = below < 220 && r.top > below;
+    panel.style.left = r.left + "px"; panel.style.width = Math.max(r.width, 260) + "px";
+    panel.style.top = up ? "" : r.bottom + 4 + "px"; panel.style.bottom = up ? innerHeight - r.top + 4 + "px" : "";
+    panel.style.maxHeight = Math.min(320, (up ? r.top : below) - 12) + "px";
+  }
+  function open() { act = input.value.trim() ? 0 : -1; render(); place(); panel.classList.remove("hidden"); isOpen = true; input.setAttribute("aria-expanded", "true"); }
+  function close() { panel.classList.add("hidden"); isOpen = false; input.setAttribute("aria-expanded", "false"); }
+  function choose(i) {
+    const r = rows[i]; if (!r) return;
+    close();
+    if (r.add) { cfg.onAdd(input.value.trim()); return; }
+    input.value = r.value;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+  function move(d) {
+    if (!isOpen) open();
+    act = Math.max(0, Math.min(rows.length - 1, act + d));
+    panel.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-selected", +b.dataset.i === act ? "true" : "false"));
+    const el = panel.querySelector('.opt[data-i="' + act + '"]'); if (el) el.scrollIntoView({ block: "nearest" });
+  }
+  input.addEventListener("focus", open);
+  input.addEventListener("click", () => { if (!isOpen) open(); });
+  input.addEventListener("input", open);
+  input.addEventListener("blur", () => setTimeout(close, 150));
+  input.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); move(1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+    else if (e.key === "Enter" && isOpen && act >= 0) { e.preventDefault(); choose(act); }
+    else if (e.key === "Escape" && isOpen) { e.preventDefault(); e.stopPropagation(); close(); }
+  });
+  panel.addEventListener("mousedown", e => e.preventDefault());
+  panel.addEventListener("click", e => { const b = e.target.closest(".opt"); if (b) choose(+b.dataset.i); });
+  window.addEventListener("scroll", () => { if (isOpen) place(); }, true);
+  window.addEventListener("resize", () => { if (isOpen) place(); });
 }
-document.querySelectorAll("input[data-emp]").forEach(i => i.addEventListener("change", () => checkEmp(i)));
-function clearNotes(root) { root.querySelectorAll(".fieldnote").forEach(n => n.classList.add("hidden")); }
+const officeRows = () => (D.lists.offices.length ? officeList() : (PUB.offices || [])).map(o => ({ value: o }));
+document.querySelectorAll('input[data-combo="office"]').forEach(i => combo(i, { source: officeRows,
+  add: (t, exact) => t && !exact ? '+ Add "' + t + '" as a new section' : "+ Add a new section or unit",
+  onAdd: t => openOffice(i.id, t) }));
+document.querySelectorAll('input[data-combo="emp"]').forEach(i => combo(i, {
+  source: () => D.employees.map(e => ({ value: e.name, sub: [e.position, e.office].filter(Boolean).join(", ") })),
+  add: (t, exact) => t && !exact ? '+ Add "' + t + '" as a new employee' : "+ Add an employee who is not on the list",
+  onAdd: t => openEmp(i.id, t) }));
+document.querySelectorAll('input[data-combo="eq"]').forEach(i => combo(i, {
+  source: () => D.inventory.filter(active).map(it => ({ value: it.id, sub: eqName(it) + ", " + it.office + (it.endUser ? ", " + it.endUser : "") })) }));
+combo($("rUnit"), { source: officeRows });
+
+// Picking an employee sets the section / unit (and position) to where that employee is assigned.
+// ICTU can still change the section afterwards.
+const EMP_OFFICE = { eEndUser: "eOffice", pEndUser: "pOffice", jName: "jUnit" };
+const EMP_POS = { jName: "jPos" };
+function applyEmp(input) {
+  const e = findEmp(input.value.trim());
+  if (!e) return;
+  input.value = e.name;
+  if (EMP_OFFICE[input.id] && e.office) $(EMP_OFFICE[input.id]).value = e.office;
+  if (EMP_POS[input.id] && e.position) $(EMP_POS[input.id]).value = e.position;
+}
+document.querySelectorAll('input[data-combo="emp"]').forEach(i => i.addEventListener("change", () => applyEmp(i)));
 
 let offTarget = null, empTarget = null;
-document.querySelectorAll("[data-addoffice]").forEach(b => b.onclick = () => {
-  offTarget = b.dataset.addoffice; const v = $(offTarget).value.trim();
+function openOffice(target, typed) {
+  offTarget = target; const v = (typed || "").trim();
   $("oName").value = v && !officeList().some(o => key(o) === key(v)) ? v : ""; msg("offMsg", ""); $("offDlg").showModal(); $("oName").focus();
-});
+}
 $("offForm").onsubmit = async ev => {
   ev.preventDefault();
   const name = $("oName").value.trim(); if (!name) return;
@@ -993,9 +1379,8 @@ $("offForm").onsubmit = async ev => {
   } catch (e) { msg("offMsg", errText(e), "err"); }
   finally { $("offSave").disabled = false; }
 };
-document.querySelectorAll("[data-addemp]").forEach(b => b.onclick = () => openEmp(b.dataset.addemp));
-function openEmp(target) {
-  empTarget = target; const v = $(target).value.trim();
+function openEmp(target, typed) {
+  empTarget = target; const v = (typed || "").trim();
   $("emName").value = v && !findEmp(v) ? v : ""; $("emPos").value = "";
   $("emOffice").value = EMP_OFFICE[target] ? $(EMP_OFFICE[target]).value : "";
   msg("empMsg", ""); $("empDlg").showModal(); ($("emName").value ? $("emPos") : $("emName")).focus();
@@ -1003,15 +1388,15 @@ function openEmp(target) {
 $("empForm").onsubmit = async ev => {
   ev.preventDefault();
   const emp = { name: $("emName").value.trim(), position: $("emPos").value.trim(), office: $("emOffice").value.trim() };
-  if (!emp.name || !emp.office) { msg("empMsg", "Name and office are needed.", "err"); return; }
+  if (!emp.name || !emp.office) { msg("empMsg", "Name and section are needed.", "err"); return; }
   const have = findEmp(emp.name);
-  if (have) { if (empTarget) { $(empTarget).value = have.name; checkEmp($(empTarget)); } msg("empMsg", have.name + " is already on the list, so they were picked for you.", "ok"); setTimeout(() => $("empDlg").close(), 900); return; }
+  if (have) { if (empTarget) { $(empTarget).value = have.name; applyEmp($(empTarget)); } msg("empMsg", have.name + " is already on the list, so they were picked for you.", "ok"); setTimeout(() => $("empDlg").close(), 900); return; }
   $("empSave").disabled = true; msg("empMsg", "Saving…");
   try {
     const j = await api({ action: "addEmployee", employee: emp, by: $("pBy").value || "ICTU" });
     if (!j.ok) { msg("empMsg", j.error, "err"); return; }
     D.employees.push(j.employee); if (j.newOffice) D.lists.offices.push(j.newOffice); fillPickers(true);
-    if (empTarget) { $(empTarget).value = j.employee.name; checkEmp($(empTarget)); }
+    if (empTarget) { $(empTarget).value = j.employee.name; applyEmp($(empTarget)); }
     $("empDlg").close();
   } catch (e) { msg("empMsg", errText(e), "err"); }
   finally { $("empSave").disabled = false; }
@@ -1083,7 +1468,7 @@ function pickPM(id) {
   $("pmSelT").textContent = it.id + "  " + eqName(it);
   $("pmSelS").textContent = [it.office, it.endUser, it.serial ? "S/N " + it.serial : "", it.tag ? "Tag " + it.tag : ""].filter(Boolean).join(", ");
   $("pDate").value = todayStr(); $("pStart").value = nowTime(); $("pEnd").value = "";
-  $("pOffice").value = it.office; $("pEndUser").value = it.endUser; $("pAck").value = it.endUser; clearNotes($("pmBody"));
+  $("pOffice").value = it.office; $("pEndUser").value = it.endUser; $("pAck").value = it.endUser;
   $("pPmType").value = "Scheduled PM"; $("pActivity").value = kindOf(it.type).includes("printer") ? "Print Test" : "Cleaning";
   if (!$("pActivity").value) $("pActivity").selectedIndex = 0;
   $("pFreq").value = it.freq;
@@ -1279,6 +1664,258 @@ $("pmVoid").onclick = async () => {
   } catch (e) { msg("pmDlgMsg", errText(e), "err"); }
 };
 
+// ---------- job orders (COH-IDN-F-01, ADM-HIMS-P-03) ----------
+const JO_TYPES = [
+  ["HARDWARE", ["Computer / laptop troubleshooting", "Printer / scanner problem", "Monitor / keyboard / mouse / peripherals", "UPS / AVR / power problem", "Set-up / installation of new equipment"]],
+  ["SOFTWARE & SYSTEMS", ["OS / software installation or error", "Information system (TRAIS, MAIS, ARTEMIS, Intranet, others)", "Account access / password reset", "New user account / access request*", "E-mail concern"]],
+  ["NETWORK", ["No internet / slow connection", "Wi-Fi access", "LAN / cabling / network point", "Data backup / file recovery", "Virus / malware / suspicious e-mail"]],
+  ["ICTU SERVICES", ["Data request / report generation*", "ID printing", "Layout / design / publication posting*", "Technical support for event / meeting", "Technical evaluation (specs / condemnation)"]]
+];
+const JO_PRIORITY = ["P1 - Critical", "P2 - High", "P3 - Normal", "P4 - Planned"];
+const JO_CLOSED = ["Resolved", "Resolved - temporary fix", "Beyond Economical Repair", "Cancelled"];
+const CSM = ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"];
+function typeBoxes(el, prefix) {
+  el.innerHTML = JO_TYPES.map((g, gi) => `<div><h4>${esc(g[0])}</h4>` + g[1].map((t, ti) =>
+    `<label class="cb"><input type="checkbox" id="${prefix}${gi}_${ti}" value="${esc(t)}"> <span>${esc(t.replace(/\*$/, ""))}${/\*$/.test(t) ? ' <b style="color:var(--bad)">*</b>' : ""}</span></label>`).join("") + "</div>").join("");
+}
+typeBoxes($("jTypes"), "jt"); typeBoxes($("rTypes"), "rt");
+const checkedTypes = el => [...el.querySelectorAll("input:checked")].map(i => i.value);
+const setTypes = (el, list) => el.querySelectorAll("input").forEach(i => i.checked = (list || []).includes(i.value));
+
+function joOpen(j) { return !JO_CLOSED.includes(j.status); }
+function dtOf(t) { const m = String(t || "").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : null; }
+function joLate(j) { const t = dtOf(j.target); return joOpen(j) && t && t < new Date(); }
+function joSort(a, b) { return (a.priority || "P9").localeCompare(b.priority || "P9") || (a.logged < b.logged ? -1 : 1); }
+function joWho(j) { return [j.firstName, j.mi ? j.mi.replace(/\.?$/, ".") : "", j.lastName].filter(Boolean).join(" "); }
+function joWhat(j) { return j.description || (j.types || []).join(", ") || j.others; }
+function niceDt(t) { const d = dtOf(t); if (!d) return nice(t); let h = d.getHours(); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " " + h + ":" + String(d.getMinutes()).padStart(2, "0") + " " + ap; }
+function monthName(m) { const [y, mo] = m.split("-"); return MONTHS_LONG[+mo - 1] + " " + y; }
+function priChip(p) { if (!p) return '<span class="chip mute">No priority</span>'; const c = { P1: "bad", P2: "warn", P3: "", P4: "mute" }[p.slice(0, 2)]; return '<span class="chip ' + c + '">' + esc(p.slice(0, 2)) + "</span>"; }
+function joChip(j) {
+  const c = { "Received": "", "In Progress": "", "On Hold": "warn", "Referred": "warn", "Resolved": "ok", "Resolved - temporary fix": "ok", "Beyond Economical Repair": "bad", "Cancelled": "mute" }[j.status];
+  return '<span class="chip ' + (c == null ? "" : c) + '">' + esc(j.status) + "</span>" + (joLate(j) ? ' <span class="chip bad">Past target</span>' : "");
+}
+function toLocalInput(t) { return String(t || "").replace(" ", "T").slice(0, 16); }
+
+function joFiltered() {
+  const q = $("jQ").value.trim().toLowerCase(), sh = $("jShow").value, pr = $("jPri").value, mo = $("jMonth").value;
+  return D.jos.filter(j => (sh === "open" ? joOpen(j) : sh === "late" ? joLate(j) : true) &&
+    (!pr || (pr === "none" ? !j.priority : j.priority === pr)) && (!mo || j.logged.slice(0, 7) === mo) &&
+    (!q || [j.jo, joWho(j), j.unit, j.equipment, j.model, j.serial, j.equipmentId, j.description, j.others, (j.types || []).join(" "), j.findings, j.action].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => sh === "open" ? joSort(a, b) : (a.jo < b.jo ? 1 : -1));
+}
+function renderJo() {
+  const list = joFiltered();
+  $("jCount").textContent = list.length + " of " + D.jos.length + " job orders";
+  $("jTable").tBodies[0].innerHTML = list.length ? list.map(j => `<tr data-j="${esc(j.jo)}">
+    <td><b>${esc(j.jo)}</b></td><td class="num">${esc(niceDt(j.logged))}</td>
+    <td>${esc(joWho(j))}<div class="s">${esc(j.unit)}</div></td>
+    <td class="hide-m">${esc([j.equipmentId, j.equipment, j.model].filter(Boolean).join(", "))}<div class="s">${esc(joWhat(j).slice(0, 110))}</div></td>
+    <td>${priChip(j.priority)}</td><td>${joChip(j)}</td><td class="hide-m num">${esc(j.withinTarget ? (j.withinTarget === "Yes" ? "Met" : "Missed") : niceDt(j.target))}</td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">No job orders match.</td></tr>';
+  $("jTable").querySelectorAll("tbody tr[data-j]").forEach(tr => tr.onclick = () => openJo(tr.dataset.j));
+}
+["jQ", "jShow", "jPri", "jMonth"].forEach(id => $(id).addEventListener("input", renderJo));
+$("newJo").onclick = () => openJo(null);
+$("jPoster").onclick = printPoster;
+$("joForm").onsubmit = e => e.preventDefault();
+$("eqForm").addEventListener("submit", e => e.preventDefault());
+
+let joCur = null;
+const JO_FIELDS = { jPos: "position", jUnit: "unit", jContact: "contact", jMode: "mode", jEq: "equipmentId", jEquip: "equipment", jModel: "model",
+  jSerial: "serial", jLoc: "location", jUrgent: "urgent", jUrgReason: "urgentReason", jOthers: "others", jDesc: "description", jHead: "unitHead",
+  jPriority: "priority", jStatus: "status", jRecvBy: "receivedBy", jBy: "personnel", jClass: "classification", jService: "service",
+  jFind: "findings", jAction: "action", jParts: "parts", jNote: "statusNote", jRem: "remarks", jCsmS: "csmSpeed", jCsmQ: "csmQuality", jCsmC: "csmCourtesy", jSugg: "suggestions" };
+// eqId: start a new job order for this unit
+function openJo(no, eqId) {
+  joCur = no ? D.jos.find(j => j.jo === no) : null;
+  if (no && !joCur) return;
+  const j = joCur || { mode: "Walk-in", urgent: "No", status: "Received", requestedAt: "", types: [] };
+  Object.keys(JO_FIELDS).forEach(k => $(k).value = j[JO_FIELDS[k]] == null ? "" : j[JO_FIELDS[k]]);
+  $("jName").value = joCur ? joWho(j) : "";
+  $("jReqAt").value = toLocalInput(j.requestedAt) || (joCur ? "" : isoDate(new Date()) + "T" + nowTime());
+  $("jRecvAt").value = toLocalInput(j.receivedAt); $("jStart").value = toLocalInput(j.startedAt); $("jEnd").value = toLocalInput(j.finishedAt);
+  $("jPulled").value = String(j.pulledOut || "").slice(0, 10); $("jReturned").value = String(j.returnedOn || "").slice(0, 10);
+  $("jConsent").checked = !!j.consent; setTypes($("jTypes"), j.types);
+  if (!joCur && eqId) { $("jEq").value = eqId; fillJoEq(); }
+  if (!$("jStatus").value) $("jStatus").value = "Received";
+  $("joTitle").textContent = joCur ? j.jo + "  " + joWho(j) : "Log a job order";
+  $("joHistWrap").classList.toggle("hidden", !joCur);
+  $("joHist").textContent = joCur ? (j.history || "") + (j.target ? "\nTarget: " + niceDt(j.target) + (j.withinTarget ? (j.withinTarget === "Yes" ? ", met" : ", missed") : "") : "") : "";
+  $("joPrint").classList.toggle("hidden", !joCur);
+  msg("joMsg", "");
+  $("joDlg").showModal();
+  (joCur ? $("jPriority") : $("jName")).focus();
+}
+// The equipment code fills in the equipment fields from the masterlist.
+function fillJoEq() {
+  const it = byId(codeOf($("jEq").value)); if (!it) return;
+  $("jEq").value = it.id; $("jEquip").value = it.type; $("jModel").value = it.brand;
+  $("jSerial").value = [it.tag, it.serial].filter(Boolean).join(" / "); $("jLoc").value = it.office;
+  if (!$("jUnit").value) $("jUnit").value = it.office;
+}
+$("jEq").addEventListener("change", fillJoEq);
+// "Juan P. Dela Cruz" or "DELA CRUZ, Juan P." -> last, first, middle initial
+function splitPerson(t) {
+  t = String(t || "").replace(/\s+/g, " ").trim();
+  if (t.includes(",")) { const [l, r] = t.split(/,(.+)/); const w = r.trim().split(" "); const mi = w.length > 1 && /^[A-Za-zÑñ]\.?$/.test(w[w.length - 1]) ? w.pop() : ""; return { lastName: l.trim(), firstName: w.join(" "), mi: mi.replace(".", "") }; }
+  const w = t.split(" "); if (w.length < 2) return { lastName: t, firstName: "", mi: "" };
+  const suf = /^(jr|sr|ii|iii|iv)\.?$/i.test(w[w.length - 1]) ? " " + w.pop() : "";
+  let last = w.pop();
+  while (w.length > 1 && /^(dela|del|de|delos|de los|san|sta|santa|la|van|von)$/i.test(w[w.length - 1])) last = w.pop() + " " + last;
+  const mi = w.length > 1 && /^[A-Za-zÑñ]\.?$/.test(w[w.length - 1]) ? w.pop().replace(".", "") : "";
+  return { lastName: last + suf, firstName: w.join(" "), mi };
+}
+$("joSave").onclick = async () => {
+  const jo = {}; Object.keys(JO_FIELDS).forEach(k => jo[JO_FIELDS[k]] = $(k).value.trim());
+  Object.assign(jo, splitPerson($("jName").value), { requestedAt: $("jReqAt").value, receivedAt: $("jRecvAt").value, startedAt: $("jStart").value,
+    finishedAt: $("jEnd").value, pulledOut: $("jPulled").value, returnedOn: $("jReturned").value, consent: $("jConsent").checked,
+    types: checkedTypes($("jTypes")), equipmentId: codeOf($("jEq").value) || "" });
+  if (joCur) jo.jo = joCur.jo;
+  if (!jo.lastName || !jo.unit || !jo.description) { msg("joMsg", "The requestor, the section / unit and the brief description are needed.", "err"); return; }
+  if ($("jEq").value.trim() && !byId(jo.equipmentId)) { msg("joMsg", "The equipment code " + $("jEq").value + " is not in the masterlist.", "err"); return; }
+  let markUnserviceable = false;
+  if (jo.status === "Beyond Economical Repair" && jo.equipmentId && (!joCur || joCur.status !== jo.status)) {
+    const it = byId(jo.equipmentId);
+    markUnserviceable = it && it.condition !== "Unserviceable" && confirm("Mark " + it.id + " as Unserviceable? It leaves the PMS schedule but stays in the masterlist until it is disposed.");
+  }
+  $("joSave").disabled = true; msg("joMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveJO", jo, markUnserviceable, by: $("jBy").value || $("jRecvBy").value || $("pBy").value || "ICTU" });
+    if (!j.ok) { msg("joMsg", j.error, "err"); return; }
+    const k = D.jos.findIndex(x => x.jo === j.jo.jo);
+    if (k >= 0) D.jos[k] = j.jo; else D.jos.push(j.jo);
+    if (j.item) { const i = D.inventory.findIndex(x => x.id === j.item.id); if (i >= 0) D.inventory[i] = j.item; }
+    fillPickers(true); renderAll();
+    joCur = j.jo; $("joTitle").textContent = j.jo.jo + "  " + joWho(j.jo); $("joPrint").classList.remove("hidden");
+    $("joHistWrap").classList.remove("hidden"); $("joHist").textContent = j.jo.history || "";
+    msg("joMsg", j.unchanged ? "Nothing was changed." : (k >= 0 ? "Saved." : "Logged as " + j.jo.jo + "."), "ok");
+  } catch (e) { msg("joMsg", errText(e), "err"); }
+  finally { $("joSave").disabled = false; }
+};
+$("joPrint").onclick = () => { if (joCur) doPrint(joFormHtml(joCur), false); };
+$("blankJo").onclick = () => doPrint(joFormHtml(null), false);
+$("jCsv").onclick = () => csv("ICTU JO Log " + todayStr() + ".csv",
+  ["JO No.", "Date/Time Logged", "Status", "Priority", "Requestor", "Position", "Section / Unit", "Mode of Request", "Equipment ID", "Equipment / System", "Brand / Model",
+   "Property / Serial No.", "Type(s) of Request", "Others", "Brief Description", "Received By", "ICTU Personnel", "Date/Time Finished", "Target", "Within Target?",
+   "Classification", "Mode of Service", "Findings / Cause", "Action Taken", "Parts Used / Needed", "Status Note", "CSM Speed", "CSM Quality", "CSM Courtesy", "Suggestions"],
+  joFiltered().map(j => [j.jo, j.logged, j.status, j.priority, joWho(j), j.position, j.unit, j.mode, j.equipmentId, j.equipment, j.model, j.serial, (j.types || []).join("; "),
+    j.others, j.description, j.receivedBy, j.personnel, j.finishedAt, j.target, j.withinTarget, j.classification, j.service, j.findings, j.action, j.parts, j.statusNote,
+    j.csmSpeed, j.csmQuality, j.csmCourtesy, j.suggestions]));
+
+// PMs and job orders of one unit, newest first (the ICT Equipment S&M History of ADM-HIMS-P-03).
+function smHistory(id) {
+  return pmsOf(id).map(p => ({ kind: "pm", ref: p.ref, date: p.date, what: "PM: " + p.activity, detail: p.findings === "None" ? "" : p.findings, by: p.personnel, chip: statusChip(p.status), action: p.action, status: p.status }))
+    .concat(D.jos.filter(j => j.equipmentId === id).map(j => ({ kind: "jo", ref: j.jo, date: j.logged.slice(0, 10), what: "Job order: " + joWhat(j).slice(0, 90),
+      detail: [j.findings, j.action].filter(Boolean).join(". "), by: j.personnel || j.receivedBy, chip: joChip(j), action: j.action, status: j.status })))
+    .sort((a, b) => a.date < b.date ? 1 : -1);
+}
+
+// ---------- public pages: request ICT help, equipment status from a QR label ----------
+let PUB = {};
+async function showPublic(kind, eq) {
+  $("lock").classList.add("hidden"); $("app").classList.add("hidden"); $("pub").classList.remove("hidden");
+  ["pubEq", "reqForm", "reqDone"].forEach(id => $(id).classList.add("hidden"));
+  window.scrollTo(0, 0);
+  if (kind === "eq") return pubEquipment(eq);
+  $("reqForm").classList.remove("hidden"); msg("reqMsg", "");
+  $("rEqId").value = eq || "";
+  $("reqEq").classList.add("hidden");
+  if (eq) pubLookup(eq);
+  if (!PUB.offices) { try { const j = await api({ action: "publicInit" }); if (j.ok) PUB = j; } catch (e) {} }
+}
+async function pubLookup(code) {
+  code = codeOf(code); if (!code) return;
+  try {
+    const j = await api({ action: "eqInfo", id: code });
+    if (!j.ok) { $("reqEq").classList.add("hidden"); return; }
+    const it = j.item;
+    $("rEqId").value = it.id; if (!$("rEquip").value) $("rEquip").value = it.type; if (!$("rModel").value) $("rModel").value = it.brand;
+    if (!$("rUnit").value) $("rUnit").value = it.office; if (!$("rLoc").value) $("rLoc").value = it.office;
+    $("reqEq").innerHTML = `<div class="t"><b>${esc(it.id)}  ${esc(it.brand)}</b><span>${esc(it.type)}, ${esc(it.office)}</span></div>`;
+    $("reqEq").classList.remove("hidden");
+  } catch (e) {}
+}
+$("rEqId").addEventListener("change", () => pubLookup($("rEqId").value));
+$("rUrgent").onchange = () => $("rUrgWrap").classList.toggle("hidden", $("rUrgent").value !== "Yes");
+async function pubEquipment(code) {
+  const box = $("pubEq"); box.classList.remove("hidden");
+  if (!code) { box.innerHTML = '<p>That is not an equipment code. Codes look like ICT-0001.</p>'; return; }
+  box.innerHTML = '<p class="hint">Looking up ' + esc(code) + "…</p>";
+  try {
+    const j = await api({ action: "eqInfo", id: code });
+    if (!j.ok) { box.innerHTML = "<p>" + esc(j.error) + '</p><a class="btn" href="#request">Request ICT help</a>'; return; }
+    const it = j.item; D.today = j.today;
+    const st = pmState(it);
+    const pm = st === "off" ? "Not on the PMS schedule (" + it.condition.toLowerCase() + ")" : st === "ns" ? "Checked together with its computer" :
+      !it.nextDue ? "No PM on record yet" : (st === "late" ? "Overdue since " : "Next PM ") + longDate(it.nextDue);
+    box.innerHTML = `<div class="eqhero"><div style="flex:1;min-width:0"><div class="code">${esc(it.id)}</div><div style="font-size:17px;font-weight:600;color:var(--head)">${esc(it.brand)}</div>
+        <div class="hint" style="margin:0">${esc(it.type)}, ${esc(it.office)}</div></div>${condChip(it.condition)}</div>
+      <dl class="kv" style="margin-top:14px"><dt>Last PM</dt><dd>${it.lastPm ? esc(longDate(it.lastPm)) : "None yet"}</dd><dt>PM status</dt><dd>${esc(pm)}</dd>
+        <dt>Open job orders</dt><dd>${j.jobs.length ? j.jobs.map(x => esc(x.jo) + " (" + esc(x.status) + ")").join(", ") : "None"}</dd></dl>
+      <div class="row" style="margin-top:16px"><a class="btn" href="#request&eq=${esc(it.id)}">Report a problem with this unit</a><a class="btn ghost" href="#" id="pubFull">ICTU: open the full record</a></div>`;
+    $("pubFull").onclick = e => { e.preventDefault(); wantEq = it.id; history.replaceState(null, "", "#inv"); showLock(); };
+  } catch (e) { box.innerHTML = "<p>" + esc(errText(e)) + "</p>"; }
+}
+$("pubIctu").onclick = e => { e.preventDefault(); history.replaceState(null, "", "#home"); showLock(); };
+$("reqForm").onsubmit = async e => {
+  e.preventDefault();
+  const v = id => $(id).value.trim();
+  const jo = { lastName: v("rLn"), firstName: v("rFn"), mi: v("rMi"), position: v("rPos"), unit: v("rUnit"), contact: v("rContact"), mode: v("rMode"),
+    equipmentId: codeOf(v("rEqId")), equipment: v("rEquip"), model: v("rModel"), serial: v("rSerial"), location: v("rLoc"), urgent: v("rUrgent"),
+    urgentReason: v("rUrgReason"), types: checkedTypes($("rTypes")), others: v("rOthers"), description: v("rDesc"), unitHead: v("rHead"),
+    consent: $("rConsent").checked, requestedAt: isoDate(new Date()) + " " + nowTime() };
+  const miss = [["lastName", "last name"], ["firstName", "first name"], ["unit", "section / unit"], ["description", "brief description"]].filter(x => !jo[x[0]]).map(x => x[1]);
+  if (jo.urgent === "Yes" && !jo.urgentReason) miss.push("reason it is urgent");
+  if (!jo.types.length && !jo.others) miss.push("type of request");
+  if (miss.length) { msg("reqMsg", "Please fill in: " + miss.join(", ") + ".", "err"); return; }
+  $("reqSend").disabled = true; msg("reqMsg", "Sending…");
+  try {
+    const j = await api({ action: "submitJO", jo });
+    if (!j.ok) { msg("reqMsg", j.error, "err"); return; }
+    const rec = j.request;
+    $("reqForm").classList.add("hidden");
+    $("reqDone").innerHTML = `<h3>Received. Your JO No. is ${esc(j.jo)}</h3>
+      <p>The ICT Unit has your request and will get back to you. Please print the form or save it as PDF, sign it${rec.types.some(t => /\*$/.test(t)) ? " (and have your Section / Unit Head sign it)" : ""}, and bring or send it to the ICT Unit.</p>
+      <div class="row"><button class="btn" type="button" id="reqPrint">Print or save as PDF</button><a class="btn ghost" href="#request" id="reqAgain">File another request</a></div>`;
+    $("reqDone").classList.remove("hidden"); window.scrollTo(0, 0);
+    $("reqPrint").onclick = () => doPrint(joFormHtml(rec), false);
+    $("reqAgain").onclick = () => { ["rDesc", "rOthers", "rUrgReason", "rEqId", "rEquip", "rModel", "rSerial"].forEach(id => $(id).value = ""); setTypes($("rTypes"), []); };
+  } catch (err) { msg("reqMsg", errText(err), "err"); }
+  finally { $("reqSend").disabled = false; }
+};
+
+// ---------- scan or type an equipment code ----------
+let scanStream = null, scanTimer = null;
+async function openScan() {
+  $("scanCode").value = ""; msg("scanMsg", ""); $("scanDlg").showModal();
+  const can = "BarcodeDetector" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  $("scanBox").classList.add("hidden");
+  $("scanHint").textContent = can ? "Point the camera at the QR label on the equipment." :
+    "This browser cannot scan here. Use the phone's camera app on the QR label, or type the code below.";
+  if (!can) { $("scanCode").focus(); return; }
+  try {
+    const det = new BarcodeDetector({ formats: ["qr_code"] });
+    scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    $("scanVid").srcObject = scanStream; await $("scanVid").play(); $("scanBox").classList.remove("hidden");
+    const tick = async () => {
+      if (!scanStream) return;
+      try { const r = await det.detect($("scanVid")); const c = r.length && codeOf(r[0].rawValue); if (c) { $("scanCode").value = c; return scanOpen(); } } catch (e) {}
+      scanTimer = setTimeout(tick, 250);
+    };
+    tick();
+  } catch (e) { $("scanHint").textContent = "The camera could not be opened. Type the code from the label instead."; }
+}
+function scanStop() { clearTimeout(scanTimer); if (scanStream) scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+$("scanDlg").addEventListener("close", scanStop);
+function scanOpen() {
+  const c = codeOf($("scanCode").value);
+  if (!c) { msg("scanMsg", "Type a code like ICT-0001.", "err"); return; }
+  if (!byId(c)) { msg("scanMsg", "No equipment has the code " + c + ".", "err"); return; }
+  $("scanDlg").close(); show("inv"); openEq(c);
+}
+$("scanForm").onsubmit = e => { e.preventDefault(); scanOpen(); };
+
 // ---------- printing ----------
 function header() {
   return `<div class="hd"><img src="${LOGO_DOH}" alt=""><img src="${LOGO_TRC}" alt=""><img class="bp" src="${LOGO_BP}" alt="">
@@ -1429,6 +2066,145 @@ $("qPrint").onclick = () => {
     <h4>${chal.length ? 6 : 5}. Conclusion</h4>
     <p>${list.length ? "The preventive maintenance activities for the quarter were conducted as scheduled" + (attention.length ? ", and the units listed under further attention are being followed up" : "") + "." : "No preventive maintenance was recorded for this quarter."} ICTU will continue the PMS for the next quarter based on the approved schedule.</p>
     ${signs(by, noted)}</div>`, true);
+};
+// ---------- QR labels, request poster, S&M history, job order form, monthly JO report ----------
+function qrSvg(text) {
+  const q = qrcode(0, "M"); q.addData(text); q.make();
+  const n = q.getModuleCount(), m = 2; let d = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += "M" + (c + m) + " " + (r + m) + "h1v1h-1z";
+  return `<svg viewBox="0 0 ${n + 2 * m} ${n + 2 * m}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+const eqLink = id => PUBLIC_URL + "#eq=" + id;
+function printLabels(list) {
+  if (!list.length) { alert("No equipment to print labels for."); return; }
+  doPrint(`<div class="labels">${list.map(it => `<div class="lbl-card">${qrSvg(eqLink(it.id))}<div class="t"><div class="o">DOH TRC DULAG, ICT UNIT</div>
+    <div class="id">${esc(it.id)}</div><div>${esc(it.brand)}</div><div>${esc(it.type)}</div><div>${esc(it.office)}</div>
+    <div class="s">Scan to see its status or to report a problem.</div></div></div>`).join("")}</div>`, false);
+}
+$("iLabels").onclick = () => printLabels(invFiltered().slice().sort((a, b) => a.id.localeCompare(b.id)));
+function printPoster() {
+  doPrint(`<div class="poster">${header()}<h1>Need ICT help?</h1><p>Scan the code with your phone camera to file a job order request with the ICT Unit.</p>
+    ${qrSvg(PUBLIC_URL + "#request")}<p style="font-size:11pt">${esc(PUBLIC_URL)}#request</p>
+    <p style="font-size:11pt;margin-top:6mm">For P1 concerns (internet down, system down, data loss), call or walk in to the ICT Unit right away. The form can follow.</p></div>`, false);
+}
+function printSm(it) {
+  const h = smHistory(it.id).slice().reverse();
+  doPrint(`<div class="sheet">${header()}<h3>ICT EQUIPMENT SERVICE AND MAINTENANCE HISTORY</h3>
+    <table><tr><td class="k">Equipment ID:</td><td><b>${esc(it.id)}</b></td><td class="k">Property Tag No.:</td><td>${esc(it.tag)}</td></tr>
+      <tr><td class="k">Type / Brand / Model:</td><td>${esc(it.type)}, ${esc(it.brand)}</td><td class="k">Serial No.:</td><td>${esc(it.serial)}</td></tr>
+      <tr><td class="k">Section / Unit:</td><td>${esc(it.office)}</td><td class="k">End User:</td><td>${esc(it.endUser)}</td></tr>
+      <tr><td class="k">Date Acquired:</td><td>${esc(nice(it.acquired))}</td><td class="k">Condition:</td><td>${esc(it.condition)}</td></tr></table>
+    <table><thead><tr><th>Date</th><th>Reference</th><th>Work Done / Problem</th><th>Findings / Action Taken</th><th>By</th><th>Status</th></tr></thead><tbody>
+    ${h.length ? h.map(x => `<tr><td>${esc(nice(x.date))}</td><td>${esc(x.ref)}</td><td>${esc(x.what)}</td><td>${esc([x.detail, x.kind === "pm" ? x.action : ""].filter(Boolean).join(". "))}</td><td>${esc(x.by)}</td><td>${esc(x.status)}</td></tr>`).join("")
+      : '<tr><td colspan="6" class="c">No PM or job order recorded yet.</td></tr>'}</tbody></table>
+    ${signs()}<div class="meta">Printed ${esc(longDate(todayStr()))} from the ICT Inventory and PMS app. Kept for the life of the equipment (ADM-HIMS-P-03).</div></div>`, false);
+}
+
+const BOX = "☐", TICK = "☑";
+// The filled (or blank, when j is null) Form COH-IDN-F-01.
+function joFormHtml(j) {
+  const b = !j; j = j || { types: [] };
+  const cb = (on, t) => (on ? TICK : BOX) + " " + t;
+  const v = t => '<span class="v">' + esc(t) + "</span>";
+  const name = j.lastName ? [j.lastName, j.firstName].filter(Boolean).join(", ") + (j.mi ? " " + j.mi.replace(/\.?$/, ".") : "") : "";
+  const printed = joWho(j).toUpperCase();
+  const has = t => (j.types || []).includes(t);
+  const modes = ["Walk-in", "Phone", "Chat", "E-mail"].map(m => cb(j.mode === m, m)).join("&nbsp;&nbsp;");
+  let typeRows = "";
+  for (let r = 0; r < 5; r++) typeRows += "<tr>" + JO_TYPES.map(g => '<td class="sm">' + cb(has(g[1][r]), esc(g[1][r])) + "</td>").join("") + "</tr>";
+  const P = (j.priority || "").slice(0, 2), st = j.status || "";
+  const F = D.joForm.code ? D.joForm : (PUB.joForm || {});
+  return `<div class="sheet jo">${header()}<h3>ICTU JOB ORDER REQUEST FORM</h3>
+    <table><tr><th>Form No.</th><th>Revision No.</th><th>Effectivity Date</th><th>JO No.</th><th>Priority (ICTU)</th></tr>
+      <tr><td class="c">${esc(F.code || "COH-IDN-F-01")}</td><td class="c">${esc(F.rev || "01")}</td><td class="c">${esc(F.effectivity || "")}</td>
+      <td class="c">${j.jo ? "<b>" + esc(j.jo) + "</b>" : "ICTU-" + new Date().getFullYear() + "-________"}</td><td class="c sm">${["P1", "P2", "P3", "P4"].map(x => cb(P === x, x)).join(" ")}</td></tr></table>
+    <div class="sec">PART I.  REQUEST DETAILS  (to be accomplished by the Requesting Unit)</div>
+    <table><colgroup><col style="width:20%"><col style="width:30.8%"><col style="width:18.4%"><col style="width:30.8%"></colgroup>
+      <tr><td class="lb">Requestor's Name:</td><td>${b ? '<span class="xs" style="color:#777">(Last Name, First Name, M.I.)</span>' : v(name)}</td><td class="lb">Position:</td><td>${v(j.position)}</td></tr>
+      <tr><td class="lb">Section / Unit:</td><td>${v(j.unit)}</td><td class="lb">Contact / Local No.:</td><td>${v(j.contact)}</td></tr>
+      <tr><td class="lb">Date / Time of Request:</td><td>${v(niceDt(j.requestedAt))}</td><td class="lb">Mode of Request:</td><td class="sm">${modes}</td></tr>
+      <tr><td class="lb">Equipment / System:</td><td>${v([j.equipment, j.equipmentId ? "(" + j.equipmentId + ")" : ""].filter(Boolean).join(" "))}</td><td class="lb">Property / Serial No.:</td><td>${v(j.serial)}</td></tr>
+      <tr><td class="lb">Location:</td><td>${v(j.location)}</td><td class="lb">Brand / Model:</td><td>${v(j.model)}</td></tr>
+      <tr><td class="lb sm">Is the equipment / system urgently needed?</td><td colspan="3" class="sm">${cb(j.urgent === "Yes", "Yes – operations stopped / deadline today (reason): ")}${j.urgent === "Yes" ? v(j.urgentReason) : "____________________________"}&nbsp;&nbsp;&nbsp;${cb(j.urgent === "No", "No")}</td></tr></table>
+    <div style="font-weight:bold;margin:1.3mm 0 .5mm">Type of Request  (check all that apply)</div>
+    <table><tr>${JO_TYPES.map(g => '<th class="dk">' + esc(g[0]) + "</th>").join("")}</tr>${typeRows}</table>
+    <div class="sm" style="margin:.6mm 0 1.2mm">${cb(!!j.others, "Others (please specify): ")}${j.others ? v(j.others) : "______________________________________________"}<span style="float:right">* requires approval of the Section / Unit Head</span></div>
+    <table><tr><td class="lb">Brief Description of the Problem / Request:</td></tr><tr><td class="desc">${v(j.description)}<div class="xs" style="color:#666;margin-top:1mm">(Short explanation only; detailed diagnosis will be done by ICTU personnel.)</div></td></tr></table>
+    <table><colgroup><col style="width:33.8%"><col style="width:33.1%"><col style="width:33.1%"></colgroup>
+      <tr><th>REQUESTED BY</th><th>APPROVED BY (Section / Unit Head)*</th><th>DATA PRIVACY CONSENT</th></tr>
+      <tr><td class="sig xs"><div class="v" style="font-size:8pt">${esc(printed)}</div>Signature over Printed Name / Date</td>
+      <td class="sig xs"><div class="v" style="font-size:8pt">${esc(String(j.unitHead || "").toUpperCase())}</div>Signature over Printed Name / Date</td>
+      <td class="xs">${cb(j.consent, "I allow ICTU to access / back up files on the device only as needed for this service (RA 10173).")}</td></tr></table>
+    <div class="sec">PART II.  ICTU ASSESSMENT AND ACTION  (for ICTU personnel only)</div>
+    <table><colgroup><col style="width:20%"><col style="width:30%"><col style="width:20%"><col style="width:30%"></colgroup>
+      <tr><td class="lb">Received by:</td><td>${v(j.receivedBy)}</td><td class="lb">Date / Time Received:</td><td>${v(niceDt(j.receivedAt))}</td></tr>
+      <tr><td class="lb">Date / Time Started:</td><td>${v(niceDt(j.startedAt))}</td><td class="lb">Date / Time Finished:</td><td>${v(niceDt(j.finishedAt))}</td></tr>
+      <tr><td class="lb">Classification:</td><td class="sm">${["Simple", "Complex", "Highly Technical"].map(c => cb(j.classification === c, c === "Highly Technical" ? "Highly Tech." : c)).join("  ")}</td>
+        <td class="lb">Mode of Service:</td><td class="sm">${["Remote", "On-site", "Pulled out"].map(c => cb(j.service === c, c)).join("  ")}</td></tr>
+      <tr><td class="lb">Equipment Pulled Out:</td><td class="sm">${cb(!b && !j.pulledOut, "No")}  ${cb(!!j.pulledOut, "Yes – date: ")}${j.pulledOut ? v(nice(j.pulledOut)) : "________"}</td><td class="lb">Returned on:</td><td>${v(nice(j.returnedOn))}</td></tr></table>
+    <table><colgroup><col style="width:24.6%"><col style="width:75.4%"></colgroup>
+      <tr><td class="lb tall">Findings / Cause:</td><td>${v(j.findings)}</td></tr><tr><td class="lb tall">Action Taken:</td><td>${v(j.action)}</td></tr>
+      <tr><td class="lb">Parts Used / Needed:</td><td>${v(j.parts)}</td></tr>
+      <tr><td class="lb">Status:</td><td class="sm">${cb(st === "Resolved", "Resolved")}   ${cb(st === "Resolved - temporary fix", "Resolved – temporary fix")}   ${cb(st === "On Hold", "On hold – parts / PR No.: ")}${st === "On Hold" && j.statusNote ? v(j.statusNote) : "________"}   ${cb(st === "Referred", "Referred (supplier / KMITS / ISP): ")}${st === "Referred" && j.statusNote ? v(j.statusNote) : "________"}   ${cb(st === "Beyond Economical Repair", "Beyond economical repair – for condemnation / replacement")}   ${cb(st === "Cancelled", "Cancelled")}</td></tr></table>
+    <div class="sec">PART III.  CONFORME AND CLIENT FEEDBACK</div>
+    <table><colgroup><col style="width:33.8%"><col style="width:33.1%"><col style="width:33.1%"></colgroup>
+      <tr><th>SERVICED BY (ICTU Personnel)</th><th>ACKNOWLEDGED BY (Requestor)</th><th>NOTED BY (Head, ICTU / MMU, if applicable)</th></tr>
+      <tr><td class="sig xs"><div class="v" style="font-size:8pt">${esc(String(j.personnel || "").toUpperCase())}</div>Signature over Printed Name / Date</td><td class="sig xs"><div class="v" style="font-size:8pt">${esc(printed)}</div>Signature over Printed Name / Date</td><td class="sig xs">Signature over Printed Name / Date</td></tr></table>
+    <table><tr><th style="text-align:left">How satisfied are you with:</th>${CSM.map(c => "<th>" + c + "</th>").join("")}</tr>
+      ${[["Speed of service", j.csmSpeed], ["Quality of the solution", j.csmQuality], ["Courtesy of ICTU personnel", j.csmCourtesy]].map(q => '<tr><td class="sm">' + q[0] + "</td>" + CSM.map(c => '<td class="c">' + (q[1] === c ? TICK : BOX) + "</td>").join("") + "</tr>").join("")}</table>
+    <div class="sm">Suggestions: ${j.suggestions ? v(j.suggestions) : "_____________________________________________________________________________________________"}</div>
+    <div class="sm" style="font-weight:bold;margin-top:.6mm">Please also accomplish the ARTA Client Satisfaction Measurement (CSM) form for this transaction.</div>
+    <div class="foot">Controlled QMS record: one (1) form per request; JO No. recorded in the ICTU Job Order Log; original filed with the ICT Unit (Ref.: ADM-HIMS-P-03 ICTU Service Procedure).</div>
+    <div class="fbar">E-mail Address: salagfacility@gmail.com &nbsp; | &nbsp; Facebook: facebook.com/trcdulag &nbsp; | &nbsp; Mobile: +639060868020</div></div>`;
+}
+
+$("mrPrint").onclick = () => {
+  const m = $("mrMonth").value; if (!m) return;
+  const list = D.jos.filter(j => j.logged.slice(0, 7) === m).sort((a, b) => a.jo < b.jo ? -1 : 1);
+  const live = list.filter(j => j.status !== "Cancelled");
+  const closed = live.filter(j => !joOpen(j)), timed = closed.filter(j => j.withinTarget);
+  const met = timed.filter(j => j.withinTarget === "Yes").length;
+  const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "n/a";
+  const group = t => (JO_TYPES.find(g => g[1].includes(t)) || ["OTHERS"])[0];
+  const byType = {}; JO_TYPES.map(g => g[0]).concat(["OTHERS"]).forEach(g => byType[g] = 0);
+  live.forEach(j => { const gs = new Set((j.types || []).map(group)); if (j.others) gs.add("OTHERS"); if (!gs.size) gs.add("OTHERS"); gs.forEach(g => byType[g]++); });
+  const byPri = {}; JO_PRIORITY.concat(["Not set"]).forEach(p => byPri[p] = 0); live.forEach(j => byPri[j.priority || "Not set"]++);
+  const open = D.jos.filter(j => joOpen(j) && j.logged.slice(0, 7) <= m);
+  // the same unit and the same kind of problem again within 30 days
+  const repeat = live.filter(j => j.equipmentId && D.jos.some(x => x !== j && x.equipmentId === j.equipmentId && x.status !== "Cancelled" && x.logged < j.logged &&
+    (dtOf(j.logged) - dtOf(x.logged)) / 864e5 <= 30 && (x.types || []).some(t => (j.types || []).includes(t))));
+  const ber = live.filter(j => j.status === "Beyond Economical Repair");
+  const rated = []; live.forEach(j => [j.csmSpeed, j.csmQuality, j.csmCourtesy].forEach(c => { if (c) rated.push(c); }));
+  const happy = rated.filter(c => /^(Very Satisfied|Satisfied)$/.test(c)).length;
+  const p1 = live.filter(j => /^P1/.test(j.priority));
+  const lines = $("mrCar").value.split(/\n+/).map(x => x.trim()).filter(Boolean);
+  const by = D.lists.staff.find(x => x[0] === $("mrBy").value) || [], noted = D.lists.staff.find(x => x[0] === $("mrNoted").value) || [];
+  const row = (k, v) => `<tr><td>${esc(k)}</td><td class="c">${v}</td></tr>`;
+  doPrint(`<div class="sheet rep">${header()}<h3>MONTHLY ICTU JOB ORDER REPORT</h3><div class="sub">${esc(monthName(m))}. Ref.: ADM-HIMS-P-03 ICTU Service Procedure.</div>
+    <h4>1. Summary</h4>
+    <table style="width:auto"><tr><th style="text-align:left">Indicator</th><th>Result</th><th>Target</th></tr>
+      <tr><td>Job orders received</td><td class="c">${live.length}${list.length - live.length ? " (plus " + (list.length - live.length) + " cancelled)" : ""}</td><td></td></tr>
+      <tr><td>Closed this month</td><td class="c">${closed.length}</td><td></td></tr>
+      <tr><td>Resolved within target TAT</td><td class="c">${met} of ${timed.length} (${pct(met, timed.length)})</td><td class="c">90% or more</td></tr>
+      <tr><td>P1 incidents</td><td class="c">${p1.length}</td><td class="c">response within 15 minutes</td></tr>
+      <tr><td>Client satisfaction (Satisfied or Very Satisfied)</td><td class="c">${happy} of ${rated.length} ratings (${pct(happy, rated.length)})</td><td class="c">90% or more</td></tr>
+      <tr><td>Repeat JOs, same unit and problem within 30 days</td><td class="c">${repeat.length} (${pct(repeat.length, live.length)})</td><td class="c">5% or less</td></tr></table>
+    <h4>2. Job orders by type and by priority</h4>
+    <div style="display:flex;gap:6mm;align-items:flex-start"><table style="width:auto"><tr><th style="text-align:left">Type</th><th>No.</th></tr>${Object.keys(byType).map(k => row(k, byType[k])).join("")}</table>
+      <table style="width:auto"><tr><th style="text-align:left">Priority</th><th>No.</th></tr>${Object.keys(byPri).map(k => row(k, byPri[k])).join("")}</table></div>
+    <p class="xs">A job order with more than one type of request is counted under each type.</p>
+    <h4>3. Open and on-hold job orders (as of this report)</h4>
+    ${open.length ? `<table><thead><tr><th>JO No.</th><th>Logged</th><th>Section</th><th>Problem</th><th>Priority</th><th>Status</th><th>Note</th></tr></thead><tbody>${open.map(j => `<tr><td>${esc(j.jo)}</td><td>${esc(niceDt(j.logged))}</td><td>${esc(j.unit)}</td><td>${esc(joWhat(j).slice(0, 120))}</td><td>${esc(j.priority)}</td><td>${esc(j.status)}${joLate(j) ? " (past target)" : ""}</td><td>${esc(j.statusNote)}</td></tr>`).join("")}</tbody></table>` : "<p>None.</p>"}
+    <h4>4. Recurring problems and equipment for replacement</h4>
+    <ul>${repeat.map(j => `<li>${esc(j.jo)}: ${esc(j.equipmentId)} ${esc(j.model)}, ${esc(j.unit)}. ${esc(joWhat(j).slice(0, 100))}</li>`).join("") || "<li>No repeat job orders this month.</li>"}
+      ${ber.map(j => `<li>${esc(j.jo)}: ${esc([j.equipmentId, j.equipment, j.model].filter(Boolean).join(" "))}, ${esc(j.unit)}, found beyond economical repair. For condemnation or replacement.</li>`).join("")}</ul>
+    <h4>5. Corrective or preventive actions</h4>
+    ${lines.length ? "<ul>" + lines.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>" : "<p>None for this month.</p>"}
+    <h4>6. Job orders received this month</h4>
+    <table><thead><tr><th>JO No.</th><th>Logged</th><th>Requestor / Section</th><th>Equipment</th><th>Problem</th><th>Priority</th><th>Status</th><th>Within target</th></tr></thead><tbody>
+    ${list.length ? list.map(j => `<tr><td>${esc(j.jo)}</td><td>${esc(niceDt(j.logged))}</td><td>${esc(joWho(j))}, ${esc(j.unit)}</td><td>${esc([j.equipmentId, j.model].filter(Boolean).join(", "))}</td><td>${esc(joWhat(j).slice(0, 90))}</td><td>${esc(j.priority)}</td><td>${esc(j.status)}</td><td class="c">${esc(j.withinTarget)}</td></tr>`).join("")
+      : '<tr><td colspan="8" class="c">No job orders this month.</td></tr>'}</tbody></table>
+    ${signs(by, noted)}</div>`, false);
 };
 // ---------- CSV ----------
 function csv(name, head, rows) {

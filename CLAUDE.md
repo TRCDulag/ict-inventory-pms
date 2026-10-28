@@ -6,4 +6,5 @@ DOH TRC Dulag ICT Inventory and PMS app. See README.md for how it works and how 
 - `src/index.src.html`: the page source. Run `npm run build` to write `index.html` (adds the logos). `index.html` is what gets pasted into Apps Script as the HTML file `Index`.
 - `Register/`: the Sheet template (made by `dev/make-register.py`).
 - Tests: `npm test` (backend rules on a mock of Google services) and `npm run test:e2e` (browser, Playwright).
-- The PM form is COH-IDN-F-02 Rev. 01. Keep its wording as on the form.
+- The PM form is COH-IDN-F-02 Rev. 01 and the job order form is COH-IDN-F-01 Rev. 01 (ADM-HIMS-P-03). Keep their wording as on the forms.
+- The request page (#request) and the QR status page (#eq=ICT-0001) are public: never return staff names, serials or costs from `publicInit`, `eqInfo` or `submitJO`.

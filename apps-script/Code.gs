@@ -1,7 +1,9 @@
 /**
  * ICT Inventory and PMS (ICTU) - backend for the "Index" page.
  * Keeps the ICT equipment masterlist, the PMS schedule and the PM records
- * (Form COH-IDN-F-02, ICT Equipment Preventive Maintenance Checklist, Rev. 01).
+ * (Form COH-IDN-F-02, ICT Equipment Preventive Maintenance Checklist, Rev. 01),
+ * and the ICTU Job Order Log (Form COH-IDN-F-01, ICTU Job Order Request Form, Rev. 01;
+ * ADM-HIMS-P-03 ICTU Service Procedure).
  *
  * SETUP (one time, in the "ICT Inventory and PMS Register (ICTU)" Google Sheet):
  *   1. Extensions > Apps Script. Delete what is in Code.gs and paste this whole file.
@@ -28,6 +30,13 @@
  * Equipment ID blank). The next time the app loads, each new row gets its ID and
  * its Next PM Due, and the Audit Trail notes it.
  *
+ * JOB ORDERS: staff file requests on the app's public "Request ICT help" page (no passcode) or by
+ * scanning the QR label on the equipment. ICTU logs walk-in and phone requests in the app.
+ * Each one gets the next JO No. (ICTU-YYYY-NNNN) in the JO Log tab. To continue the numbers of the
+ * old JO Log, either paste its rows into the JO Log tab (same column order), or add a Script
+ * property JO_LAST_2026 with the last JO number used this year (for example 37).
+ * The old online request form also works with this script: put this /exec link in its SHEET_URL.
+ *
  * RECORD CONTROL (ISO 9001:2015 cl. 7.5.3):
  *   - Every tab is protected so only the Sheet owner can edit it by hand; the
  *     page writes through this script, and only with the ICTU passcode.
@@ -40,12 +49,13 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
+const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
 
 const INV = 'Inventory', PM = 'PM Log', CHK = 'Checklist Results', AUDIT = 'Audit Trail', LISTS = 'Lists';
-const MASTER = 'Masterlist', ADDED = 'Added Employees';
+const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log';
 
 const INV_HEADERS = ['Equipment ID', 'Property Tag No.', 'Equipment Type', 'Brand / Model', 'Description / Specs',
   'Serial No.', 'Office / Section', 'End User', 'Accountable Officer', 'Source Document (RIS / PAR / ICS)',
@@ -67,7 +77,27 @@ const CHK_HEADERS = ['PM Ref No.', 'Section', 'Check Item', 'Result', 'Note'];
 const AUDIT_HEADERS = ['Timestamp', 'Reference', 'Action', 'By', 'Details', 'Device'];
 const ADDED_HEADERS = ['Name', 'Position', 'Office / Unit', 'Added By', 'Added At'];
 
-const I = idx_(INV_HEADERS), P = idx_(PM_HEADERS);
+// The first 33 columns are the ones of the old ICTU Job Order Log, in the same order, so its rows can be pasted in.
+const JO_HEADERS = ['Date/Time Logged', 'JO No.', 'Status', 'Priority', 'Date/Time of Request',
+  'Last Name', 'First Name', 'M.I.', 'Position', 'Section / Unit', 'Contact / Local No.', 'Mode of Request',
+  'Equipment / System', 'Brand / Model', 'Property / Serial No.', 'Location',
+  'Urgent?', 'Urgent Reason', 'Type(s) of Request', 'Others', 'Brief Description',
+  'Section / Unit Head', 'Data Privacy Consent',
+  'ICTU Personnel', 'Date/Time Finished', 'Findings / Action Taken', 'Remarks',
+  'Last Action', 'Last Action At', 'Print / Share Count', 'Action History', 'Request ID', 'Device',
+  'Equipment ID', 'Received By', 'Date/Time Received', 'Date/Time Started', 'Classification', 'Mode of Service',
+  'Pulled Out On', 'Returned On', 'Findings / Cause', 'Action Taken', 'Parts Used / Needed', 'Status Note',
+  'Target Date/Time', 'Within Target?', 'CSM Speed', 'CSM Quality', 'CSM Courtesy', 'Suggestions',
+  'Updated At', 'Updated By'];
+
+const JO_STATUS = ['Received', 'In Progress', 'On Hold', 'Referred', 'Resolved', 'Resolved - temporary fix', 'Beyond Economical Repair', 'Cancelled'];
+const JO_CLOSED = ['Resolved', 'Resolved - temporary fix', 'Beyond Economical Repair', 'Cancelled'];
+const JO_PRIORITY = ['P1 - Critical', 'P2 - High', 'P3 - Normal', 'P4 - Planned'];
+// Target resolution per ADM-HIMS-P-03 section VI: [working hours, working days].
+const JO_TARGET = { 'P1': [4, 0], 'P2': [0, 1], 'P3': [0, 3], 'P4': [0, 7] };
+const LEGACY_JO_KEY = 'trcd-ictu-jo';   // the key the old online request form sends
+
+const I = idx_(INV_HEADERS), P = idx_(PM_HEADERS), J = idx_(JO_HEADERS);
 
 const FREQ_MONTHS = { 'Monthly': 1, 'Quarterly': 3, 'Semi-Annual': 6, 'Annual': 12 };
 const NOT_SCHEDULED = 'Not scheduled (checked with its PC)';
@@ -113,6 +143,11 @@ function api(reqJson) {
 function handle_(req) {
   try {
     if (req.action === 'ping') return { ok: true, version: VERSION };
+    if (req.key === LEGACY_JO_KEY && req.kind) return legacyJO_(req);   // the old online request form
+    // Open to everyone: the "Request ICT help" page and the equipment QR labels.
+    if (req.action === 'publicInit') return publicInit_();
+    if (req.action === 'eqInfo')     return eqInfo_(req.id);
+    if (req.action === 'submitJO')   return submitJO_(req);
     checkPin_(req.pin);   // everything else is for ICTU only
     switch (req.action) {
       case 'checkPin':      return { ok: true };
@@ -123,6 +158,7 @@ function handle_(req) {
       case 'voidPM':        return voidPM_(req);
       case 'addOffice':     return addOffice_(req);
       case 'addEmployee':   return addEmployee_(req);
+      case 'saveJO':        return saveJO_(req);
       default:              return { ok: false, error: 'Unknown action.' };
     }
   } catch (err) {
@@ -137,7 +173,8 @@ function load_() {
   const inv = readRows_(INV, INV_HEADERS).map(toItem_);
   const pms = readRows_(PM, PM_HEADERS).map(toPM_);
   const emp = employees_();
-  return { ok: true, version: VERSION, form: FORM, lists: lists_(), inventory: inv, pms: pms, employees: emp.list,
+  const jos = jobSheet_() ? readRows_(JO, JO_HEADERS).map(toJO_) : [];
+  return { ok: true, version: VERSION, form: FORM, joForm: JO_FORM, lists: lists_(), inventory: inv, pms: pms, jos: jos, employees: emp.list,
            masterlist: { found: emp.found, count: emp.count, added: emp.added }, today: fmtDate_(new Date()), appUrl: appUrl_() };
 }
 
@@ -442,14 +479,322 @@ function makeAddedTab_() {
   return sh;
 }
 
+// ---------- job orders (COH-IDN-F-01, ADM-HIMS-P-03) ----------
+
+function jobSheet_() { return SpreadsheetApp.getActive().getSheetByName(JO); }
+
+// What the public "Request ICT help" page needs. Sections only, never staff names.
+function publicInit_() {
+  return { ok: true, version: VERSION, joForm: JO_FORM, offices: allOffices_().sort(), today: fmtDate_(new Date()) };
+}
+
+// What a phone shows after scanning an equipment QR label. No names, serials or costs.
+function eqInfo_(id) {
+  id = clean_(id).toUpperCase();
+  if (!/^ICT-\d{1,6}$/.test(id)) return { ok: false, error: 'That is not an equipment code. Codes look like ICT-0001.' };
+  const r = findRow_(sheet_(INV), id);
+  if (!r) return { ok: false, error: 'No equipment has the code ' + id + '.' };
+  const it = toItem_(sheet_(INV).getRange(r, 1, 1, INV_HEADERS.length).getValues()[0]);
+  const jos = jobSheet_() ? readRows_(JO, JO_HEADERS).filter(x => x[J['Equipment ID']] === id).map(toJO_) : [];
+  return { ok: true, today: fmtDate_(new Date()), item: { id: it.id, type: it.type, brand: it.brand, office: it.office, condition: it.condition,
+    freq: it.freq, lastPm: it.lastPm, nextDue: it.nextDue },
+    jobs: jos.filter(j => JO_CLOSED.indexOf(j.status) < 0).map(j => ({ jo: j.jo, status: j.status, logged: j.logged })) };
+}
+
+// A request filed on the public page. Gives the next JO No.
+function submitJO_(req) {
+  const j = req.jo || {};
+  const need = { lastName: 'Last name', firstName: 'First name', unit: 'Section / unit', description: 'Brief description' };
+  for (const k in need) if (!clean_(j[k])) throw new Error(need[k] + ' is required.');
+  if (!(j.types || []).length && !clean_(j.others)) throw new Error('Pick at least one type of request, or describe it under Others.');
+  if (j.urgent === 'Yes' && !clean_(j.urgentReason)) throw new Error('Say why it is urgent.');
+  throttle_();
+  return withLock_(() => {
+    const out = createJO_(j, 'Submitted on the request page', 'Requestor', req.device);
+    return { ok: true, jo: out.jo, request: out.record };
+  });
+}
+
+// The ICTU side: a new job order logged by ICTU, or an update of one (Part II, status, feedback).
+function saveJO_(req) {
+  const j = req.jo || {};
+  const by = clean_(req.by) || 'ICTU';
+  return withLock_(() => {
+    if (!j.jo) {
+      const need = { lastName: 'Last name of the requestor', unit: 'Section / unit', description: 'Brief description' };
+      for (const k in need) if (!clean_(j[k])) throw new Error(need[k] + ' is required.');
+      const out = createJO_(j, 'Logged by ICTU', by, req.device);
+      return finishSave_(out.row, out.r, j, by, req, true);
+    }
+    const sh = jobSheet_();
+    const r = sh ? findCol_(sh, J['JO No.'] + 1, j.jo) : 0;
+    if (!r) throw new Error('Job order ' + j.jo + ' was not found.');
+    const row = sh.getRange(r, 1, 1, JO_HEADERS.length).getValues()[0];
+    return finishSave_(row, r, j, by, req, false);
+  });
+}
+
+function finishSave_(row, r, j, by, req, isNew) {
+  const sh = jobSheet_();
+  const old = row.slice();
+  const now = new Date();
+  const set = {};
+  // Part I can be corrected by ICTU.
+  const partI = { 'Last Name': 'lastName', 'First Name': 'firstName', 'M.I.': 'mi', 'Position': 'position', 'Section / Unit': 'unit',
+    'Contact / Local No.': 'contact', 'Mode of Request': 'mode', 'Equipment / System': 'equipment', 'Brand / Model': 'model',
+    'Property / Serial No.': 'serial', 'Location': 'location', 'Urgent Reason': 'urgentReason', 'Others': 'others',
+    'Brief Description': 'description', 'Section / Unit Head': 'unitHead',
+    // Part II and III
+    'Received By': 'receivedBy', 'Classification': 'classification', 'Mode of Service': 'service', 'Findings / Cause': 'findings',
+    'Action Taken': 'action', 'Parts Used / Needed': 'parts', 'Status Note': 'statusNote', 'Remarks': 'remarks',
+    'ICTU Personnel': 'personnel', 'CSM Speed': 'csmSpeed', 'CSM Quality': 'csmQuality', 'CSM Courtesy': 'csmCourtesy', 'Suggestions': 'suggestions' };
+  Object.keys(partI).forEach(h => { if (j[partI[h]] !== undefined) set[h] = clean_(j[partI[h]]); });
+  ['Date/Time Received', 'Date/Time Started', 'Date/Time Finished'].forEach((h, i) => {
+    const k = ['receivedAt', 'startedAt', 'finishedAt'][i];
+    if (j[k] !== undefined) set[h] = dt_(j[k]);
+  });
+  ['Pulled Out On', 'Returned On'].forEach((h, i) => { const k = ['pulledOut', 'returnedOn'][i]; if (j[k] !== undefined) set[h] = dt_(j[k]); });
+  if (j.urgent !== undefined) set['Urgent?'] = j.urgent === 'Yes' ? 'Yes' : 'No';
+  if (j.types !== undefined) set['Type(s) of Request'] = (j.types || []).map(clean_).filter(Boolean).join('; ');
+  if (j.consent !== undefined) set['Data Privacy Consent'] = j.consent ? 'Yes' : 'No';
+  if (j.priority !== undefined) {
+    const p = clean_(j.priority);
+    if (p && JO_PRIORITY.indexOf(p) < 0) throw new Error('Pick a priority from the list.');
+    set['Priority'] = p;
+  }
+  if (j.status !== undefined) {
+    if (JO_STATUS.indexOf(j.status) < 0) throw new Error('Pick a status from the list.');
+    set['Status'] = j.status;
+  }
+  if (j.equipmentId !== undefined) {
+    const eq = clean_(j.equipmentId).toUpperCase();
+    if (eq && !findRow_(sheet_(INV), eq)) throw new Error('Equipment ' + eq + ' is not in the masterlist.');
+    set['Equipment ID'] = eq;
+  }
+  Object.keys(set).forEach(h => row[J[h]] = set[h]);
+
+  const status = row[J['Status']];
+  const closed = JO_CLOSED.indexOf(status) >= 0;
+  if (closed && !row[J['Date/Time Finished']]) row[J['Date/Time Finished']] = dt_(now);
+  if (!closed) row[J['Date/Time Finished']] = row[J['Date/Time Finished']] && j.finishedAt ? row[J['Date/Time Finished']] : '';
+  if (status !== 'Received' && !row[J['Date/Time Received']]) row[J['Date/Time Received']] = dt_(now);
+  if (!row[J['Received By']] && status !== 'Received') row[J['Received By']] = by;
+  row[J['Target Date/Time']] = target_(row[J['Date/Time Logged']], row[J['Priority']]);
+  row[J['Within Target?']] = closed && status !== 'Cancelled' && row[J['Target Date/Time']]
+    ? (parseDt_(row[J['Date/Time Finished']]) <= parseDt_(row[J['Target Date/Time']]) ? 'Yes' : 'No') : '';
+  row[J['Findings / Action Taken']] = [row[J['Findings / Cause']], row[J['Action Taken']]].filter(Boolean).join(' / ');
+
+  const changes = [];
+  JO_HEADERS.forEach((h, i) => {
+    if (['Updated At', 'Updated By', 'Action History', 'Last Action', 'Last Action At', 'Findings / Action Taken', 'Target Date/Time', 'Within Target?'].indexOf(h) >= 0) return;
+    if (show_(old[i]) !== show_(row[i]) && !isNew) changes.push(h + ': "' + show_(old[i]).slice(0, 60) + '" to "' + show_(row[i]).slice(0, 60) + '"');
+  });
+  if (!isNew && !changes.length) return { ok: true, unchanged: true, jo: toJO_(row) };
+  const stamp = dt_(now);
+  if (!isNew) {
+    const what = set['Status'] !== undefined && show_(old[J['Status']]) !== status ? 'Status set to ' + status : 'Updated';
+    row[J['Last Action']] = what + ' by ' + by;
+    row[J['Last Action At']] = stamp;
+    row[J['Action History']] = (String(row[J['Action History']] || '') + '\n' + stamp + ' - ' + what + ' by ' + by).replace(/^\n/, '').slice(-3000);
+  }
+  row[J['Updated At']] = stamp;
+  row[J['Updated By']] = by;
+  formatJoRow_(sh, r);
+  sh.getRange(r, 1, 1, JO_HEADERS.length).setValues([row.map(v => v == null ? '' : v)]);
+  if (!isNew) audit_(row[J['JO No.']], 'JOB ORDER UPDATED', by, changes.join('; '), req.device);
+
+  // A unit found beyond economical repair leaves the PMS schedule (it stays in the masterlist).
+  let item = null;
+  const eq = row[J['Equipment ID']];
+  if (eq && status === 'Beyond Economical Repair' && req.markUnserviceable) {
+    const inv = sheet_(INV), ir = findRow_(inv, eq);
+    const it = inv.getRange(ir, 1, 1, INV_HEADERS.length).getValues()[0];
+    if (it[I['Condition']] !== 'Unserviceable' && it[I['Condition']] !== 'Disposed') {
+      it[I['Condition']] = 'Unserviceable'; it[I['Next PM Due']] = ''; it[I['Updated At']] = now; it[I['Updated By']] = by;
+      it[I['Remarks']] = (it[I['Remarks']] ? it[I['Remarks']] + '. ' : '') + 'Beyond economical repair per ' + row[J['JO No.']];
+      formatInvRow_(inv, ir);
+      inv.getRange(ir, 1, 1, INV_HEADERS.length).setValues([it]);
+      audit_(eq, 'EQUIPMENT UPDATED', by, 'Condition set to Unserviceable (beyond economical repair, ' + row[J['JO No.']] + ').', req.device);
+    }
+    item = toItem_(it);
+  }
+  return { ok: true, jo: toJO_(row), item: item };
+}
+
+// Writes a new JO Log row. Fills the equipment fields from the masterlist when an Equipment ID is given.
+function createJO_(j, how, by, device) {
+  const sh = jobSheet_() || makeJoTab_();
+  const now = new Date();
+  const no = nextJoNo_(sh, now);
+  const row = new Array(JO_HEADERS.length).fill('');
+  const eqId = clean_(j.equipmentId).toUpperCase();
+  let it = null;
+  if (eqId) {
+    const ir = findRow_(sheet_(INV), eqId);
+    if (ir) it = toItem_(sheet_(INV).getRange(ir, 1, 1, INV_HEADERS.length).getValues()[0]);
+  }
+  const stamp = dt_(now);
+  const urgent = j.urgent === 'Yes';
+  const set = {
+    'Date/Time Logged': stamp, 'JO No.': no, 'Status': 'Received',
+    'Priority': JO_PRIORITY.indexOf(clean_(j.priority)) >= 0 ? clean_(j.priority) : (urgent ? 'P2 - High' : ''),
+    'Date/Time of Request': dt_(j.requestedAt) || stamp, 'Last Name': clean_(j.lastName), 'First Name': clean_(j.firstName),
+    'M.I.': clean_(j.mi), 'Position': clean_(j.position), 'Section / Unit': clean_(j.unit), 'Contact / Local No.': clean_(j.contact),
+    'Mode of Request': clean_(j.mode) || 'Walk-in',
+    'Equipment / System': clean_(j.equipment) || (it ? it.type : ''), 'Brand / Model': clean_(j.model) || (it ? it.brand : ''),
+    'Property / Serial No.': clean_(j.serial) || (it ? [it.tag, it.serial].filter(Boolean).join(' / ') : ''),
+    'Location': clean_(j.location) || (it ? it.office : ''),
+    'Urgent?': urgent ? 'Yes' : 'No', 'Urgent Reason': clean_(j.urgentReason),
+    'Type(s) of Request': (j.types || []).map(clean_).filter(Boolean).join('; '), 'Others': clean_(j.others),
+    'Brief Description': clean_(j.description).slice(0, 600), 'Section / Unit Head': clean_(j.unitHead),
+    'Data Privacy Consent': j.consent ? 'Yes' : 'No', 'Last Action': how, 'Last Action At': stamp,
+    'Print / Share Count': 0, 'Action History': stamp + ' - ' + how, 'Request ID': clean_(j.requestId) || Utilities.getUuid(),
+    'Device': String(device || '').slice(0, 180), 'Equipment ID': it ? it.id : '', 'Updated At': stamp, 'Updated By': by
+  };
+  Object.keys(set).forEach(h => row[J[h]] = set[h]);
+  row[J['Target Date/Time']] = target_(stamp, row[J['Priority']]);
+  const r = lastRow_(sh) + 1;
+  formatJoRow_(sh, r);
+  sh.getRange(r, 1, 1, JO_HEADERS.length).setValues([row]);
+  audit_(no, 'JOB ORDER RECEIVED', by, how + '. ' + set['Section / Unit'] + (it ? ', ' + it.id + ' ' + it.brand : '') + ': ' +
+    set['Brief Description'].slice(0, 120), device);
+  return { jo: no, row: row, r: r, record: toJO_(row) };
+}
+
+// The old "ICTU Job Order Request (Online Form).html" posts here when its SHEET_URL is this script's /exec link.
+function legacyJO_(p) {
+  return withLock_(() => {
+    const sh = jobSheet_() || makeJoTab_();
+    const r = p.id ? findCol_(sh, J['Request ID'] + 1, String(p.id)) : 0;
+    const stamp = dt_(new Date());
+    if (p.kind === 'action' || r) {
+      if (!r) return { ok: false, error: 'Request not found' };
+      const row = sh.getRange(r, 1, 1, JO_HEADERS.length).getValues()[0];
+      const a = clean_(p.action).slice(0, 60) || 'Re-submitted';
+      row[J['Last Action']] = a; row[J['Last Action At']] = stamp;
+      if (/print|share|pdf/i.test(a)) row[J['Print / Share Count']] = Number(row[J['Print / Share Count']] || 0) + 1;
+      row[J['Action History']] = (String(row[J['Action History']] || '') + '\n' + stamp + ' - ' + a).replace(/^\n/, '').slice(-3000);
+      sh.getRange(r, 1, 1, JO_HEADERS.length).setValues([row]);
+      return { ok: true, jo: row[J['JO No.']] };
+    }
+    if (!clean_(p.last_name) || !clean_(p.unit) || !clean_(p.description)) return { ok: false, error: 'Missing name, unit or description' };
+    throttle_();
+    const out = createJO_({ requestId: p.id, requestedAt: p.requested_at, lastName: p.last_name, firstName: p.first_name, mi: p.mi,
+      position: p.position, unit: p.unit, contact: p.contact, mode: p.mode, equipment: p.equipment, model: p.model, serial: p.serial,
+      location: p.location, urgent: p.urgent, urgentReason: p.urgent_reason, types: String(p.types || '').split(/;\s*/),
+      others: p.others, description: p.description, unitHead: p.unit_head, consent: p.consent === 'Yes' },
+      'Submitted on the old online form', 'Requestor', p.device);
+    return { ok: true, jo: out.jo };
+  });
+}
+
+// ICTU-YYYY-NNNN, per calendar year. Continues from the JO Log rows, or from Script property JO_LAST_YYYY.
+function nextJoNo_(sh, now) {
+  const year = Utilities.formatDate(now, TZ, 'yyyy');
+  const prefix = 'ICTU-' + year + '-';
+  let max = Number(PropertiesService.getScriptProperties().getProperty('JO_LAST_' + year) || 0) || 0;
+  const n = lastRow_(sh);
+  if (n >= 2) sh.getRange(2, J['JO No.'] + 1, n - 1, 1).getValues().forEach(v => {
+    const s = String(v[0]);
+    if (s.indexOf(prefix) === 0) max = Math.max(max, parseInt(s.slice(prefix.length), 10) || 0);
+  });
+  return prefix + String(max + 1).padStart(4, '0');
+}
+
+// Target date/time from the time logged and the priority: P1 4 working hours, P2 1, P3 3, P4 7 working days.
+function target_(logged, priority) {
+  const t = JO_TARGET[String(priority || '').slice(0, 2)];
+  const d = parseDt_(logged);
+  if (!t || !d) return '';
+  const wd = x => new Date(x.getTime() + 8 * 3600e3).getUTCDay();   // day of week in Manila
+  let out = new Date(d.getTime());
+  if (t[0]) out = new Date(out.getTime() + t[0] * 3600e3);
+  for (let i = 0; i < t[1];) { out = new Date(out.getTime() + 864e5); if (wd(out) !== 0 && wd(out) !== 6) i++; }
+  while (wd(out) === 0 || wd(out) === 6) out = new Date(out.getTime() + 864e5);
+  return dt_(out);
+}
+
+// At most 30 public requests a minute for the whole app, so a stuck page or a prank cannot flood the log.
+function throttle_() {
+  if (typeof CacheService === 'undefined') return;
+  const c = CacheService.getScriptCache(), k = 'jo-rate-' + Math.floor(Date.now() / 60000);
+  const n = Number(c.get(k) || 0) + 1;
+  if (n > 30) throw new Error('Too many requests right now. Please wait a minute and try again.');
+  c.put(k, String(n), 120);
+}
+
+function makeJoTab_() {
+  const sh = SpreadsheetApp.getActive().insertSheet(JO);
+  sh.getRange(1, 1, 1, JO_HEADERS.length).setValues([JO_HEADERS]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  protect_(sh);
+  return sh;
+}
+
+function formatJoRow_(sh, r) {
+  sh.getRange(r, 1, 1, JO_HEADERS.length).setNumberFormat('@');
+  sh.getRange(r, J['Print / Share Count'] + 1).setNumberFormat('0');
+}
+
+function toJO_(r) {
+  const g = h => show_(r[J[h]]);
+  return {
+    jo: g('JO No.'), logged: dtText_(r[J['Date/Time Logged']]), status: g('Status') || 'Received', priority: g('Priority').replace(/\s*[–-]\s*/, ' - '),
+    requestedAt: dtText_(r[J['Date/Time of Request']]), lastName: g('Last Name'), firstName: g('First Name'), mi: g('M.I.'),
+    position: g('Position'), unit: g('Section / Unit'), contact: g('Contact / Local No.'), mode: g('Mode of Request'),
+    equipment: g('Equipment / System'), model: g('Brand / Model'), serial: g('Property / Serial No.'), location: g('Location'),
+    urgent: g('Urgent?'), urgentReason: g('Urgent Reason'), types: g('Type(s) of Request') ? g('Type(s) of Request').split(/;\s*/) : [],
+    others: g('Others'), description: g('Brief Description'), unitHead: g('Section / Unit Head'), consent: g('Data Privacy Consent') === 'Yes',
+    personnel: g('ICTU Personnel'), finishedAt: dtText_(r[J['Date/Time Finished']]), remarks: g('Remarks'), history: g('Action History'),
+    equipmentId: g('Equipment ID'), receivedBy: g('Received By'), receivedAt: dtText_(r[J['Date/Time Received']]),
+    startedAt: dtText_(r[J['Date/Time Started']]), classification: g('Classification'), service: g('Mode of Service'),
+    pulledOut: dtText_(r[J['Pulled Out On']]), returnedOn: dtText_(r[J['Returned On']]),
+    findings: g('Findings / Cause') || (g('Action Taken') ? '' : g('Findings / Action Taken')), action: g('Action Taken'),
+    parts: g('Parts Used / Needed'), statusNote: g('Status Note'), target: dtText_(r[J['Target Date/Time']]), withinTarget: g('Within Target?'),
+    csmSpeed: g('CSM Speed'), csmQuality: g('CSM Quality'), csmCourtesy: g('CSM Courtesy'), suggestions: g('Suggestions'),
+    updatedAt: dtText_(r[J['Updated At']]), updatedBy: g('Updated By')
+  };
+}
+
+// Date/times in the JO Log are text "yyyy-MM-dd HH:mm" (the same as the old log), Manila time.
+function dt_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd HH:mm');
+  const s = String(v || '').trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2}))?/);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3] + (m[4] ? ' ' + ('0' + m[4]).slice(-2) + ':' + m[5] : ' 00:00');
+  // The old form sends "Oct 28, 2026  9:05 AM".
+  m = s.match(/^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})\s+(\d{1,2}):(\d{2}) ([AP]M)$/);
+  if (m) {
+    const mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(m[1]) + 1;
+    let h = +m[4] % 12 + (m[6] === 'PM' ? 12 : 0);
+    if (mo) return m[3] + '-' + ('0' + mo).slice(-2) + '-' + ('0' + m[2]).slice(-2) + ' ' + ('0' + h).slice(-2) + ':' + m[5];
+  }
+  return clean_(s);
+}
+function dtText_(v) { return v instanceof Date ? dt_(v) : String(v == null ? '' : v); }
+function parseDt_(v) {
+  const s = dt_(v);
+  return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(s) ? Utilities.parseDate(s, TZ, 'yyyy-MM-dd HH:mm') : null;
+}
+
+function findCol_(sh, col, key) {
+  const n = lastRow_(sh);
+  if (!key || n < 2) return 0;
+  const vals = sh.getRange(2, col, n - 1, 1).getValues();
+  for (let i = 0; i < vals.length; i++) if (String(vals[i][0]) === String(key)) return i + 2;
+  return 0;
+}
+
 // ---------- one-time setup and checks (run from the editor) ----------
 
 function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(TZ);
-  [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS]].forEach(([name, h]) => {
+  [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS]].forEach(([name, h]) => {
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
-    if (sh.getRange(1, 1).getValue() !== h[0]) {
+    // Writes the header row when it is missing, and adds new columns to an older tab (such as a pasted JO Log).
+    const have = sh.getRange(1, 1, 1, h.length).getValues()[0];
+    if (have[0] !== h[0] || have.some((v, i) => v !== h[i])) {
       sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold');
       sh.setFrozenRows(1);
     }
