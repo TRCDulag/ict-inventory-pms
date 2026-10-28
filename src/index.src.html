@@ -4,181 +4,210 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ICT Inventory and PMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style id="pageSize">@page { size: A4 portrait; margin: 10mm; }</style>
 <style>
+  /* Theme follows the TRC Dulag Document Tracking app: DOH palette (Deep Navy, Mint Cream, Health Blue), Barlow, navy header with the DOH header. */
   :root {
-    --ground: #eef2ef; --panel: #ffffff; --ink: #17231c; --muted: #55655b; --line: #d3ddd6; --field: #ffffff;
-    --brand: #0d5c3a; --brand-ink: #ffffff; --brand-soft: #e3f0e8; --brand-line: #9cc5ad;
-    --ok: #16794a; --warn: #9a5800; --bad: #b42318; --ok-soft: #e1f2e8; --warn-soft: #fbf0dc; --bad-soft: #fbe5e2;
-    --shadow: 0 1px 2px rgba(18, 38, 26, .06), 0 2px 8px rgba(18, 38, 26, .05);
-    --r: 10px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --ground: #0f1512; --panel: #17201b; --ink: #e5ece7; --muted: #9db0a3; --line: #2b3a31; --field: #101813;
-      --brand: #4fb37e; --brand-ink: #07140d; --brand-soft: #1c3227; --brand-line: #2f6047;
-      --ok: #5fd39a; --warn: #f0b04a; --bad: #ff8a7a; --ok-soft: #173326; --warn-soft: #33281a; --bad-soft: #3a1f1c;
-      --shadow: 0 1px 2px rgba(0, 0, 0, .4);
-    }
-  }
-  :root[data-theme="dark"] {
-    --ground: #0f1512; --panel: #17201b; --ink: #e5ece7; --muted: #9db0a3; --line: #2b3a31; --field: #101813;
-    --brand: #4fb37e; --brand-ink: #07140d; --brand-soft: #1c3227; --brand-line: #2f6047;
-    --ok: #5fd39a; --warn: #f0b04a; --bad: #ff8a7a; --ok-soft: #173326; --warn-soft: #33281a; --bad-soft: #3a1f1c;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    --navy: #1F2A45; --mint: #EEFAF6; --honeydew: #DEF0E9;
+    --ground: var(--mint); --panel: #ffffff; --ink: #333333; --head: #1F2A45; --muted: #5E6B78; --line: #D5E3DD; --line-2: #E4EDE9; --field: #ffffff;
+    --brand: #0B4BAA; --brand-hover: #093E8E; --brand-ink: #ffffff; --brand-soft: #EAF1FB; --brand-line: #A9C3EA;
+    --ok: #17653F; --warn: #6B5200; --bad: #AD0F0A; --ok-soft: #D9F0E3; --warn-soft: #FFF1B8; --bad-soft: #F8DEDD;
+    --shadow: 0 1px 2px rgba(31,42,69,.06), 0 4px 16px rgba(31,42,69,.06);
+    --ring: 0 0 0 2px #fff, 0 0 0 5px var(--brand);
+    --r: 12px; --r-ctl: 8px;
   }
   * { box-sizing: border-box; }
-  html { accent-color: var(--brand); -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.45 "Segoe UI", Roboto, -apple-system, system-ui, Arial, sans-serif; }
-  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  html { accent-color: var(--brand); -webkit-text-size-adjust: 100%; scrollbar-color: #B9CCC4 transparent; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.45 "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+  ::selection { background: rgba(11,75,170,.18); color: var(--navy); }
+  :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 8px; }
   .hidden { display: none !important; }
-  .num, td.d, .tile .val { font-variant-numeric: tabular-nums; }
+  .num, td.d, .tile .val, table.list td b { font-variant-numeric: tabular-nums; }
+  h2, h3, h4 { color: var(--head); }
 
-  /* shell */
-  header.app { background: var(--brand); color: var(--brand-ink); padding: 12px 20px 0; padding-top: max(12px, env(safe-area-inset-top)); }
-  header.app .in { max-width: 1300px; margin: 0 auto; }
-  header.app .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  header.app h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
-  header.app p { margin: 0; font-size: 13px; opacity: .88; }
-  header.app .who { font-size: 13px; opacity: .9; text-align: right; }
-  header.app .who button { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, var(--brand-ink) 45%, transparent); border-radius: 7px; padding: 4px 10px; font: inherit; cursor: pointer; margin-left: 8px; }
-  @media (max-width: 600px) { header.app .top p, #syncState { display: none; } header.app h1 { font-size: 17px; } }
-  nav.tabs { display: flex; gap: 2px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
-  nav.tabs::-webkit-scrollbar { display: none; }
-  nav.tabs button { flex: none; background: transparent; color: var(--brand-ink); border: 0; border-radius: 8px 8px 0 0; padding: 10px 14px; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; opacity: .85; }
-  nav.tabs button:hover { opacity: 1; background: color-mix(in srgb, var(--brand-ink) 10%, transparent); }
-  nav.tabs button[aria-selected="true"] { background: var(--ground); color: var(--ink); opacity: 1; }
-  main { max-width: 1300px; margin: 0 auto; padding: 18px 20px 110px; }
-  section.view > h2 { font-size: 20px; margin: 4px 0 4px; }
-  section.view > .lead { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
+  /* shell: navy header, side menu on the mint frame, white work area */
+  header.bar { position: sticky; top: 0; z-index: 20; background: var(--navy); color: #fff; display: flex; align-items: center; gap: 18px; padding: 8px 18px; min-height: 72px; padding-top: max(8px, env(safe-area-inset-top)); }
+  .org { display: flex; align-items: center; gap: 4px; flex: none; }
+  .org img { height: 50px; width: 50px; object-fit: contain; }
+  .org img.bp { width: 54px; }
+  .org .t { border-left: 1.5px solid rgba(255,255,255,.85); margin-left: 6px; padding-left: 7px; font-size: 10.5px; line-height: 1.15; letter-spacing: .01em; }
+  .org .t b { display: block; font-size: 13.5px; }
+  .org .t .c { font-weight: 700; font-size: 11.5px; }
+  .org .t i { display: block; font-size: 8.5px; font-weight: 700; opacity: .9; }
+  .apptitle { flex: 1; min-width: 0; }
+  .apptitle b { display: block; font-size: 18px; font-weight: 600; }
+  .apptitle span { font-size: 13px; opacity: .8; }
+  header.bar .who { font-size: 13px; text-align: right; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  header.bar .who span { opacity: .8; }
+  header.bar .who button { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); border-radius: 8px; padding: 6px 12px; font: inherit; font-weight: 500; cursor: pointer; min-height: 36px; }
+  header.bar .who button:hover { background: rgba(255,255,255,.1); }
+  .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 72px); }
+  nav.tabs { background: #fff; border-right: 1px solid var(--line-2); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 72px; align-self: start; height: calc(100vh - 72px); }
+  nav.tabs button { display: flex; align-items: center; gap: 12px; background: transparent; color: var(--ink); border: 1px solid transparent; border-radius: 10px; padding: 10px 14px; min-height: 46px; font: inherit; font-size: 15.5px; font-weight: 500; cursor: pointer; text-align: left; }
+  nav.tabs button svg { width: 22px; height: 22px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+  nav.tabs button:hover { background: var(--mint); }
+  nav.tabs button[aria-selected="true"] { background: var(--honeydew); color: var(--navy); font-weight: 600; }
+  nav.tabs button[aria-selected="true"] svg { color: var(--navy); }
+  nav.tabs .badge { margin-left: auto; background: var(--bad); color: #fff; font-size: 12px; font-weight: 700; border-radius: 999px; min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
+  main { width: 100%; max-width: 1180px; padding: 24px 28px 110px; }
+  section.view > h2 { font-size: 26px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
+  section.view > .lead { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+  @media (max-width: 899px) {
+    header.bar { gap: 10px; padding: 8px 12px; min-height: 60px; }
+    .org .t { display: none; }
+    .org img { height: 40px; width: 40px; } .org img.bp { display: none; }
+    .apptitle b { font-size: 16px; } .apptitle span, header.bar .who span { display: none; }
+    .shell { display: block; }
+    nav.tabs { flex-direction: row; height: auto; position: sticky; top: 60px; z-index: 15; overflow-x: auto; scrollbar-width: none; border-right: 0; border-bottom: 1px solid var(--line-2); padding: 6px 8px; }
+    nav.tabs::-webkit-scrollbar { display: none; }
+    nav.tabs button { flex: none; padding: 8px 12px; min-height: 42px; font-size: 14.5px; gap: 8px; }
+    nav.tabs button svg { width: 19px; height: 19px; }
+    main { padding: 16px 16px 110px; }
+    section.view > h2 { font-size: 22px; }
+  }
 
   /* building blocks */
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
-  .panel > h3 { margin: 0 0 10px; font-size: 15.5px; }
-  .panel > h3 .sub { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 14px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+  .panel > h3 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+  .panel > h3 .sub { font-weight: 400; color: var(--muted); font-size: 14px; margin-left: 6px; }
+  @media (max-width: 640px) { .panel { padding: 16px; } }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
   .grid .wide { grid-column: 1 / -1; }
-  label.f { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  label.f { display: block; font-size: 14px; font-weight: 600; color: var(--head); }
   label.f > span.req::after { content: " *"; color: var(--bad); }
-  input, select, textarea { width: 100%; margin-top: 4px; font: inherit; font-size: 15px; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 42px; }
-  textarea { min-height: 70px; resize: vertical; }
-  input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent); outline-offset: 0; border-color: var(--brand); }
-  input[readonly] { background: var(--ground); }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); border-radius: 8px; padding: 9px 16px; min-height: 42px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
-  .btn:hover { filter: brightness(1.07); }
-  .btn.ghost { background: transparent; color: var(--brand); border-color: var(--brand-line); }
-  .btn.ghost:hover { background: var(--brand-soft); }
-  .btn.danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
-  .btn.small { min-height: 34px; padding: 5px 11px; font-size: 13.5px; }
+  input, select, textarea { width: 100%; margin-top: 5px; font: inherit; font-size: 16px; font-weight: 400; color: var(--ink); background: var(--field); border: 1px solid #C3D3CC; border-radius: var(--r-ctl); padding: 10px 12px; min-height: 46px; }
+  textarea { min-height: 76px; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 3px rgba(11,75,170,.18); border-color: var(--brand); border-radius: var(--r-ctl); }
+  input[readonly] { background: var(--mint); }
+  .addline { display: flex; gap: 8px; align-items: flex-end; }
+  .addline > label { flex: 1; min-width: 0; }
+  .addline > .btn { flex: none; margin-bottom: 0; }
+  .fieldnote { font-size: 13px; color: var(--warn); margin-top: 4px; }
+  .fieldnote button { background: none; border: 0; color: var(--brand); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); border-radius: var(--r-ctl); padding: 10px 18px; min-height: 46px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; transition: background .15s; }
+  .btn:hover { background: var(--brand-hover); }
+  .btn.ghost { background: #fff; color: var(--brand); border-color: var(--line); }
+  .btn.ghost:hover { background: var(--brand-soft); border-color: var(--brand-line); }
+  .btn.danger { background: #fff; color: var(--bad); border-color: #E8C4C2; }
+  .btn.danger:hover { background: var(--bad-soft); }
+  .btn.small { min-height: 38px; padding: 6px 12px; font-size: 14.5px; }
   .btn[disabled] { opacity: .55; cursor: wait; }
   .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .row.end { justify-content: flex-end; }
   .spacer { flex: 1; }
-  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
-  .msg { font-size: 14px; margin-top: 8px; min-height: 1px; }
+  .hint { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+  .msg { font-size: 15px; margin-top: 8px; min-height: 1px; }
   .msg.err { color: var(--bad); } .msg.ok { color: var(--ok); }
-  .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); white-space: nowrap; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); white-space: nowrap; }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   .chip.ok { background: var(--ok-soft); color: var(--ok); }
   .chip.warn { background: var(--warn-soft); color: var(--warn); }
   .chip.bad { background: var(--bad-soft); color: var(--bad); }
-  .chip.mute { background: var(--ground); color: var(--muted); border: 1px solid var(--line); }
-  .filters { display: grid; grid-template-columns: 2fr repeat(3, minmax(130px, 1fr)); gap: 10px; align-items: end; }
-  .filters label.chk { display: flex; gap: 8px; align-items: center; font-size: 14px; min-height: 42px; }
+  .chip.mute { background: #EEEEEE; color: #666; }
+  .filters { display: grid; grid-template-columns: 2fr repeat(3, minmax(140px, 1fr)); gap: 12px; align-items: end; }
+  .filters label.chk { display: flex; gap: 8px; align-items: center; font-size: 15px; min-height: 46px; font-weight: 500; }
   .filters label.chk input { width: auto; min-height: 0; margin: 0; }
   @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } .filters .q { grid-column: 1 / -1; } }
 
   /* tiles */
-  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
-  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; box-shadow: var(--shadow); text-align: left; font: inherit; color: inherit; cursor: pointer; }
-  .tile .lb { font-size: 12.5px; color: var(--muted); font-weight: 600; }
-  .tile .val { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 2px; }
-  .tile .sm { font-size: 12.5px; color: var(--muted); }
-  .tile.bad { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); } .tile.bad .val { color: var(--bad); }
-  .tile.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, var(--line)); } .tile.warn .val { color: var(--warn); }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+  .tile:hover { border-color: var(--brand-line); }
+  .tile .lb { font-size: 14px; color: var(--muted); font-weight: 600; }
+  .tile .val { font-size: 30px; font-weight: 700; line-height: 1.2; margin-top: 2px; color: var(--navy); }
+  .tile .sm { font-size: 13.5px; color: var(--muted); }
+  .tile.bad { background: var(--bad-soft); border-color: #E8C4C2; } .tile.bad .val { color: var(--bad); }
+  .tile.warn { background: var(--warn-soft); border-color: #EBD98A; } .tile.warn .val { color: var(--warn); }
   @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
 
   /* tables and lists */
-  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
-  table.list { width: 100%; border-collapse: collapse; font-size: 14px; }
-  table.list th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); background: var(--ground); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; }
-  table.list td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+  table.list { width: 100%; border-collapse: collapse; font-size: 15px; }
+  table.list th { text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); background: #F6FBF9; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; }
+  table.list td { padding: 11px 12px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
   table.list tr:last-child td { border-bottom: 0; }
   table.list tbody tr { cursor: pointer; }
-  table.list tbody tr:hover td { background: var(--brand-soft); }
-  table.list .s { color: var(--muted); font-size: 12.5px; }
-  .empty { padding: 26px; text-align: center; color: var(--muted); }
-  .due-item { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  table.list tbody tr:hover td { background: var(--mint); }
+  table.list .s { color: var(--muted); font-size: 13.5px; }
+  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  .due-item { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line-2); }
   .due-item:last-child { border-bottom: 0; }
   .due-item .t { flex: 1; min-width: 0; }
-  .due-item .t b { display: block; }
-  .due-item .t span { color: var(--muted); font-size: 13px; }
-  @media (max-width: 760px) { table.list .hide-m { display: none; } }
+  .due-item .t b { display: block; color: var(--head); font-weight: 600; }
+  .due-item .t span { color: var(--muted); font-size: 14px; }
+  @media (max-width: 760px) { table.list .hide-m { display: none; } .due-item { flex-wrap: wrap; } .due-item .t { flex-basis: 100%; } }
 
   /* schedule grid */
-  table.sched { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 860px; }
-  table.sched th, table.sched td { border-bottom: 1px solid var(--line); padding: 6px 6px; }
-  table.sched th { background: var(--ground); font-size: 12px; color: var(--muted); position: sticky; top: 0; }
-  table.sched td.m { text-align: center; width: 46px; border-left: 1px solid var(--line); }
+  table.sched { border-collapse: collapse; font-size: 14px; width: 100%; min-width: 880px; }
+  table.sched th, table.sched td { border-bottom: 1px solid var(--line-2); padding: 7px 8px; }
+  table.sched th { background: #F6FBF9; font-size: 13px; font-weight: 600; color: var(--muted); position: sticky; top: 0; }
+  table.sched td.m { text-align: center; width: 46px; border-left: 1px solid var(--line-2); }
   table.sched td.m.now { background: var(--brand-soft); }
-  .mk { display: inline-flex; width: 26px; height: 22px; align-items: center; justify-content: center; border-radius: 6px; font-weight: 700; font-size: 12px; }
+  .mk { display: inline-flex; width: 26px; height: 22px; align-items: center; justify-content: center; border-radius: 6px; font-weight: 700; font-size: 12px; font-style: normal; }
   .mk.done { background: var(--ok); color: #fff; }
   .mk.plan { border: 1.5px solid var(--brand); color: var(--brand); }
   .mk.late { background: var(--bad); color: #fff; }
-  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 8px 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; color: var(--muted); margin: 10px 0; }
   .legend span { display: inline-flex; gap: 6px; align-items: center; }
 
   /* PM form */
-  .eqcard { display: flex; gap: 12px; align-items: center; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 8px; padding: 10px 12px; }
+  .eqcard { display: flex; gap: 12px; align-items: center; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 10px; padding: 12px 14px; }
   .eqcard .t { flex: 1; min-width: 0; }
-  .eqcard b { display: block; }
-  .eqcard span { font-size: 13px; color: var(--muted); }
-  .picklist { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
-  .picklist button { display: block; width: 100%; text-align: left; background: var(--panel); border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; font: inherit; color: inherit; cursor: pointer; }
-  .picklist button:hover { background: var(--brand-soft); }
-  .picklist button span { display: block; font-size: 13px; color: var(--muted); }
-  .ck-sec { margin-top: 12px; }
-  .ck-sec h4 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--brand); }
-  .ck { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); }
-  .ck .lbl { font-size: 14.5px; }
-  .ck .note { grid-column: 1 / -1; margin-top: 0; min-height: 36px; padding: 6px 9px; font-size: 14px; }
-  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .seg button { border: 0; background: var(--field); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 7px 11px; min-width: 52px; min-height: 38px; cursor: pointer; }
-  .seg button + button { border-left: 1px solid var(--line); }
+  .eqcard b { display: block; color: var(--navy); }
+  .eqcard span { font-size: 14px; color: var(--muted); }
+  .picklist { max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; margin-top: 10px; }
+  .picklist button { display: block; width: 100%; text-align: left; background: var(--panel); border: 0; border-bottom: 1px solid var(--line-2); padding: 11px 14px; font: inherit; color: inherit; cursor: pointer; }
+  .picklist button b { color: var(--head); font-weight: 600; }
+  .picklist button:hover { background: var(--mint); }
+  .picklist button span { display: block; font-size: 14px; color: var(--muted); }
+  .ck-sec { margin-top: 14px; }
+  .ck-sec h4 { margin: 0 0 4px; font-size: 14px; font-weight: 700; letter-spacing: .02em; color: var(--navy); }
+  .ck { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-2); }
+  .ck .lbl { font-size: 15.5px; }
+  .ck .note { grid-column: 1 / -1; margin-top: 0; min-height: 40px; padding: 7px 10px; font-size: 15px; }
+  .seg { display: inline-flex; border: 1px solid #C3D3CC; border-radius: var(--r-ctl); overflow: hidden; }
+  .seg button { border: 0; background: #fff; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; padding: 8px 12px; min-width: 56px; min-height: 42px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid #C3D3CC; }
   .seg button[aria-pressed="true"][data-v="Done"] { background: var(--ok); color: #fff; }
   .seg button[aria-pressed="true"][data-v="Issue"] { background: var(--bad); color: #fff; }
-  .seg button[aria-pressed="true"][data-v="N/A"] { background: var(--muted); color: var(--panel); }
+  .seg button[aria-pressed="true"][data-v="N/A"] { background: #5E6B78; color: #fff; }
   .choice { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-  .choice label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; background: var(--field); }
+  .choice label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #C3D3CC; border-radius: var(--r-ctl); padding: 9px 14px; font-size: 15px; cursor: pointer; background: #fff; min-height: 44px; }
   .choice input { width: auto; min-height: 0; margin: 0; }
-  .choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); font-weight: 600; }
-  .issues { background: var(--bad-soft); color: var(--bad); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; margin-bottom: 8px; }
-  .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 10px 20px; padding-bottom: max(10px, env(safe-area-inset-bottom)); box-shadow: 0 -2px 10px rgba(0,0,0,.06); z-index: 5; }
-  .savebar .in { max-width: 1300px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); color: var(--navy); font-weight: 600; }
+  .issues { background: var(--bad-soft); color: var(--bad); border-radius: 10px; padding: 10px 14px; font-size: 14.5px; margin-bottom: 10px; }
+  .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); padding: 10px 20px; padding-bottom: max(10px, env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(31,42,69,.08); z-index: 25; }
+  .savebar .in { max-width: 1180px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
   .savebar .msg { margin: 0; flex: 1; }
-  .padwrap { position: relative; border: 1px dashed var(--brand-line); border-radius: 8px; background: #fff; margin-top: 6px; }
+  .padwrap { position: relative; border: 1px dashed var(--brand-line); border-radius: 10px; background: #fff; margin-top: 6px; }
   .padwrap canvas { display: block; width: 100%; height: 170px; touch-action: none; cursor: crosshair; }
-  .padwrap .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #8a978f; font-size: 14px; pointer-events: none; }
+  .padwrap .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #8a978f; font-size: 15px; pointer-events: none; }
   .padwrap .base { position: absolute; left: 8%; right: 8%; bottom: 34px; border-bottom: 1px solid #c9d3cc; pointer-events: none; }
 
   /* dialogs */
-  dialog { border: 0; border-radius: 12px; padding: 0; width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 24px); background: var(--panel); color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.25); }
-  dialog::backdrop { background: rgba(10, 20, 14, .45); }
-  dialog .dh { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
-  dialog .dh h3 { margin: 0; font-size: 17px; flex: 1; }
-  dialog .db { padding: 16px; }
-  dialog .df { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; position: sticky; bottom: 0; background: var(--panel); }
-  dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+  dialog { border: 0; border-radius: 16px; padding: 0; width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 24px); background: #fff; color: var(--ink); box-shadow: 0 20px 60px rgba(31,42,69,.3); }
+  dialog.small { width: min(480px, calc(100vw - 24px)); }
+  dialog::backdrop { background: rgba(31, 42, 69, .5); }
+  dialog .dh { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line-2); position: sticky; top: 0; background: #fff; z-index: 1; }
+  dialog .dh h3 { margin: 0; font-size: 19px; font-weight: 600; flex: 1; }
+  dialog .db { padding: 20px; }
+  dialog .df { padding: 12px 20px; border-top: 1px solid var(--line-2); display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; position: sticky; bottom: 0; background: #fff; }
+  dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 7px 16px; margin: 0; font-size: 15px; }
   dl.kv dt { color: var(--muted); }
   dl.kv dd { margin: 0; overflow-wrap: anywhere; }
-  .x { background: transparent; border: 0; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+  .x { background: transparent; border: 0; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+  .x:hover { background: var(--mint); }
 
-  /* lock screen */
-  #lock { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  #lock .card { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 24px; }
-  #lock .logos { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
-  #lock .logos img { height: 54px; }
-  #lock h1 { font-size: 20px; margin: 0; text-align: center; }
-  #lock p.s { text-align: center; color: var(--muted); margin: 4px 0 16px; font-size: 14px; }
+  /* passcode screen: navy wallpaper like Document Tracking */
+  #lock { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px 16px; background: var(--navy) center / cover no-repeat; }
+  #lock .card { width: min(400px, 100%); background: rgba(246, 248, 250, .97); border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.35); padding: 28px 24px 22px; }
+  #lock h1 { font-size: 24px; font-weight: 600; margin: 0; text-align: center; color: var(--navy); }
+  #lock p.s { text-align: center; color: var(--muted); margin: 4px 0 18px; font-size: 15px; }
+  #lock .btn { width: 100%; min-height: 52px; font-size: 17px; }
+  #lock .ver { text-align: right; font-size: 13px; color: var(--muted); margin-top: 8px; }
 
   /* ---------- printouts (A4) ---------- */
   #printArea { display: none; }
@@ -231,37 +260,35 @@
 <!-- ============ passcode ============ -->
 <div id="lock">
   <form class="card" id="lockForm" autocomplete="off">
-    <div class="logos"><img id="lkDoh" alt=""><img id="lkTrc" alt=""></div>
     <h1>ICT Inventory and PMS</h1>
-    <p class="s">ICT Unit, DOH TRC Dulag</p>
+    <p class="s">Enter the ICTU passcode to open.</p>
     <label class="f">ICTU passcode<input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password" required></label>
     <label class="f hidden" id="urlWrap" style="margin-top:10px">Google Sheet link (the Apps Script web app URL ending in /exec)
       <input id="urlIn" type="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
-    <div class="row" style="margin-top:14px"><button class="btn" id="lockBtn" type="submit" style="width:100%">Open</button></div>
+    <div class="row" style="margin-top:16px"><button class="btn" id="lockBtn" type="submit">Open</button></div>
     <div class="msg" id="lockMsg" role="status"></div>
     <p class="hint" id="urlToggleWrap"><a href="#" id="urlToggle">Change the Google Sheet link</a></p>
+    <div class="ver" id="lockVer"></div>
   </form>
 </div>
 
 <!-- ============ app ============ -->
 <div id="app" class="hidden">
-<header class="app">
-  <div class="in">
-    <div class="top">
-      <div><h1>ICT Inventory and PMS</h1><p>Equipment masterlist, PMS schedule and PM records of the ICT Unit</p></div>
-      <div class="who"><span id="syncState"></span><button id="reloadBtn" type="button">Refresh</button><button id="lockOut" type="button">Lock</button></div>
-    </div>
-    <nav class="tabs" role="tablist">
-      <button role="tab" data-v="home" aria-selected="true">Home</button>
-      <button role="tab" data-v="inv">Inventory</button>
-      <button role="tab" data-v="sched">PMS Schedule</button>
-      <button role="tab" data-v="pm">Do PM</button>
-      <button role="tab" data-v="recs">PM Records</button>
-      <button role="tab" data-v="reports">Reports and Forms</button>
-    </nav>
-  </div>
+<header class="bar">
+  <div class="org"><img id="hdDoh" alt="DOH"><img id="hdTrc" alt="TRC Dulag"><img class="bp" id="hdBp" alt="Bagong Pilipinas">
+    <div class="t">Republic of the Philippines<b>Department of Health</b><span class="c">TREATMENT AND REHABILITATION CENTER DULAG</span><br>Brgy. Highway, Dulag, Leyte<i>ISO 9001:2015 CERTIFIED | PRIME HRM AGENCY ACCREDITED: RESOLUTION NO. 2501361</i></div></div>
+  <div class="apptitle"><b>ICT Inventory and PMS</b><span>ICT Unit, TRC Dulag</span></div>
+  <div class="who"><span id="syncState"></span><button id="reloadBtn" type="button">Refresh</button><button id="lockOut" type="button">Lock</button></div>
 </header>
-
+<div class="shell">
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" data-v="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
+    <button role="tab" data-v="inv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>Inventory</button>
+    <button role="tab" data-v="sched"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h2M14 14h2M8 17h2"/></svg>PMS Schedule<span class="badge hidden" id="navLate"></span></button>
+    <button role="tab" data-v="pm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Do PM</button>
+    <button role="tab" data-v="recs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>PM Records</button>
+    <button role="tab" data-v="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Reports and Forms</button>
+  </nav>
 <main>
   <!-- HOME -->
   <section class="view" id="v-home">
@@ -352,8 +379,8 @@
             <label class="f"><span class="req">Date</span><input id="pDate" type="date" required></label>
             <label class="f">Time start<input id="pStart" type="time"></label>
             <label class="f">Time end<input id="pEnd" type="time"></label>
-            <label class="f">Office / section<input id="pOffice" list="dlOffices"></label>
-            <label class="f">End user<input id="pEndUser"></label>
+            <div class="addline"><label class="f">Office / section<input id="pOffice" list="dlOffices" autocomplete="off"></label><button class="btn ghost small" type="button" data-addoffice="pOffice">Add office</button></div>
+            <div><div class="addline"><label class="f">End user<input id="pEndUser" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="pEndUser">Add employee</button></div><div class="fieldnote hidden"></div></div>
             <label class="f">Maintenance type<select id="pPmType"><option>Scheduled PM</option><option>Unscheduled / On Request</option></select></label>
             <label class="f">Main work done (for the PM Log)<select id="pActivity"></select></label>
             <label class="f">PM frequency<input id="pFreq" readonly></label>
@@ -405,7 +432,7 @@
           <h3>E. Conforme</h3>
           <div class="grid">
             <label class="f"><span class="req">Performed by (ICT personnel)</span><select id="pBy"></select></label>
-            <label class="f">Acknowledged by (end user)<input id="pAck"></label>
+            <div><div class="addline"><label class="f">Acknowledged by (end user)<input id="pAck" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="pAck">Add employee</button></div><div class="fieldnote hidden"></div></div>
             <label class="f">Verified by (Head, ICT Unit)<select id="pVer"></select></label>
           </div>
           <p class="hint">The end user may sign below on this phone or tablet (optional). The printed form also has signature lines for signing by hand.</p>
@@ -466,6 +493,7 @@
     </div>
   </section>
 </main>
+</div>
 
 <div class="savebar hidden" id="pmBar"><div class="in"><div class="msg" id="pmMsg" role="status"></div><button class="btn ghost" id="pmReset" type="button">Clear</button><button class="btn" id="pmSave" type="button">Save PM record</button></div></div>
 </div>
@@ -482,9 +510,9 @@
         <label class="f">Serial no.<input id="eSerial"></label>
         <label class="f">Property tag no.<input id="eTag"></label>
         <label class="f wide">Description / specs<input id="eDesc" placeholder="For example: Core i5, 8 GB RAM, 512 GB SSD"></label>
-        <label class="f"><span class="req">Office / section</span><input id="eOffice" list="dlOffices" required></label>
-        <label class="f">End user<input id="eEndUser"></label>
-        <label class="f">Accountable officer (PAR / ICS)<input id="eAcc"></label>
+        <div class="addline"><label class="f"><span class="req">Office / section</span><input id="eOffice" list="dlOffices" autocomplete="off" required></label><button class="btn ghost small" type="button" data-addoffice="eOffice">Add office</button></div>
+        <div><div class="addline"><label class="f">End user<input id="eEndUser" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="eEndUser">Add employee</button></div><div class="fieldnote hidden"></div></div>
+        <div><div class="addline"><label class="f">Accountable officer (PAR / ICS)<input id="eAcc" list="dlEmployees" autocomplete="off" data-emp></label><button class="btn ghost small" type="button" data-addemp="eAcc">Add employee</button></div><div class="fieldnote hidden"></div></div>
         <label class="f">Source document (RIS / PAR / ICS no.)<input id="eSource"></label>
         <label class="f">Date acquired<input id="eAcq" type="date"></label>
         <label class="f">Unit cost (PHP)<input id="eCost" inputmode="decimal"></label>
@@ -510,6 +538,35 @@
 </dialog>
 
 <datalist id="dlOffices"></datalist>
+<datalist id="dlEmployees"></datalist>
+
+<!-- add office / add employee -->
+<dialog id="offDlg" class="small">
+  <form id="offForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Add office</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <label class="f"><span class="req">Office / unit name</span><input id="oName" required placeholder="For example: Dietary Unit"></label>
+      <p class="hint">Use the full name the office uses in its memos. It is added to the Lists tab of the Sheet and shows in every office list.</p>
+      <div class="msg" id="offMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="offSave">Add office</button></div>
+  </form>
+</dialog>
+<dialog id="empDlg" class="small">
+  <form id="empForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Add employee</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <p class="hint" style="margin:0 0 12px">For staff who are not on the permanent masterlist yet, such as job order or contract of service staff.</p>
+      <div class="grid">
+        <label class="f wide"><span class="req">Full name</span><input id="emName" required placeholder="First name, middle initial, surname"></label>
+        <label class="f wide">Position<input id="emPos"></label>
+        <label class="f wide"><span class="req">Office / unit</span><input id="emOffice" list="dlOffices" required></label>
+      </div>
+      <div class="msg" id="empMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="empSave">Add employee</button></div>
+  </form>
+</dialog>
 <datalist id="dlOs"><option>Windows 11 Pro</option><option>Windows 11 Home</option><option>Windows 10 Pro</option><option>Windows 10 Home</option><option>Ubuntu</option></datalist>
 <datalist id="dlMso"><option>Microsoft Office 2021</option><option>Microsoft Office 2019</option><option>Microsoft Office 2016</option><option>Microsoft 365</option><option>WPS Office</option><option>LibreOffice</option><option>None</option></datalist>
 <datalist id="dlLic"><option>Licensed / activated</option><option>Not activated</option><option>Free / open source</option><option>Not checked</option></datalist>
@@ -523,6 +580,8 @@ const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyZfBU_2nFesgP3UQRn
 const LOGO_DOH = "%%LOGO_DOH%%";
 const LOGO_TRC = "%%LOGO_TRC%%";
 const LOGO_BP = "%%LOGO_BP%%";
+const WALLPAPER = "%%WALLPAPER%%";
+const APP_VERSION = "1.1.0";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -668,7 +727,9 @@ function applies(item, kinds) { return item[2] === "*" || item[2].split(" ").som
 
 // ---------- start ----------
 function initLock() {
-  $("lkDoh").src = LOGO_DOH; $("lkTrc").src = LOGO_TRC;
+  $("lock").style.backgroundImage = "linear-gradient(rgba(31,42,69,.35), rgba(31,42,69,.35)), url(" + WALLPAPER + ")";
+  $("hdDoh").src = LOGO_DOH; $("hdTrc").src = LOGO_TRC; $("hdBp").src = LOGO_BP;
+  $("lockVer").textContent = "Version " + APP_VERSION;
   $("urlIn").value = gsUrl();
   const needUrl = !GAS && !gsUrl();
   $("urlWrap").classList.toggle("hidden", !needUrl);
@@ -701,7 +762,8 @@ function openApp(j) {
   show(["home", "inv", "sched", "pm", "recs", "reports"].includes(v) ? v : "home");
 }
 function take(j) {
-  D = { inventory: j.inventory || [], pms: j.pms || [], lists: j.lists, form: j.form || {}, today: j.today || isoDate(new Date()), version: j.version, appUrl: j.appUrl };
+  D = { inventory: j.inventory || [], pms: j.pms || [], lists: j.lists, form: j.form || {}, today: j.today || isoDate(new Date()), version: j.version, appUrl: j.appUrl,
+    employees: j.employees || [], masterlist: j.masterlist || {} };
   $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 async function reload() {
@@ -727,17 +789,18 @@ document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dat
 function opts(list, first) { return (first != null ? '<option value="">' + esc(first) + "</option>" : "") + list.map(x => '<option>' + esc(x) + "</option>").join(""); }
 function fillPickers(keep) {
   const L = D.lists;
-  const offices = [...new Set(L.offices.concat(D.inventory.map(i => i.office)).filter(Boolean))].sort();
+  const offices = officeList();
   const types = [...new Set(L.types.map(t => t[0]).concat(D.inventory.map(i => i.type)).filter(Boolean))];
   const keepVal = (id, html) => { const v = $(id).value; $(id).innerHTML = html; if (keep) $(id).value = v; };
   $("dlOffices").innerHTML = offices.map(o => "<option>" + esc(o) + "</option>").join("");
+  $("dlEmployees").innerHTML = D.employees.map(e => '<option value="' + esc(e.name) + '">' + esc([e.position, e.office].filter(Boolean).join(", ")) + "</option>").join("");
   keepVal("iOffice", opts(offices, "All offices")); keepVal("sOffice", opts(offices, "All offices"));
   keepVal("iType", opts(types, "All types")); keepVal("sType", opts(types, "All types"));
   keepVal("iCond", '<option value="">In service (all but disposed)</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
-  $("eType").innerHTML = opts(L.types.map(t => t[0]));
-  $("eFreq").innerHTML = opts(["Monthly", "Quarterly", "Semi-Annual", "Annual", NOT_SCHEDULED]);
-  $("eCond").innerHTML = opts(L.conditions);
-  $("pActivity").innerHTML = opts(L.activities);
+  keepVal("eType", opts(L.types.map(t => t[0])));
+  keepVal("eFreq", opts(["Monthly", "Quarterly", "Semi-Annual", "Annual", NOT_SCHEDULED]));
+  keepVal("eCond", opts(L.conditions));
+  keepVal("pActivity", opts(L.activities));
   const staff = L.staff.map(s => s[0]);
   keepVal("pBy", opts(staff, "Pick a name")); keepVal("pVer", opts(staff, "(leave for signing by hand)"));
   keepVal("qBy", opts(staff)); keepVal("qNoted", opts(staff));
@@ -756,7 +819,9 @@ function fillPickers(keep) {
   const qs = [...new Set(D.pms.map(p => p.quarter).filter(Boolean))].sort().reverse();
   keepVal("rQtr", opts(qs, "All quarters"));
   $("aboutTxt").textContent = "Version " + (D.version || "") + ". The PM form follows " + (D.form.code || "COH-IDN-F-02") + " Rev. " + (D.form.rev || "01") +
-    ". Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of offices, equipment types, staff and work types are in the Lists tab of the Sheet.";
+    ". Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of offices, equipment types, ICT staff and work types are in the Lists tab of the Sheet. " +
+    (D.masterlist.found ? "Employee names come from the Masterlist tab (" + D.masterlist.count + " permanent staff) plus " + D.masterlist.added + " added in the app."
+      : "No Masterlist tab was found in the Sheet, so only employees added in the app are listed. Paste the HR masterlist into a tab named Masterlist.");
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
@@ -770,6 +835,7 @@ function renderHome() {
   const q = quarterOf(todayStr());
   const done = D.pms.filter(p => p.quarter === q && p.recordStatus !== "Voided");
   $("tInv").textContent = act.length; $("tInvS").textContent = sch.length + " on the PMS schedule";
+  $("navLate").textContent = late.length; $("navLate").classList.toggle("hidden", !late.length);
   $("tLate").textContent = late.length; $("tLateT").className = "tile" + (late.length ? " bad" : "");
   $("tDue").textContent = due.length; $("tDueT").className = "tile" + (due.length ? " warn" : ""); $("tDueS").textContent = soon.length + " more in the next 30 days";
   $("tDone").textContent = done.length; $("tDoneS").textContent = q;
@@ -851,6 +917,7 @@ function eqEditMode() {
     eAcc: it.accountable, eSource: it.source, eAcq: it.acquired, eCost: it.cost, eWarr: it.warranty, eComp: it.compName, eOs: it.os,
     eMso: it.msOffice, eFreq: it.freq || defFreq(it.type), eCond: it.condition, eRem: it.remarks };
   Object.keys(f).forEach(k => $(k).value = f[k] == null ? "" : f[k]);
+  clearNotes($("eqEdit"));
   $("eqFoot").innerHTML = (eqCur ? `<button class="btn ghost" type="button" id="eqBack">Back</button>` : "") +
     `<span class="spacer"></span><button class="btn" type="button" id="eqSave">${eqCur ? "Save changes" : "Add to masterlist"}</button>`;
   if ($("eqBack")) $("eqBack").onclick = () => { msg("eqMsg", ""); eqViewMode(); };
@@ -879,6 +946,76 @@ async function saveEq() {
   finally { if ($("eqSave")) $("eqSave").disabled = false; }
 }
 document.querySelectorAll("dialog [data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
+
+// ---------- offices and employees (masterlist in the Sheet, plus ones added here) ----------
+const key = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function officeList() {
+  const seen = {}, out = [];
+  D.lists.offices.concat(D.employees.map(e => e.office), D.inventory.map(i => i.office)).forEach(o => {
+    if (o && !seen[key(o)]) { seen[key(o)] = 1; out.push(o); } });
+  return out.sort((a, b) => a.localeCompare(b));
+}
+function findEmp(name) { const k = key(name); return k ? D.employees.find(e => key(e.name) === k) : null; }
+// The office field that goes with an employee field, filled in when it is still blank.
+const EMP_OFFICE = { eEndUser: "eOffice", pEndUser: "pOffice" };
+function checkEmp(input) {
+  const note = input.closest(".addline").parentElement.querySelector(".fieldnote");
+  const v = input.value.trim(), e = findEmp(v);
+  if (e && e.name !== v) input.value = e.name;
+  if (e && EMP_OFFICE[input.id] && !$(EMP_OFFICE[input.id]).value.trim()) $(EMP_OFFICE[input.id]).value = e.office;
+  const show = v && !e;
+  note.classList.toggle("hidden", !show);
+  if (show) {
+    note.innerHTML = 'Not on the employee list. <button type="button">Add ' + esc(v) + ' as an employee</button>';
+    note.querySelector("button").onclick = () => openEmp(input.id);
+  }
+}
+document.querySelectorAll("input[data-emp]").forEach(i => i.addEventListener("change", () => checkEmp(i)));
+function clearNotes(root) { root.querySelectorAll(".fieldnote").forEach(n => n.classList.add("hidden")); }
+
+let offTarget = null, empTarget = null;
+document.querySelectorAll("[data-addoffice]").forEach(b => b.onclick = () => {
+  offTarget = b.dataset.addoffice; const v = $(offTarget).value.trim();
+  $("oName").value = v && !officeList().some(o => key(o) === key(v)) ? v : ""; msg("offMsg", ""); $("offDlg").showModal(); $("oName").focus();
+});
+$("offForm").onsubmit = async ev => {
+  ev.preventDefault();
+  const name = $("oName").value.trim(); if (!name) return;
+  const have = officeList().find(o => key(o) === key(name));
+  if (have) { if (offTarget) $(offTarget).value = have; msg("offMsg", have + " is already on the list, so it was picked for you.", "ok"); setTimeout(() => $("offDlg").close(), 900); return; }
+  $("offSave").disabled = true; msg("offMsg", "Saving…");
+  try {
+    const j = await api({ action: "addOffice", name, by: $("pBy").value || "ICTU" });
+    if (!j.ok) { msg("offMsg", j.error, "err"); return; }
+    D.lists.offices.push(j.office); fillPickers(true);
+    if (offTarget) $(offTarget).value = j.office;
+    $("offDlg").close();
+  } catch (e) { msg("offMsg", errText(e), "err"); }
+  finally { $("offSave").disabled = false; }
+};
+document.querySelectorAll("[data-addemp]").forEach(b => b.onclick = () => openEmp(b.dataset.addemp));
+function openEmp(target) {
+  empTarget = target; const v = $(target).value.trim();
+  $("emName").value = v && !findEmp(v) ? v : ""; $("emPos").value = "";
+  $("emOffice").value = EMP_OFFICE[target] ? $(EMP_OFFICE[target]).value : "";
+  msg("empMsg", ""); $("empDlg").showModal(); ($("emName").value ? $("emPos") : $("emName")).focus();
+}
+$("empForm").onsubmit = async ev => {
+  ev.preventDefault();
+  const emp = { name: $("emName").value.trim(), position: $("emPos").value.trim(), office: $("emOffice").value.trim() };
+  if (!emp.name || !emp.office) { msg("empMsg", "Name and office are needed.", "err"); return; }
+  const have = findEmp(emp.name);
+  if (have) { if (empTarget) { $(empTarget).value = have.name; checkEmp($(empTarget)); } msg("empMsg", have.name + " is already on the list, so they were picked for you.", "ok"); setTimeout(() => $("empDlg").close(), 900); return; }
+  $("empSave").disabled = true; msg("empMsg", "Saving…");
+  try {
+    const j = await api({ action: "addEmployee", employee: emp, by: $("pBy").value || "ICTU" });
+    if (!j.ok) { msg("empMsg", j.error, "err"); return; }
+    D.employees.push(j.employee); if (j.newOffice) D.lists.offices.push(j.newOffice); fillPickers(true);
+    if (empTarget) { $(empTarget).value = j.employee.name; checkEmp($(empTarget)); }
+    $("empDlg").close();
+  } catch (e) { msg("empMsg", errText(e), "err"); }
+  finally { $("empSave").disabled = false; }
+};
 
 // ---------- schedule ----------
 // Months of year y in which this unit's PM is planned: from its next due date, then every freq months.
@@ -946,7 +1083,7 @@ function pickPM(id) {
   $("pmSelT").textContent = it.id + "  " + eqName(it);
   $("pmSelS").textContent = [it.office, it.endUser, it.serial ? "S/N " + it.serial : "", it.tag ? "Tag " + it.tag : ""].filter(Boolean).join(", ");
   $("pDate").value = todayStr(); $("pStart").value = nowTime(); $("pEnd").value = "";
-  $("pOffice").value = it.office; $("pEndUser").value = it.endUser; $("pAck").value = it.endUser;
+  $("pOffice").value = it.office; $("pEndUser").value = it.endUser; $("pAck").value = it.endUser; clearNotes($("pmBody"));
   $("pPmType").value = "Scheduled PM"; $("pActivity").value = kindOf(it.type).includes("printer") ? "Print Test" : "Cleaning";
   if (!$("pActivity").value) $("pActivity").selectedIndex = 0;
   $("pFreq").value = it.freq;

@@ -85,4 +85,25 @@ ok(b && b.id === 'ICT-0031' && b.freq === 'Quarterly' && b.condition === 'Servic
 const aud = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['SETUP', 'EQUIPMENT ADDED', 'EQUIPMENT UPDATED', 'PM RECORDED', 'PM VOIDED', 'VERIFY', 'EQUIPMENT IMPORTED'].forEach(a => ok(aud.includes(a), 'audit has ' + a));
 
+// employees and offices
+L = call({ action: 'load' });
+ok(L.masterlist.found && L.masterlist.count === 5, 'masterlist read: ' + JSON.stringify(L.masterlist));
+const jose = L.employees.find(e => e.surname === undefined && /Reyes Jr\./.test(e.name));
+ok(jose && jose.name === 'Jose Mari S. Reyes Jr.' && jose.office === 'Cash Unit' && jose.position === 'Cashier I', 'name, office and position parsed: ' + JSON.stringify(jose));
+ok(L.employees.find(e => e.name === 'Juan P. Dela Cruz').office === 'Accounting Section', 'last word is the middle name');
+r = call({ action: 'addOffice', name: 'dietary unit' });
+ok(r.ok && r.office === 'Dietary Unit', 'office added and tidied: ' + r.office);
+ok(call({ action: 'addOffice', name: 'DIETARY  UNIT' }).existed, 'duplicate office not added twice');
+ok(call({ action: 'addOffice', name: 'cash unit' }).existed, 'office from masterlist counts as existing');
+r = call({ action: 'addEmployee', employee: { name: 'Pedro Penduko', position: 'Job Order', office: 'Motor Pool' } });
+ok(r.ok && r.newOffice === 'Motor Pool' && r.employee.office === 'Motor Pool', 'employee added with a new office');
+ok(call({ action: 'addEmployee', employee: { name: 'pedro  penduko', office: 'x' } }).existed, 'duplicate employee not added');
+ok(call({ action: 'addEmployee', employee: { name: 'maria clara r santos', office: 'Budget Section' } }).existed, 'masterlist employee not added again');
+ok(!call({ action: 'addEmployee', employee: { name: 'No Office' } }).ok, 'employee needs an office');
+L = call({ action: 'load' });
+ok(L.employees.some(e => e.name === 'Pedro Penduko' && e.added) && L.masterlist.added === 1, 'added employee listed');
+ok(L.lists.offices.includes('Dietary Unit') && L.lists.offices.includes('Motor Pool'), 'new offices in Lists');
+const aud2 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
+ok(aud2.includes('OFFICE ADDED') && aud2.includes('EMPLOYEE ADDED'), 'audit has office and employee adds');
+
 console.log('backend: ' + n + ' checks passed');

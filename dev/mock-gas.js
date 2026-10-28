@@ -146,6 +146,8 @@ function seed(be) {
     pm.getRange(i + 2, 2).setNumberFormat('mmm d, yyyy');
     pm.getRange(i + 2, 1, 1, PH.length).setValues([row]);
   });
+  const ms = gas._ss.insertSheet('Masterlist');
+  ms.getRange(1, 1, s.masterlist.length, 3).setValues(s.masterlist);
   gas._props.ICTU_PASSCODE = '1234';
 }
 

@@ -38,6 +38,15 @@ Everything needs the ICTU passcode. Equipment data lives only in the Google Shee
 
 **GitHub Pages (one time):** the repo must be public. In the repo, *Settings > Pages*, set Source to *Deploy from a branch*, Branch *main*, folder */ (root)*, and Save.
 
+## Employee lists
+
+The end user, accountable officer and "acknowledged by" fields pick from the employee list. It comes from two tabs in the Sheet:
+
+- **Masterlist**: paste the HR "Masterlist of Employees - Permanent" into a tab named exactly `Masterlist`, as it is (section headings in column A, "Position - SG-n" in column B, "SURNAME, FIRST MIDDLE" in column C). Each section heading becomes an office. Replace the rows whenever HR sends a new masterlist.
+- **Added Employees**: staff not on the masterlist (job order, contract of service, new hires) added with the *Add employee* button.
+
+The *Add office* button adds an office to the Lists tab. Both buttons are logged in the Audit Trail. The masterlist stays in the Sheet only; it is never put in this repo.
+
 ## Day to day
 
 - **Adding equipment.** Inventory tab, *Add equipment*. Or paste many rows straight into the Inventory tab of the Sheet with the Equipment ID left blank. The next time the app opens it gives each row an ID and notes it in the Audit Trail.

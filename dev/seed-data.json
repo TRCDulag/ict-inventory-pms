@@ -409,5 +409,67 @@
    "overall": "Functional"
   }
  ],
- "note": "Made-up test data in the shape of the ICTU masterlist. The real rows are only in the Google Sheet."
+ "note": "Made-up test data in the shape of the ICTU masterlist. The real rows are only in the Google Sheet.",
+ "masterlist": [
+  [
+   "DOH TREATMENT AND REHABILITATION CENTER DULAG",
+   "",
+   ""
+  ],
+  [
+   "MASTERLIST OF EMPLOYEES - PERMANENT",
+   "",
+   ""
+  ],
+  [
+   "ADMINISTRATIVE DIVISION",
+   "",
+   ""
+  ],
+  [
+   "BUDGET SECTION",
+   "",
+   ""
+  ],
+  [
+   "",
+   "Budget Officer II - SG-15",
+   "SANTOS, MARIA CLARA REYES"
+  ],
+  [
+   "ACCOUNTING SECTION",
+   "",
+   ""
+  ],
+  [
+   "",
+   "Accountant II - SG-16",
+   "DELA CRUZ, JUAN PEDRO"
+  ],
+  [
+   "",
+   "Administrative Aide IV - SG-4",
+   "GARCIA, ANA LIZA MERCADO"
+  ],
+  [
+   "CASH UNIT",
+   "",
+   ""
+  ],
+  [
+   "",
+   "Cashier I - SG-11",
+   "REYES JR., JOSE MARI SANTOS"
+  ],
+  [
+   "ICTU",
+   "",
+   ""
+  ],
+  [
+   "",
+   "Computer Operator II - SG-8",
+   "LOPEZ, TEST OPERATOR"
+  ]
+ ]
 }

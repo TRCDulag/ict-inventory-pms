@@ -19,6 +19,11 @@
  * UPDATING an existing deployment (keeps the same URL):
  *   Deploy > Manage deployments > pencil icon > Version: New version > Deploy.
  *
+ * EMPLOYEE NAMES: paste the HR "Masterlist of Employees - Permanent" as it is into a tab named
+ * Masterlist (section headings in column A, "Position - SG-n" in B, "SURNAME, FIRST MIDDLE" in C).
+ * The app reads it for its employee lists. Staff not on it are added in the app and kept in the
+ * Added Employees tab. The masterlist stays in this Sheet only, never on GitHub.
+ *
  * ADDING EQUIPMENT IN BULK: paste rows straight into the Inventory tab (leave the
  * Equipment ID blank). The next time the app loads, each new row gets its ID and
  * its Next PM Due, and the Audit Trail notes it.
@@ -35,11 +40,12 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 
 const INV = 'Inventory', PM = 'PM Log', CHK = 'Checklist Results', AUDIT = 'Audit Trail', LISTS = 'Lists';
+const MASTER = 'Masterlist', ADDED = 'Added Employees';
 
 const INV_HEADERS = ['Equipment ID', 'Property Tag No.', 'Equipment Type', 'Brand / Model', 'Description / Specs',
   'Serial No.', 'Office / Section', 'End User', 'Accountable Officer', 'Source Document (RIS / PAR / ICS)',
@@ -59,6 +65,7 @@ const PM_HEADERS = ['PM Ref No.', 'Date', 'Time Start', 'Time End', 'Quarter', '
 
 const CHK_HEADERS = ['PM Ref No.', 'Section', 'Check Item', 'Result', 'Note'];
 const AUDIT_HEADERS = ['Timestamp', 'Reference', 'Action', 'By', 'Details', 'Device'];
+const ADDED_HEADERS = ['Name', 'Position', 'Office / Unit', 'Added By', 'Added At'];
 
 const I = idx_(INV_HEADERS), P = idx_(PM_HEADERS);
 
@@ -114,6 +121,8 @@ function handle_(req) {
       case 'savePM':        return savePM_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
+      case 'addOffice':     return addOffice_(req);
+      case 'addEmployee':   return addEmployee_(req);
       default:              return { ok: false, error: 'Unknown action.' };
     }
   } catch (err) {
@@ -127,8 +136,9 @@ function load_() {
   normalizeInventory_();
   const inv = readRows_(INV, INV_HEADERS).map(toItem_);
   const pms = readRows_(PM, PM_HEADERS).map(toPM_);
-  return { ok: true, version: VERSION, form: FORM, lists: lists_(), inventory: inv, pms: pms,
-           today: fmtDate_(new Date()), appUrl: appUrl_() };
+  const emp = employees_();
+  return { ok: true, version: VERSION, form: FORM, lists: lists_(), inventory: inv, pms: pms, employees: emp.list,
+           masterlist: { found: emp.found, count: emp.count, added: emp.added }, today: fmtDate_(new Date()), appUrl: appUrl_() };
 }
 
 function saveEquipment_(req) {
@@ -332,6 +342,106 @@ function voidPM_(req) {
   });
 }
 
+function addOffice_(req) {
+  const name = officeName_(clean_(req.name));
+  if (!name) throw new Error('Type the name of the office.');
+  return withLock_(() => {
+    const have = allOffices_().filter(o => nameKey_(o) === nameKey_(name))[0];
+    if (have) return { ok: true, office: have, existed: true };
+    appendOffice_(name);
+    audit_('', 'OFFICE ADDED', clean_(req.by) || 'ICTU', name, req.device);
+    return { ok: true, office: name };
+  });
+}
+
+function addEmployee_(req) {
+  const e = req.employee || {};
+  const name = clean_(e.name).replace(/\s+/g, ' '), position = clean_(e.position);
+  let office = officeName_(clean_(e.office));
+  if (!name) throw new Error('Type the name of the employee.');
+  if (!office) throw new Error('Pick the office of the employee.');
+  return withLock_(() => {
+    const have = employees_().list.filter(x => nameKey_(x.name) === nameKey_(name))[0];
+    if (have) return { ok: true, employee: have, existed: true };
+    let newOffice = '';
+    const known = allOffices_().filter(o => nameKey_(o) === nameKey_(office))[0];
+    if (known) office = known; else { appendOffice_(office); newOffice = office; }
+    const sh = SpreadsheetApp.getActive().getSheetByName(ADDED) || makeAddedTab_();
+    const r = lastRow_(sh) + 1;
+    sh.getRange(r, 1, 1, 3).setNumberFormat('@');
+    sh.getRange(r, 1, 1, ADDED_HEADERS.length).setValues([[name, position, office, clean_(req.by) || 'ICTU', new Date()]]);
+    sh.getRange(r, 5).setNumberFormat('mmm d, yyyy h:mm am/pm');
+    audit_('', 'EMPLOYEE ADDED', clean_(req.by) || 'ICTU', name + (position ? ', ' + position : '') + ', ' + office +
+      (newOffice ? ' (new office added)' : ''), req.device);
+    return { ok: true, employee: { name: name, position: position, office: office, added: true }, newOffice: newOffice };
+  });
+}
+
+// Employees from the Masterlist tab (HR format) plus the ones added in the app, sorted by name.
+function employees_() {
+  const out = [], seen = {};
+  let found = false, count = 0, added = 0;
+  const ms = SpreadsheetApp.getActive().getSheetByName(MASTER);
+  if (ms) {
+    found = true;
+    const n = lastFilledRow_(ms, 3);
+    const rows = ms.getRange(1, 1, n, 3).getValues().map(r => r.map(v => String(v == null ? '' : v).trim()));
+    const isHeading = r => r[0] && !r[1] && !r[2];
+    const dup = {}; rows.filter(isHeading).forEach(r => { dup[nameKey_(r[0])] = (dup[nameKey_(r[0])] || 0) + 1; });
+    let section = '', division = '';
+    rows.forEach(r => {
+      if (r[2].indexOf(',') > 0) {
+        const p = splitName_(r[2]);
+        const name = [p.first, p.middle ? p.middle.charAt(0) + '.' : '', p.surname, p.suffix].filter(Boolean).join(' ');
+        if (!name || seen[nameKey_(name)]) return;
+        seen[nameKey_(name)] = 1; count++;
+        out.push({ name: name, position: r[1].replace(/\s*[-–]\s*SG[\s-]*\d+.*$/i, ''), office: section });
+      } else if (isHeading(r)) {
+        if (/DIVISION/i.test(r[0])) division = officeName_(r[0]);
+        section = officeName_(r[0]) + (dup[nameKey_(r[0])] > 1 && division ? ' (' + division + ')' : '');
+      }
+    });
+  }
+  const as = SpreadsheetApp.getActive().getSheetByName(ADDED);
+  if (as) {
+    const n = lastRow_(as);
+    if (n >= 2) as.getRange(2, 1, n - 1, 3).getValues().forEach(r => {
+      const name = String(r[0]).trim();
+      if (!name || seen[nameKey_(name)]) return;
+      seen[nameKey_(name)] = 1; added++;
+      out.push({ name: name, position: String(r[1]).trim(), office: String(r[2]).trim(), added: true });
+    });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return { list: out, found: found, count: count, added: added };
+}
+
+function allOffices_() {
+  const seen = {}, out = [];
+  lists_().offices.concat(employees_().list.map(e => e.office)).forEach(o => {
+    if (o && !seen[nameKey_(o)]) { seen[nameKey_(o)] = 1; out.push(o); }
+  });
+  return out;
+}
+
+// Adds an office under the last one in column C (Office / Section) of the Lists tab.
+function appendOffice_(name) {
+  const sh = sheet_(LISTS);
+  const vals = sh.getRange(1, 3, sh.getMaxRows(), 1).getValues();
+  let r = vals.length;
+  while (r > 1 && vals[r - 1][0] === '') r--;
+  sh.getRange(r + 1, 3).setNumberFormat('@');
+  sh.getRange(r + 1, 3).setValue(name);
+}
+
+function makeAddedTab_() {
+  const sh = SpreadsheetApp.getActive().insertSheet(ADDED);
+  sh.getRange(1, 1, 1, ADDED_HEADERS.length).setValues([ADDED_HEADERS]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  protect_(sh);
+  return sh;
+}
+
 // ---------- one-time setup and checks (run from the editor) ----------
 
 function setup() {
@@ -352,6 +462,7 @@ function setup() {
       (L.staff[i] || [])[0] || '', (L.staff[i] || [])[1] || '', L.activities[i] || '', L.conditions[i] || '']);
     sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
   }
+  if (!ss.getSheetByName(ADDED)) makeAddedTab_();
   ss.getSheets().forEach(protect_);
   sigFolder_();
   const props = PropertiesService.getScriptProperties();
@@ -631,6 +742,37 @@ function toDate_(s) {
 function show_(v) { return v instanceof Date ? fmtDate_(v) : String(v == null ? '' : v); }
 function fmt_(d) { return d instanceof Date ? Utilities.formatDate(d, TZ, 'MMM d, yyyy h:mm a') : String(d || ''); }
 function fmtDate_(d) { return d instanceof Date ? Utilities.formatDate(d, TZ, 'yyyy-MM-dd') : String(d || ''); }
+/** "DELA CRUZ, KIMBERLY ANN SANTOS" -> { surname: 'Dela Cruz', first: 'Kimberly Ann', middle: 'Santos', suffix: '' } */
+function splitName_(text) {
+  const SUFFIX = /^(JR|SR|II|III|IV|V)\.?$/i;
+  const i = text.indexOf(',');
+  const surname = text.slice(0, i).trim().split(/\s+/), rest = text.slice(i + 1).replace(/,/g, ' ').trim().split(/\s+/).filter(Boolean);
+  let suffix = '';
+  [surname, rest].forEach(words => {
+    for (let j = words.length - 1; j >= 0; j--) if (SUFFIX.test(words[j]) && words.length > 1) suffix = words.splice(j, 1)[0];
+  });
+  const middle = rest.length > 1 ? rest.pop() : '';
+  return { surname: properCase_(surname.join(' ')), first: properCase_(rest.join(' ')), middle: properCase_(middle),
+    suffix: /^[js]r/i.test(suffix) ? suffix.charAt(0).toUpperCase() + 'r.' : suffix.toUpperCase() };
+}
+
+/** "OFFICE OF THE TRC CHIEF" -> "Office of the TRC Chief": small words stay small, known short forms stay capitals. */
+function officeName_(t) {
+  const SMALL = ['of', 'the', 'and', 'for', 'in', 'on', 'to'], KEEP = ['TRC', 'ICTU', 'IDTOMIS', 'IDADIN', 'DOH', 'HR', 'HRMO', 'IT', 'HIMS', 'BAC', 'ABTC', 'MMU', 'PACD'];
+  return String(t || '').replace(/\s+/g, ' ').trim().split(' ').map((w, i) => w.split('/').map(p =>
+    KEEP.indexOf(p.replace(/[()]/g, '').toUpperCase()) >= 0 ? p.toUpperCase()
+      : (i > 0 && SMALL.indexOf(p.toLowerCase()) >= 0 ? p.toLowerCase() : (p === p.toUpperCase() || p === p.toLowerCase() ? properCase_(p) : p))).join('/')).join(' ');
+}
+
+function properCase_(t) {
+  return String(t || '').toLowerCase().replace(/(^|[\s\-(\/])([a-zñ])/g, (m, p, ch) => p + ch.toUpperCase());
+}
+
+/** Compares names loosely: case, dots, spaces and accents do not matter. */
+function nameKey_(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 function idx_(h) { const o = {}; h.forEach((k, i) => o[k] = i); return o; }
 
 function json_(obj) {
