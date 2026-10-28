@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICT Inventory and PMS</title>
+<style id="pageSize">@page { size: A4 portrait; margin: 10mm; }</style>
+<style>
+  :root {
+    --ground: #eef2ef; --panel: #ffffff; --ink: #17231c; --muted: #55655b; --line: #d3ddd6; --field: #ffffff;
+    --brand: #0d5c3a; --brand-ink: #ffffff; --brand-soft: #e3f0e8; --brand-line: #9cc5ad;
+    --ok: #16794a; --warn: #9a5800; --bad: #b42318; --ok-soft: #e1f2e8; --warn-soft: #fbf0dc; --bad-soft: #fbe5e2;
+    --shadow: 0 1px 2px rgba(18, 38, 26, .06), 0 2px 8px rgba(18, 38, 26, .05);
+    --r: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0f1512; --panel: #17201b; --ink: #e5ece7; --muted: #9db0a3; --line: #2b3a31; --field: #101813;
+      --brand: #4fb37e; --brand-ink: #07140d; --brand-soft: #1c3227; --brand-line: #2f6047;
+      --ok: #5fd39a; --warn: #f0b04a; --bad: #ff8a7a; --ok-soft: #173326; --warn-soft: #33281a; --bad-soft: #3a1f1c;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0f1512; --panel: #17201b; --ink: #e5ece7; --muted: #9db0a3; --line: #2b3a31; --field: #101813;
+    --brand: #4fb37e; --brand-ink: #07140d; --brand-soft: #1c3227; --brand-line: #2f6047;
+    --ok: #5fd39a; --warn: #f0b04a; --bad: #ff8a7a; --ok-soft: #173326; --warn-soft: #33281a; --bad-soft: #3a1f1c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+  }
+  * { box-sizing: border-box; }
+  html { accent-color: var(--brand); -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.45 "Segoe UI", Roboto, -apple-system, system-ui, Arial, sans-serif; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .hidden { display: none !important; }
+  .num, td.d, .tile .val { font-variant-numeric: tabular-nums; }
+
+  /* shell */
+  header.app { background: var(--brand); color: var(--brand-ink); padding: 12px 20px 0; padding-top: max(12px, env(safe-area-inset-top)); }
+  header.app .in { max-width: 1300px; margin: 0 auto; }
+  header.app .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header.app h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+  header.app p { margin: 0; font-size: 13px; opacity: .88; }
+  header.app .who { font-size: 13px; opacity: .9; text-align: right; }
+  header.app .who button { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, var(--brand-ink) 45%, transparent); border-radius: 7px; padding: 4px 10px; font: inherit; cursor: pointer; margin-left: 8px; }
+  @media (max-width: 600px) { header.app .top p, #syncState { display: none; } header.app h1 { font-size: 17px; } }
+  nav.tabs { display: flex; gap: 2px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  nav.tabs button { flex: none; background: transparent; color: var(--brand-ink); border: 0; border-radius: 8px 8px 0 0; padding: 10px 14px; font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; opacity: .85; }
+  nav.tabs button:hover { opacity: 1; background: color-mix(in srgb, var(--brand-ink) 10%, transparent); }
+  nav.tabs button[aria-selected="true"] { background: var(--ground); color: var(--ink); opacity: 1; }
+  main { max-width: 1300px; margin: 0 auto; padding: 18px 20px 110px; }
+  section.view > h2 { font-size: 20px; margin: 4px 0 4px; }
+  section.view > .lead { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
+
+  /* building blocks */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; margin-bottom: 14px; }
+  .panel > h3 { margin: 0 0 10px; font-size: 15.5px; }
+  .panel > h3 .sub { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 14px; }
+  .grid .wide { grid-column: 1 / -1; }
+  label.f { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  label.f > span.req::after { content: " *"; color: var(--bad); }
+  input, select, textarea { width: 100%; margin-top: 4px; font: inherit; font-size: 15px; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; min-height: 42px; }
+  textarea { min-height: 70px; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent); outline-offset: 0; border-color: var(--brand); }
+  input[readonly] { background: var(--ground); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); border-radius: 8px; padding: 9px 16px; min-height: 42px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .btn:hover { filter: brightness(1.07); }
+  .btn.ghost { background: transparent; color: var(--brand); border-color: var(--brand-line); }
+  .btn.ghost:hover { background: var(--brand-soft); }
+  .btn.danger { background: transparent; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+  .btn.small { min-height: 34px; padding: 5px 11px; font-size: 13.5px; }
+  .btn[disabled] { opacity: .55; cursor: wait; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .row.end { justify-content: flex-end; }
+  .spacer { flex: 1; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+  .msg { font-size: 14px; margin-top: 8px; min-height: 1px; }
+  .msg.err { color: var(--bad); } .msg.ok { color: var(--ok); }
+  .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); white-space: nowrap; }
+  .chip.ok { background: var(--ok-soft); color: var(--ok); }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .chip.bad { background: var(--bad-soft); color: var(--bad); }
+  .chip.mute { background: var(--ground); color: var(--muted); border: 1px solid var(--line); }
+  .filters { display: grid; grid-template-columns: 2fr repeat(3, minmax(130px, 1fr)); gap: 10px; align-items: end; }
+  .filters label.chk { display: flex; gap: 8px; align-items: center; font-size: 14px; min-height: 42px; }
+  .filters label.chk input { width: auto; min-height: 0; margin: 0; }
+  @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } .filters .q { grid-column: 1 / -1; } }
+
+  /* tiles */
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; box-shadow: var(--shadow); text-align: left; font: inherit; color: inherit; cursor: pointer; }
+  .tile .lb { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+  .tile .val { font-size: 26px; font-weight: 700; line-height: 1.2; margin-top: 2px; }
+  .tile .sm { font-size: 12.5px; color: var(--muted); }
+  .tile.bad { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); } .tile.bad .val { color: var(--bad); }
+  .tile.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 35%, var(--line)); } .tile.warn .val { color: var(--warn); }
+  @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
+
+  /* tables and lists */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  table.list { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.list th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); background: var(--ground); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; }
+  table.list td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.list tr:last-child td { border-bottom: 0; }
+  table.list tbody tr { cursor: pointer; }
+  table.list tbody tr:hover td { background: var(--brand-soft); }
+  table.list .s { color: var(--muted); font-size: 12.5px; }
+  .empty { padding: 26px; text-align: center; color: var(--muted); }
+  .due-item { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .due-item:last-child { border-bottom: 0; }
+  .due-item .t { flex: 1; min-width: 0; }
+  .due-item .t b { display: block; }
+  .due-item .t span { color: var(--muted); font-size: 13px; }
+  @media (max-width: 760px) { table.list .hide-m { display: none; } }
+
+  /* schedule grid */
+  table.sched { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 860px; }
+  table.sched th, table.sched td { border-bottom: 1px solid var(--line); padding: 6px 6px; }
+  table.sched th { background: var(--ground); font-size: 12px; color: var(--muted); position: sticky; top: 0; }
+  table.sched td.m { text-align: center; width: 46px; border-left: 1px solid var(--line); }
+  table.sched td.m.now { background: var(--brand-soft); }
+  .mk { display: inline-flex; width: 26px; height: 22px; align-items: center; justify-content: center; border-radius: 6px; font-weight: 700; font-size: 12px; }
+  .mk.done { background: var(--ok); color: #fff; }
+  .mk.plan { border: 1.5px solid var(--brand); color: var(--brand); }
+  .mk.late { background: var(--bad); color: #fff; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 8px 0; }
+  .legend span { display: inline-flex; gap: 6px; align-items: center; }
+
+  /* PM form */
+  .eqcard { display: flex; gap: 12px; align-items: center; background: var(--brand-soft); border: 1px solid var(--brand-line); border-radius: 8px; padding: 10px 12px; }
+  .eqcard .t { flex: 1; min-width: 0; }
+  .eqcard b { display: block; }
+  .eqcard span { font-size: 13px; color: var(--muted); }
+  .picklist { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 8px; }
+  .picklist button { display: block; width: 100%; text-align: left; background: var(--panel); border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; font: inherit; color: inherit; cursor: pointer; }
+  .picklist button:hover { background: var(--brand-soft); }
+  .picklist button span { display: block; font-size: 13px; color: var(--muted); }
+  .ck-sec { margin-top: 12px; }
+  .ck-sec h4 { margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--brand); }
+  .ck { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .ck .lbl { font-size: 14.5px; }
+  .ck .note { grid-column: 1 / -1; margin-top: 0; min-height: 36px; padding: 6px 9px; font-size: 14px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: var(--field); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 7px 11px; min-width: 52px; min-height: 38px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"][data-v="Done"] { background: var(--ok); color: #fff; }
+  .seg button[aria-pressed="true"][data-v="Issue"] { background: var(--bad); color: #fff; }
+  .seg button[aria-pressed="true"][data-v="N/A"] { background: var(--muted); color: var(--panel); }
+  .choice { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .choice label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; background: var(--field); }
+  .choice input { width: auto; min-height: 0; margin: 0; }
+  .choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); font-weight: 600; }
+  .issues { background: var(--bad-soft); color: var(--bad); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; margin-bottom: 8px; }
+  .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 10px 20px; padding-bottom: max(10px, env(safe-area-inset-bottom)); box-shadow: 0 -2px 10px rgba(0,0,0,.06); z-index: 5; }
+  .savebar .in { max-width: 1300px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .savebar .msg { margin: 0; flex: 1; }
+  .padwrap { position: relative; border: 1px dashed var(--brand-line); border-radius: 8px; background: #fff; margin-top: 6px; }
+  .padwrap canvas { display: block; width: 100%; height: 170px; touch-action: none; cursor: crosshair; }
+  .padwrap .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #8a978f; font-size: 14px; pointer-events: none; }
+  .padwrap .base { position: absolute; left: 8%; right: 8%; bottom: 34px; border-bottom: 1px solid #c9d3cc; pointer-events: none; }
+
+  /* dialogs */
+  dialog { border: 0; border-radius: 12px; padding: 0; width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 24px); background: var(--panel); color: var(--ink); box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(10, 20, 14, .45); }
+  dialog .dh { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 1; }
+  dialog .dh h3 { margin: 0; font-size: 17px; flex: 1; }
+  dialog .db { padding: 16px; }
+  dialog .df { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; position: sticky; bottom: 0; background: var(--panel); }
+  dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+  dl.kv dt { color: var(--muted); }
+  dl.kv dd { margin: 0; overflow-wrap: anywhere; }
+  .x { background: transparent; border: 0; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+
+  /* lock screen */
+  #lock { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  #lock .card { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 24px; }
+  #lock .logos { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; }
+  #lock .logos img { height: 54px; }
+  #lock h1 { font-size: 20px; margin: 0; text-align: center; }
+  #lock p.s { text-align: center; color: var(--muted); margin: 4px 0 16px; font-size: 14px; }
+
+  /* ---------- printouts (A4) ---------- */
+  #printArea { display: none; }
+  .sheet { background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 8pt; line-height: 1.15; }
+  .sheet .hd { display: flex; align-items: flex-start; gap: 1.2mm; padding-bottom: 1mm; }
+  .sheet .hd img { width: 15mm; height: 15mm; object-fit: contain; }
+  .sheet .hd img.bp { width: 16.5mm; }
+  .sheet .hd .t { border-left: 1pt solid #171717; margin-left: 1.5mm; padding-left: 1.6mm; font-size: 8.5pt; line-height: 1.12; }
+  .sheet .hd .t .d { font-weight: bold; font-size: 11.5pt; }
+  .sheet .hd .t .c { font-weight: bold; font-size: 10pt; white-space: nowrap; }
+  .sheet .hd .t .a { font-size: 7.5pt; margin-top: .4mm; }
+  .sheet .hd .t .iso { font-size: 6.5pt; font-weight: bold; font-style: italic; }
+  .sheet h3 { text-align: center; font-size: 11.5pt; margin: 1.5mm 0 1.2mm; letter-spacing: .02em; }
+  .sheet .sub { text-align: center; font-size: 9pt; margin-bottom: 2mm; }
+  .sheet table { width: 100%; border-collapse: collapse; margin-bottom: 1.2mm; }
+  .sheet td, .sheet th { border: .6pt solid #000; padding: .45mm 1.2mm; vertical-align: top; }
+  .sheet th { background: #e8e8e8; font-weight: bold; text-align: center; }
+  .sheet .sec { font-weight: bold; margin: 1.3mm 0 .6mm; font-size: 8.6pt; }
+  .sheet td.k { font-weight: bold; white-space: nowrap; width: 1%; }
+  .sheet td.c, .sheet th.c { text-align: center; }
+  .sheet td.cg { background: #f2f2f2; font-weight: bold; }
+  .sheet td.cm { width: 6mm; text-align: center; font-weight: bold; padding: .45mm .3mm; }
+  .sheet .box { display: inline-block; width: 2.8mm; height: 2.8mm; border: .6pt solid #000; vertical-align: -0.4mm; margin: 0 .8mm 0 1.6mm; text-align: center; font-size: 7pt; line-height: 2.6mm; font-weight: bold; }
+  .sheet .sig { height: 9mm; text-align: center; vertical-align: bottom; font-weight: bold; }
+  .sheet .sig img { max-height: 11mm; max-width: 40mm; display: block; margin: 0 auto -2mm; }
+  .sheet .foot { font-size: 7pt; font-style: italic; margin-top: 1mm; }
+  .sheet .meta { font-size: 6.5pt; color: #444; margin-top: 1mm; overflow-wrap: anywhere; }
+  .sheet.land { font-size: 8pt; }
+  .sheet .signs { display: flex; justify-content: space-around; margin-top: 8mm; font-size: 9pt; break-inside: avoid; }
+  .sheet .signs div { text-align: center; min-width: 65mm; }
+  .sheet .signs .line { border-bottom: .75pt solid #000; height: 10mm; font-weight: bold; text-transform: uppercase; display: flex; align-items: flex-end; justify-content: center; }
+  .sheet table.sch td.m, .sheet table.sch th.m { width: 7mm; text-align: center; padding: .6mm .2mm; }
+  .sheet table.sch td { padding: .6mm 1mm; }
+  .sheet .rep p { margin: 0 0 1.6mm; }
+  .sheet .rep h4 { margin: 3mm 0 1mm; font-size: 9.5pt; }
+  .sheet .rep ul { margin: 0 0 1.6mm 5mm; padding: 0; }
+  .sheet thead { display: table-header-group; }
+  .sheet tr { break-inside: avoid; }
+  .pagebreak { break-after: page; }
+  @media print {
+    body { background: #fff; }
+    body.printing > *:not(#printArea) { display: none !important; }
+    body.printing #printArea { display: block; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ passcode ============ -->
+<div id="lock">
+  <form class="card" id="lockForm" autocomplete="off">
+    <div class="logos"><img id="lkDoh" alt=""><img id="lkTrc" alt=""></div>
+    <h1>ICT Inventory and PMS</h1>
+    <p class="s">ICT Unit, DOH TRC Dulag</p>
+    <label class="f">ICTU passcode<input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password" required></label>
+    <label class="f hidden" id="urlWrap" style="margin-top:10px">Google Sheet link (the Apps Script web app URL ending in /exec)
+      <input id="urlIn" type="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
+    <div class="row" style="margin-top:14px"><button class="btn" id="lockBtn" type="submit" style="width:100%">Open</button></div>
+    <div class="msg" id="lockMsg" role="status"></div>
+    <p class="hint" id="urlToggleWrap"><a href="#" id="urlToggle">Change the Google Sheet link</a></p>
+  </form>
+</div>
+
+<!-- ============ app ============ -->
+<div id="app" class="hidden">
+<header class="app">
+  <div class="in">
+    <div class="top">
+      <div><h1>ICT Inventory and PMS</h1><p>Equipment masterlist, PMS schedule and PM records of the ICT Unit</p></div>
+      <div class="who"><span id="syncState"></span><button id="reloadBtn" type="button">Refresh</button><button id="lockOut" type="button">Lock</button></div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-v="home" aria-selected="true">Home</button>
+      <button role="tab" data-v="inv">Inventory</button>
+      <button role="tab" data-v="sched">PMS Schedule</button>
+      <button role="tab" data-v="pm">Do PM</button>
+      <button role="tab" data-v="recs">PM Records</button>
+      <button role="tab" data-v="reports">Reports and Forms</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HOME -->
+  <section class="view" id="v-home">
+    <div class="tiles">
+      <button class="tile" data-go="inv"><div class="lb">Equipment in service</div><div class="val" id="tInv">0</div><div class="sm" id="tInvS"></div></button>
+      <button class="tile" data-go="sched" id="tLateT"><div class="lb">Overdue or never done</div><div class="val" id="tLate">0</div><div class="sm">needs PM now</div></button>
+      <button class="tile" data-go="sched" id="tDueT"><div class="lb">Due this month</div><div class="val" id="tDue">0</div><div class="sm" id="tDueS"></div></button>
+      <button class="tile" data-go="recs"><div class="lb">PM done this quarter</div><div class="val" id="tDone">0</div><div class="sm" id="tDoneS"></div></button>
+    </div>
+    <div class="panel">
+      <h3>Needs PM <span class="sub">overdue first, then this month and the next 30 days</span></h3>
+      <div id="homeDue"></div>
+    </div>
+    <div class="panel">
+      <h3>Latest PM records</h3>
+      <div id="homeRecent"></div>
+    </div>
+  </section>
+
+  <!-- INVENTORY -->
+  <section class="view hidden" id="v-inv">
+    <h2>Inventory masterlist</h2>
+    <p class="lead">Every ICT equipment of the facility. Click a row to see its details and PM history, or to edit it.</p>
+    <div class="panel">
+      <div class="filters">
+        <label class="f q">Search<input id="iQ" type="search" placeholder="Brand, serial, property tag, end user, ID"></label>
+        <label class="f">Office / section<select id="iOffice"></select></label>
+        <label class="f">Equipment type<select id="iType"></select></label>
+        <label class="f">Condition<select id="iCond"></select></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="addEq" type="button">Add equipment</button>
+        <span class="spacer"></span>
+        <span class="hint" id="iCount" style="margin:0"></span>
+        <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
+        <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
+      </div>
+    </div>
+    <div class="tablewrap"><table class="list" id="iTable"><thead><tr>
+      <th>ID</th><th>Equipment</th><th class="hide-m">Serial no.</th><th class="hide-m">Property tag</th><th>Office / end user</th><th class="hide-m">Condition</th><th>Next PM</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- SCHEDULE -->
+  <section class="view hidden" id="v-sched">
+    <h2>PMS schedule</h2>
+    <p class="lead">Each unit is planned from its last PM and its PM frequency. A PM saved in the app marks the month as done and moves the next one.</p>
+    <div class="panel">
+      <div class="filters">
+        <label class="f">Year<select id="sYear"></select></label>
+        <label class="f">Office / section<select id="sOffice"></select></label>
+        <label class="f">Equipment type<select id="sType"></select></label>
+        <label class="f">Show<select id="sShow"><option value="">All scheduled units</option><option value="late">Overdue only</option><option value="month">Due this month</option></select></label>
+      </div>
+      <div class="legend">
+        <span><i class="mk done">✓</i> PM done</span><span><i class="mk plan">P</i> Planned</span><span><i class="mk late">!</i> Planned but not done (overdue)</span>
+      </div>
+      <div class="row"><span class="hint" id="sCount" style="margin:0"></span><span class="spacer"></span>
+        <button class="btn ghost small" id="sPrint" type="button">Print schedule (A4)</button></div>
+    </div>
+    <div class="tablewrap"><table class="sched" id="sTable"></table></div>
+    <p class="hint">Units set to "Not scheduled" (monitors, keyboards, hubs and the like) are checked during the PM of the PC they belong to, so they are not listed here.</p>
+  </section>
+
+  <!-- DO PM -->
+  <section class="view hidden" id="v-pm">
+    <h2>Do PM</h2>
+    <p class="lead">Fill this in at the unit, following Form COH-IDN-F-02. Saving gives it the next PM Ref. No. and updates the masterlist and the schedule.</p>
+    <div id="pmDone" class="panel hidden">
+      <h3 id="pmDoneT">Saved</h3>
+      <p id="pmDoneP" style="margin:0 0 10px"></p>
+      <div class="row"><button class="btn" id="pmDonePrint" type="button">Print the filled form</button><button class="btn ghost" id="pmDoneNew" type="button">Do another PM</button></div>
+    </div>
+    <form id="pmForm" autocomplete="off">
+      <div class="panel">
+        <h3>Equipment</h3>
+        <div id="pmPick">
+          <label class="f">Find the unit<input id="pmQ" type="search" placeholder="Type the brand, serial, property tag, office or end user"></label>
+          <div class="picklist" id="pmList"></div>
+        </div>
+        <div id="pmSel" class="eqcard hidden"><div class="t"><b id="pmSelT"></b><span id="pmSelS"></span></div><button class="btn ghost small" id="pmChange" type="button">Change</button></div>
+      </div>
+
+      <div id="pmBody" class="hidden">
+        <div class="panel">
+          <h3>A. Equipment information</h3>
+          <div class="grid">
+            <label class="f"><span class="req">Date</span><input id="pDate" type="date" required></label>
+            <label class="f">Time start<input id="pStart" type="time"></label>
+            <label class="f">Time end<input id="pEnd" type="time"></label>
+            <label class="f">Office / section<input id="pOffice" list="dlOffices"></label>
+            <label class="f">End user<input id="pEndUser"></label>
+            <label class="f">Maintenance type<select id="pPmType"><option>Scheduled PM</option><option>Unscheduled / On Request</option></select></label>
+            <label class="f">Main work done (for the PM Log)<select id="pActivity"></select></label>
+            <label class="f">PM frequency<input id="pFreq" readonly></label>
+            <label class="f">Under warranty?<input id="pWarranty" readonly></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>B. Preventive maintenance checklist <span class="sub">Done, Issue (describe it), or N/A</span></h3>
+          <div class="row"><button class="btn ghost small" id="ckAll" type="button">Mark the rest as done</button>
+            <span class="hint" style="margin:0">Only the items that fit this equipment type are shown. The rest print as N/A.</span></div>
+          <div id="ckWrap"></div>
+        </div>
+
+        <div class="panel" id="secC">
+          <h3>C. System information</h3>
+          <div class="grid">
+            <label class="f">Computer name / IP<input id="pComp"></label>
+            <label class="f">OS installed<input id="pOs" list="dlOs"></label>
+            <label class="f">OS license status<input id="pOsLic" list="dlLic"></label>
+            <label class="f">MS Office installed<input id="pMso" list="dlMso"></label>
+            <label class="f">MS Office license status<input id="pMsoLic" list="dlLic"></label>
+            <label class="f wide">Applications installed<input id="pApps"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>D. Findings, action taken and recommendation</h3>
+          <div id="issueList" class="issues hidden"></div>
+          <div class="grid">
+            <label class="f wide">Issues / findings<textarea id="pFind" placeholder="Leave blank if there were no issues"></textarea></label>
+            <label class="f wide">Action taken<textarea id="pAction"></textarea></label>
+            <label class="f wide">Parts replaced / used<input id="pParts"></label>
+          </div>
+          <div style="margin-top:12px"><span class="f" style="font-size:12.5px;font-weight:600;color:var(--muted)">Overall status <span style="color:var(--bad)">*</span></span>
+            <div class="choice" id="pOverall">
+              <label><input type="radio" name="ov" value="Functional"> Functional</label>
+              <label><input type="radio" name="ov" value="Functional, for monitoring"> Functional, for monitoring</label>
+              <label><input type="radio" name="ov" value="For repair"> For repair</label>
+              <label><input type="radio" name="ov" value="For replacement / condemnation"> For replacement / condemnation</label>
+            </div></div>
+          <div class="grid" style="margin-top:12px">
+            <label class="f">Next PM schedule<input id="pNext" type="date"></label>
+            <label class="f wide">Recommendation / remarks<input id="pRemarks"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>E. Conforme</h3>
+          <div class="grid">
+            <label class="f"><span class="req">Performed by (ICT personnel)</span><select id="pBy"></select></label>
+            <label class="f">Acknowledged by (end user)<input id="pAck"></label>
+            <label class="f">Verified by (Head, ICT Unit)<select id="pVer"></select></label>
+          </div>
+          <p class="hint">The end user may sign below on this phone or tablet (optional). The printed form also has signature lines for signing by hand.</p>
+          <div class="padwrap"><canvas id="pad"></canvas><div class="base"></div><div class="ph" id="padPh">End user signs here</div></div>
+          <div class="row" style="margin-top:6px"><button class="btn ghost small" id="padClear" type="button">Clear signature</button></div>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- RECORDS -->
+  <section class="view hidden" id="v-recs">
+    <h2>PM records</h2>
+    <p class="lead">The PM Log. Click a record to print its filled-in form or to void a wrong entry.</p>
+    <div class="panel">
+      <div class="filters">
+        <label class="f q">Search<input id="rQ" type="search" placeholder="PM Ref. No., equipment, office, personnel"></label>
+        <label class="f">Quarter<select id="rQtr"></select></label>
+        <label class="f">Status<select id="rStatus"><option value="">All</option><option>Resolved</option><option>For Monitoring</option><option>For Repair</option><option>For Replacement</option></select></label>
+        <label class="chk"><input type="checkbox" id="rVoid"> Show voided</label>
+      </div>
+    </div>
+    <div class="tablewrap"><table class="list" id="rTable"><thead><tr>
+      <th>PM Ref. No.</th><th>Date</th><th>Equipment</th><th class="hide-m">Office / end user</th><th class="hide-m">By</th><th>Status</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="view hidden" id="v-reports">
+    <h2>Reports and forms</h2>
+    <p class="lead">Printouts for filing and for the quarterly report. Use Print, then choose Save as PDF if you need a file.</p>
+    <div class="panel">
+      <h3>Quarterly Preventive Maintenance Report</h3>
+      <div class="grid">
+        <label class="f">Year<select id="qYear"></select></label>
+        <label class="f">Quarter<select id="qQ"><option value="1">Q1 (January to March)</option><option value="2">Q2 (April to June)</option><option value="3">Q3 (July to September)</option><option value="4">Q4 (October to December)</option></select></label>
+        <label class="f">Division<input id="qDiv" value="IDADIN"></label>
+        <label class="f">Prepared by<select id="qBy"></select></label>
+        <label class="f">Position<input id="qPos"></label>
+        <label class="f">Noted by<select id="qNoted"></select></label>
+        <label class="f wide">Challenges encountered (one per line, leave blank if none)<textarea id="qChal"></textarea></label>
+        <label class="f wide">Recommendations (one per line)<textarea id="qRec"></textarea></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="qPrint" type="button">Print report</button><button class="btn ghost" id="qCsv" type="button">Download the quarter for Excel</button></div>
+    </div>
+    <div class="panel">
+      <h3>Blank forms and lists</h3>
+      <div class="row">
+        <button class="btn ghost" id="blankForm" type="button">Print a blank PMS checklist (COH-IDN-F-02)</button>
+        <button class="btn ghost" id="rPrintInv" type="button">Print the inventory masterlist</button>
+        <button class="btn ghost" id="rPrintSched" type="button">Print this year's PMS schedule</button>
+        <button class="btn ghost" id="rCsvAll" type="button">Download the whole PM Log for Excel</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>About</h3>
+      <p class="hint" id="aboutTxt" style="margin:0"></p>
+    </div>
+  </section>
+</main>
+
+<div class="savebar hidden" id="pmBar"><div class="in"><div class="msg" id="pmMsg" role="status"></div><button class="btn ghost" id="pmReset" type="button">Clear</button><button class="btn" id="pmSave" type="button">Save PM record</button></div></div>
+</div>
+
+<!-- equipment dialog -->
+<dialog id="eqDlg">
+  <form id="eqForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="eqTitle">Equipment</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div id="eqView"></div>
+      <div id="eqEdit" class="grid">
+        <label class="f"><span class="req">Equipment type</span><select id="eType" required></select></label>
+        <label class="f"><span class="req">Brand / model</span><input id="eBrand" required></label>
+        <label class="f">Serial no.<input id="eSerial"></label>
+        <label class="f">Property tag no.<input id="eTag"></label>
+        <label class="f wide">Description / specs<input id="eDesc" placeholder="For example: Core i5, 8 GB RAM, 512 GB SSD"></label>
+        <label class="f"><span class="req">Office / section</span><input id="eOffice" list="dlOffices" required></label>
+        <label class="f">End user<input id="eEndUser"></label>
+        <label class="f">Accountable officer (PAR / ICS)<input id="eAcc"></label>
+        <label class="f">Source document (RIS / PAR / ICS no.)<input id="eSource"></label>
+        <label class="f">Date acquired<input id="eAcq" type="date"></label>
+        <label class="f">Unit cost (PHP)<input id="eCost" inputmode="decimal"></label>
+        <label class="f">Warranty until<input id="eWarr" type="date"></label>
+        <label class="f">Computer name / IP<input id="eComp"></label>
+        <label class="f">OS installed<input id="eOs" list="dlOs"></label>
+        <label class="f">MS Office installed<input id="eMso" list="dlMso"></label>
+        <label class="f">PM frequency<select id="eFreq"></select></label>
+        <label class="f">Condition<select id="eCond"></select></label>
+        <label class="f wide">Remarks<input id="eRem"></label>
+      </div>
+      <div class="msg" id="eqMsg" role="status"></div>
+    </div>
+    <div class="df" id="eqFoot"></div>
+  </form>
+</dialog>
+
+<!-- PM record dialog -->
+<dialog id="pmDlg">
+  <div class="dh"><h3 id="pmDlgT">PM record</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db"><div id="pmDlgB"></div><div class="msg" id="pmDlgMsg" role="status"></div></div>
+  <div class="df"><button class="btn danger" id="pmVoid" type="button">Void this record</button><span class="spacer"></span><button class="btn" id="pmPrint" type="button">Print the filled form</button></div>
+</dialog>
+
+<datalist id="dlOffices"></datalist>
+<datalist id="dlOs"><option>Windows 11 Pro</option><option>Windows 11 Home</option><option>Windows 10 Pro</option><option>Windows 10 Home</option><option>Ubuntu</option></datalist>
+<datalist id="dlMso"><option>Microsoft Office 2021</option><option>Microsoft Office 2019</option><option>Microsoft Office 2016</option><option>Microsoft 365</option><option>WPS Office</option><option>LibreOffice</option><option>None</option></datalist>
+<datalist id="dlLic"><option>Licensed / activated</option><option>Not activated</option><option>Free / open source</option><option>Not checked</option></datalist>
+
+<div id="printArea"></div>
+
+<script>
+// Paste the /exec URL here so the file works from a PC or web host without typing the link.
+const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyZfBU_2nFesgP3UQRnoyDDf0ZXaLA_psBQwwNGXeuE-1RokPMd4SaEZWSWl7GUD6gDog/exec";
+
+const LOGO_DOH = "%%LOGO_DOH%%";
+const LOGO_TRC = "%%LOGO_TRC%%";
+const LOGO_BP = "%%LOGO_BP%%";
+
+const $ = id => document.getElementById(id);
+const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
+const store = {
+  get(k) { try { return localStorage.getItem("pms." + k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("pms." + k, v); } catch (e) {} },
+  sget(k) { try { return sessionStorage.getItem("pms." + k); } catch (e) { return null; } },
+  sset(k, v) { try { v == null ? sessionStorage.removeItem("pms." + k) : sessionStorage.setItem("pms." + k, v); } catch (e) {} }
+};
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const device = () => navigator.userAgent.replace(/\s+/g, " ").slice(0, 180);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const FREQ = { "Monthly": 1, "Quarterly": 3, "Semi-Annual": 6, "Annual": 12 };
+const NOT_SCHEDULED = "Not scheduled (checked with its PC)";
+
+let PIN = store.sget("pin") || "";
+let D = { inventory: [], pms: [], lists: { types: [], offices: [], staff: [], activities: [], conditions: [] }, form: {}, today: "" };
+
+// ---------- connection ----------
+function gsUrl() { return (store.get("gsUrl") || DEFAULT_URL).trim(); }
+function api(req) {
+  req = Object.assign({ pin: PIN, device: device() }, req);
+  if (GAS) return new Promise((ok, no) =>
+    google.script.run.withSuccessHandler(t => ok(JSON.parse(t))).withFailureHandler(e => no(e)).api(JSON.stringify(req)));
+  if (!gsUrl()) return Promise.reject(new Error("nourl"));
+  return fetch(gsUrl(), { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(req) })
+    .then(r => r.json());
+}
+function errText(e) {
+  if (e && e.message === "nourl") return "Put in the Google Sheet link first.";
+  return "Could not reach the Google Sheet. Check the internet connection and try again.";
+}
+
+// ---------- dates ----------
+function todayStr() { return D.today || isoDate(new Date()); }
+function isoDate(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function parse(s) { const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function addMonths(d, n) { const x = new Date(d.getFullYear(), d.getMonth(), 1); x.setMonth(x.getMonth() + n); x.setDate(Math.min(d.getDate(), new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate())); return x; }
+function nice(s) { const d = parse(s); return d ? MONTHS[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() : ""; }
+function longDate(s) { const d = parse(s); return d ? MONTHS_LONG[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() : ""; }
+function nowTime() { const d = new Date(); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+function time12(t) { const m = String(t || "").match(/^(\d{1,2}):(\d{2})$/); if (!m) return t || ""; let h = +m[1]; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + m[2] + " " + ap; }
+function quarterOf(s) { const d = parse(s); return d ? "Q" + (Math.floor(d.getMonth() / 3) + 1) + " " + d.getFullYear() : ""; }
+
+// ---------- equipment helpers ----------
+function active(it) { return it.condition !== "Disposed"; }
+function freqM(it) { return FREQ[it.freq] || 0; }
+// State of a unit's PM: late (overdue or never done), due (this month), soon (next 30 days), ok, ns (not scheduled), off.
+function pmState(it) {
+  if (!active(it)) return "off";
+  if (it.condition === "Unserviceable") return "off";
+  if (!freqM(it)) return "ns";
+  const t = parse(todayStr());
+  const due = parse(it.nextDue);
+  if (!due) return "late";
+  if (due < t) return "late";
+  if (due.getFullYear() === t.getFullYear() && due.getMonth() === t.getMonth()) return "due";
+  if ((due - t) / 864e5 <= 30) return "soon";
+  return "ok";
+}
+function dueChip(it) {
+  const s = pmState(it);
+  if (s === "off") return '<span class="chip mute">' + esc(it.condition) + "</span>";
+  if (s === "ns") return '<span class="chip mute">With its PC</span>';
+  if (!it.nextDue) return '<span class="chip bad">No PM yet</span>';
+  const cls = { late: "bad", due: "warn", soon: "warn", ok: "ok" }[s];
+  return '<span class="chip ' + cls + '">' + (s === "late" ? "Overdue, " : "") + esc(nice(it.nextDue)) + "</span>";
+}
+function condChip(c) {
+  const cls = { "Serviceable": "ok", "For monitoring": "warn", "For repair": "bad", "Unserviceable": "bad", "Disposed": "mute" }[c] || "mute";
+  return '<span class="chip ' + cls + '">' + esc(c) + "</span>";
+}
+function statusChip(s, rec) {
+  if (rec === "Voided") return '<span class="chip mute">Voided</span>';
+  const cls = { "Resolved": "ok", "For Monitoring": "warn", "For Repair": "bad", "For Replacement": "bad" }[s] || "mute";
+  return '<span class="chip ' + cls + '">' + esc(s) + "</span>";
+}
+function eqName(it) { return it.brand + (it.type ? " (" + it.type + ")" : ""); }
+function byId(id) { return D.inventory.find(x => x.id === id); }
+function pmsOf(id) { return D.pms.filter(p => p.equipmentId === id && p.recordStatus !== "Voided").sort((a, b) => a.date < b.date ? 1 : -1); }
+// Which checklist group an equipment type belongs to.
+function kindOf(type) {
+  const t = String(type || "").toLowerCase();
+  if (t.includes("laptop") || t.includes("notebook")) return ["pc", "laptop"];
+  if (t.includes("desktop") || t.includes("computer") || t.includes("server") || t.includes("all-in-one")) return ["pc"];
+  if (t.includes("printer")) return ["printer"];
+  if (t.includes("scanner")) return ["scanner"];
+  if (t.includes("monitor")) return ["monitor"];
+  if (t.includes("keyboard") || t.includes("mouse")) return ["kbm"];
+  if (t.includes("ups") || t.includes("avr")) return ["ups"];
+  if (t.includes("network") || t.includes("router") || t.includes("switch") || t.includes("access point")) return ["net"];
+  if (t.includes("projector")) return ["proj"];
+  return ["other"];
+}
+
+// ---------- the COH-IDN-F-02 checklist (wording kept as on the form) ----------
+const CHECKS = [
+  { s: "1. PRECAUTIONS AND BACKUP", items: [
+    ["b1", "Backup of the system created", "pc"],
+    ["b2", "Data backup created (media: ________)", "pc", "Media used"],
+    ["b3", "Owner requested: NO system backup", "pc"],
+    ["b4", "Owner requested: NO data backup", "pc"],
+    ["b5", "Property tag attached / verified", "*"]]},
+  { s: "2. PHYSICAL CHECK", items: [
+    ["p1", "Dust removal (internal and external)", "*"],
+    ["p2", "Check for loose parts", "*"],
+    ["p3", "Airflow check", "pc net proj ups printer scanner other"],
+    ["p4", "Cables and connectors check", "*"],
+    ["p5", "Fans check", "pc net proj ups other"],
+    ["p6", "Battery check (laptop)", "laptop"]]},
+  { s: "3. DEVICE CHECK", items: [
+    ["d1", "CPU / system unit working", "pc"],
+    ["d2", "Monitor working", "pc monitor"],
+    ["d3", "Keyboard working", "pc kbm"],
+    ["d4", "Mouse working", "pc kbm"],
+    ["d5", "UPS / AVR working", "pc ups"],
+    ["d6", "Others: ______________________", "*", "What else was checked"],
+    ["d7", "Others: ______________________", "*", "What else was checked"]]},
+  { s: "4. SYSTEM CHECK", items: [
+    ["s1", "Run check disk (chkdsk /r)", "pc"],
+    ["s2", "Windows / OS updates applied", "pc"],
+    ["s3", "Disk space and health checked", "pc"],
+    ["s4", "Unnecessary startup programs disabled", "pc"]]},
+  { s: "5. VIRUS AND MALWARE CHECK", items: [
+    ["v1", "Offline virus check and removal", "pc"],
+    ["v2", "Check for rootkits / bloatware", "pc"],
+    ["v3", "System scan (Windows Defender), updated", "pc"]]},
+  { s: "6. NETWORK CHECK", items: [
+    ["n1", "Network cable installed / secured", "pc net printer"],
+    ["n2", "Ping test", "pc net printer"],
+    ["n3", "E-mail test", "pc"],
+    ["n4", "Internet / browser access test", "pc"]]},
+  { s: "7. PRINTER / SCANNER (if applicable)", items: [
+    ["r1", "Print test / nozzle check", "printer"],
+    ["r2", "Print head cleaning", "printer"],
+    ["r3", "Ink / toner level checked", "printer"],
+    ["r4", "Waste ink pad counter reset (No. ___)", "printer", "Counter no."],
+    ["r5", "Paper feed rollers cleaned", "printer scanner"],
+    ["r6", "Scanner glass cleaned / test scan", "printer scanner"]]}
+];
+function applies(item, kinds) { return item[2] === "*" || item[2].split(" ").some(k => kinds.includes(k)); }
+
+// ---------- start ----------
+function initLock() {
+  $("lkDoh").src = LOGO_DOH; $("lkTrc").src = LOGO_TRC;
+  $("urlIn").value = gsUrl();
+  const needUrl = !GAS && !gsUrl();
+  $("urlWrap").classList.toggle("hidden", !needUrl);
+  $("urlToggleWrap").classList.toggle("hidden", GAS || needUrl);
+  $("urlToggle").onclick = e => { e.preventDefault(); $("urlWrap").classList.remove("hidden"); $("urlToggleWrap").classList.add("hidden"); };
+  $("lockForm").onsubmit = async e => {
+    e.preventDefault();
+    if (!GAS && !$("urlWrap").classList.contains("hidden")) store.set("gsUrl", $("urlIn").value.trim());
+    PIN = $("pinIn").value.trim();
+    $("lockBtn").disabled = true; msg("lockMsg", "Opening…");
+    try {
+      const j = await api({ action: "load" });
+      if (!j.ok) { msg("lockMsg", j.error, "err"); return; }
+      store.sset("pin", PIN);
+      openApp(j);
+    } catch (err) { msg("lockMsg", errText(err), "err"); }
+    finally { $("lockBtn").disabled = false; }
+  };
+  if (PIN) { $("pinIn").value = PIN; $("lockForm").requestSubmit(); }
+  else $("pinIn").focus();
+}
+function msg(id, t, cls) { const el = $(id); el.textContent = t || ""; el.className = "msg" + (cls ? " " + cls : ""); }
+
+function openApp(j) {
+  take(j);
+  $("lock").classList.add("hidden"); $("app").classList.remove("hidden");
+  fillPickers();
+  renderAll();
+  const v = (location.hash || "").replace("#", "");
+  show(["home", "inv", "sched", "pm", "recs", "reports"].includes(v) ? v : "home");
+}
+function take(j) {
+  D = { inventory: j.inventory || [], pms: j.pms || [], lists: j.lists, form: j.form || {}, today: j.today || isoDate(new Date()), version: j.version, appUrl: j.appUrl };
+  $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+async function reload() {
+  $("syncState").textContent = "Refreshing…";
+  try { const j = await api({ action: "load" }); if (j.ok) { take(j); fillPickers(true); renderAll(); } else $("syncState").textContent = j.error; }
+  catch (e) { $("syncState").textContent = "Offline, showing the last data"; }
+}
+$("reloadBtn").onclick = reload;
+$("lockOut").onclick = () => { store.sset("pin", null); PIN = ""; location.reload(); };
+
+// ---------- navigation ----------
+function show(v) {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v ? "true" : "false"));
+  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("hidden", s.id !== "v-" + v));
+  $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
+  if (v === "pm") setTimeout(sizePad, 30);
+  try { history.replaceState(null, "", "#" + v); } catch (e) {}
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => show(b.dataset.v));
+document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+
+function opts(list, first) { return (first != null ? '<option value="">' + esc(first) + "</option>" : "") + list.map(x => '<option>' + esc(x) + "</option>").join(""); }
+function fillPickers(keep) {
+  const L = D.lists;
+  const offices = [...new Set(L.offices.concat(D.inventory.map(i => i.office)).filter(Boolean))].sort();
+  const types = [...new Set(L.types.map(t => t[0]).concat(D.inventory.map(i => i.type)).filter(Boolean))];
+  const keepVal = (id, html) => { const v = $(id).value; $(id).innerHTML = html; if (keep) $(id).value = v; };
+  $("dlOffices").innerHTML = offices.map(o => "<option>" + esc(o) + "</option>").join("");
+  keepVal("iOffice", opts(offices, "All offices")); keepVal("sOffice", opts(offices, "All offices"));
+  keepVal("iType", opts(types, "All types")); keepVal("sType", opts(types, "All types"));
+  keepVal("iCond", '<option value="">In service (all but disposed)</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
+  $("eType").innerHTML = opts(L.types.map(t => t[0]));
+  $("eFreq").innerHTML = opts(["Monthly", "Quarterly", "Semi-Annual", "Annual", NOT_SCHEDULED]);
+  $("eCond").innerHTML = opts(L.conditions);
+  $("pActivity").innerHTML = opts(L.activities);
+  const staff = L.staff.map(s => s[0]);
+  keepVal("pBy", opts(staff, "Pick a name")); keepVal("pVer", opts(staff, "(leave for signing by hand)"));
+  keepVal("qBy", opts(staff)); keepVal("qNoted", opts(staff));
+  if (!keep) {
+    const head = L.staff.find(s => /head/i.test(s[1]));
+    if (head) { $("pVer").value = head[0]; $("qNoted").value = head[0]; }
+    const other = L.staff.find(s => !/head/i.test(s[1]));
+    if (other) $("qBy").value = other[0];
+    $("qPos").value = (L.staff.find(s => s[0] === $("qBy").value) || [])[1] || "";
+  }
+  const y = new Date().getFullYear();
+  const years = [...new Set(D.pms.map(p => +p.date.slice(0, 4)).concat([y - 1, y, y + 1]))].filter(Boolean).sort();
+  keepVal("sYear", years.map(v => "<option" + (v === y ? " selected" : "") + ">" + v + "</option>").join(""));
+  keepVal("qYear", years.map(v => "<option" + (v === y ? " selected" : "") + ">" + v + "</option>").join(""));
+  if (!keep) $("qQ").value = String(Math.floor(new Date().getMonth() / 3) + 1);
+  const qs = [...new Set(D.pms.map(p => p.quarter).filter(Boolean))].sort().reverse();
+  keepVal("rQtr", opts(qs, "All quarters"));
+  $("aboutTxt").textContent = "Version " + (D.version || "") + ". The PM form follows " + (D.form.code || "COH-IDN-F-02") + " Rev. " + (D.form.rev || "01") +
+    ". Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of offices, equipment types, staff and work types are in the Lists tab of the Sheet.";
+}
+$("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
+
+function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); }
+
+// ---------- home ----------
+function renderHome() {
+  const act = D.inventory.filter(i => active(i) && i.condition !== "Unserviceable");
+  const sch = act.filter(i => freqM(i));
+  const late = sch.filter(i => pmState(i) === "late"), due = sch.filter(i => pmState(i) === "due"), soon = sch.filter(i => pmState(i) === "soon");
+  const q = quarterOf(todayStr());
+  const done = D.pms.filter(p => p.quarter === q && p.recordStatus !== "Voided");
+  $("tInv").textContent = act.length; $("tInvS").textContent = sch.length + " on the PMS schedule";
+  $("tLate").textContent = late.length; $("tLateT").className = "tile" + (late.length ? " bad" : "");
+  $("tDue").textContent = due.length; $("tDueT").className = "tile" + (due.length ? " warn" : ""); $("tDueS").textContent = soon.length + " more in the next 30 days";
+  $("tDone").textContent = done.length; $("tDoneS").textContent = q;
+  const list = late.concat(due, soon).sort((a, b) => (a.nextDue || "0") < (b.nextDue || "0") ? -1 : 1);
+  $("homeDue").innerHTML = list.length ? list.slice(0, 40).map(it => `<div class="due-item"><div class="t"><b>${esc(it.id)}  ${esc(eqName(it))}</b>
+      <span>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}</span></div>
+      ${dueChip(it)}<button class="btn small" data-pm="${esc(it.id)}" type="button">Start PM</button></div>`).join("") +
+      (list.length > 40 ? '<p class="hint">' + (list.length - 40) + " more on the PMS Schedule tab.</p>" : "")
+    : '<div class="empty">Nothing is due in the next 30 days.</div>';
+  const rec = D.pms.filter(p => p.recordStatus !== "Voided").slice().sort((a, b) => a.ref < b.ref ? 1 : -1).slice(0, 6);
+  $("homeRecent").innerHTML = rec.length ? rec.map(p => `<div class="due-item"><div class="t"><b>${esc(p.ref)}  ${esc(p.brand)}</b>
+      <span>${esc(nice(p.date))}, ${esc(p.office)}, by ${esc(p.personnel)}</span></div>${statusChip(p.status)}
+      <button class="btn ghost small" data-rec="${esc(p.ref)}" type="button">Open</button></div>`).join("")
+    : '<div class="empty">No PM records yet.</div>';
+  bindRowButtons($("v-home"));
+}
+function bindRowButtons(root) {
+  root.querySelectorAll("[data-pm]").forEach(b => b.onclick = e => { e.stopPropagation(); startPM(b.dataset.pm); });
+  root.querySelectorAll("[data-rec]").forEach(b => b.onclick = e => { e.stopPropagation(); openRec(b.dataset.rec); });
+}
+
+// ---------- inventory ----------
+function invFiltered() {
+  const q = $("iQ").value.trim().toLowerCase(), o = $("iOffice").value, t = $("iType").value, c = $("iCond").value;
+  return D.inventory.filter(it => (!o || it.office === o) && (!t || it.type === t) &&
+    (c === "*" ? true : c ? it.condition === c : active(it)) &&
+    (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser, it.desc, it.compName, it.accountable].join(" ").toLowerCase().includes(q)));
+}
+function renderInv() {
+  const list = invFiltered();
+  $("iCount").textContent = list.length + " of " + D.inventory.length + " units";
+  $("iTable").tBodies[0].innerHTML = list.length ? list.map(it => `<tr data-id="${esc(it.id)}">
+    <td class="num"><b>${esc(it.id)}</b></td>
+    <td>${esc(it.brand)}<div class="s">${esc(it.type)}${it.desc ? ". " + esc(it.desc) : ""}</div></td>
+    <td class="hide-m num">${esc(it.serial)}</td><td class="hide-m">${esc(it.tag)}</td>
+    <td>${esc(it.office)}<div class="s">${esc(it.endUser)}</div></td>
+    <td class="hide-m">${condChip(it.condition)}</td><td>${dueChip(it)}</td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">No equipment matches.</td></tr>';
+  $("iTable").querySelectorAll("tbody tr[data-id]").forEach(tr => tr.onclick = () => openEq(tr.dataset.id));
+}
+["iQ", "iOffice", "iType", "iCond"].forEach(id => $(id).addEventListener("input", renderInv));
+$("addEq").onclick = () => openEq(null);
+
+let eqCur = null;
+function openEq(id) {
+  eqCur = id ? byId(id) : null;
+  msg("eqMsg", "");
+  if (eqCur) { eqViewMode(); } else { eqEditMode(); }
+  $("eqDlg").showModal();
+}
+function eqViewMode() {
+  const it = eqCur;
+  $("eqTitle").textContent = it.id + "  " + it.brand;
+  $("eqEdit").classList.add("hidden"); $("eqView").classList.remove("hidden");
+  const hist = pmsOf(it.id);
+  const kv = [["Equipment type", it.type], ["Brand / model", it.brand], ["Description / specs", it.desc], ["Serial no.", it.serial],
+    ["Property tag no.", it.tag], ["Office / section", it.office], ["End user", it.endUser], ["Accountable officer", it.accountable],
+    ["Source document", it.source], ["Date acquired", nice(it.acquired)], ["Unit cost", it.cost ? "PHP " + Number(it.cost).toLocaleString("en-PH", { minimumFractionDigits: 2 }) : ""],
+    ["Warranty until", nice(it.warranty)], ["Computer name / IP", it.compName], ["OS installed", it.os], ["MS Office installed", it.msOffice],
+    ["PM frequency", it.freq], ["Last PM", it.lastPm ? nice(it.lastPm) + " (" + it.lastRef + ")" : "None yet"], ["Remarks", it.remarks],
+    ["Last updated", it.updatedAt ? it.updatedAt + (it.updatedBy ? " by " + it.updatedBy : "") : ""]].filter(r => r[1]);
+  $("eqView").innerHTML = `<div class="row" style="margin-bottom:10px">${condChip(it.condition)} ${dueChip(it)}</div>
+    <dl class="kv">${kv.map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>
+    <h4 style="margin:16px 0 6px">PM history</h4>
+    ${hist.length ? `<div class="tablewrap"><table class="list"><thead><tr><th>PM Ref. No.</th><th>Date</th><th>Work done</th><th>By</th><th>Status</th></tr></thead><tbody>
+      ${hist.map(p => `<tr data-r="${esc(p.ref)}"><td><b>${esc(p.ref)}</b></td><td>${esc(nice(p.date))}</td><td>${esc(p.activity)}<div class="s">${esc(p.findings === "None" ? "" : p.findings)}</div></td><td>${esc(p.personnel)}</td><td>${statusChip(p.status)}</td></tr>`).join("")}
+      </tbody></table></div>` : '<p class="hint">No PM saved for this unit yet.</p>'}`;
+  $("eqView").querySelectorAll("tr[data-r]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openRec(tr.dataset.r); });
+  $("eqFoot").innerHTML = `<button class="btn ghost" type="button" id="eqEditBtn">Edit details</button><span class="spacer"></span>` +
+    (it.condition !== "Disposed" ? `<button class="btn" type="button" id="eqPmBtn">Start PM</button>` : "");
+  $("eqEditBtn").onclick = eqEditMode;
+  if ($("eqPmBtn")) $("eqPmBtn").onclick = () => { $("eqDlg").close(); startPM(it.id); };
+}
+function eqEditMode() {
+  const it = eqCur || { type: D.lists.types[0] ? D.lists.types[0][0] : "", condition: "Serviceable" };
+  $("eqTitle").textContent = eqCur ? "Edit " + eqCur.id : "Add equipment";
+  $("eqView").classList.add("hidden"); $("eqEdit").classList.remove("hidden");
+  const f = { eType: it.type, eBrand: it.brand, eSerial: it.serial, eTag: it.tag, eDesc: it.desc, eOffice: it.office, eEndUser: it.endUser,
+    eAcc: it.accountable, eSource: it.source, eAcq: it.acquired, eCost: it.cost, eWarr: it.warranty, eComp: it.compName, eOs: it.os,
+    eMso: it.msOffice, eFreq: it.freq || defFreq(it.type), eCond: it.condition, eRem: it.remarks };
+  Object.keys(f).forEach(k => $(k).value = f[k] == null ? "" : f[k]);
+  $("eqFoot").innerHTML = (eqCur ? `<button class="btn ghost" type="button" id="eqBack">Back</button>` : "") +
+    `<span class="spacer"></span><button class="btn" type="button" id="eqSave">${eqCur ? "Save changes" : "Add to masterlist"}</button>`;
+  if ($("eqBack")) $("eqBack").onclick = () => { msg("eqMsg", ""); eqViewMode(); };
+  $("eqSave").onclick = saveEq;
+  $("eBrand").focus();
+}
+function defFreq(type) { const t = D.lists.types.find(x => x[0] === type); return t ? t[1] : "Annual"; }
+$("eType").onchange = () => { if (!eqCur) $("eFreq").value = defFreq($("eType").value); };
+async function saveEq() {
+  const item = { id: eqCur ? eqCur.id : "", type: $("eType").value, brand: $("eBrand").value, serial: $("eSerial").value, tag: $("eTag").value,
+    desc: $("eDesc").value, office: $("eOffice").value, endUser: $("eEndUser").value, accountable: $("eAcc").value, source: $("eSource").value,
+    acquired: $("eAcq").value, cost: $("eCost").value, warranty: $("eWarr").value, compName: $("eComp").value, os: $("eOs").value,
+    msOffice: $("eMso").value, freq: $("eFreq").value, condition: $("eCond").value, remarks: $("eRem").value };
+  if (!item.brand.trim() || !item.office.trim()) { msg("eqMsg", "Brand / model and office / section are needed.", "err"); return; }
+  if (item.condition === "Disposed" && eqCur && eqCur.condition !== "Disposed" &&
+      !confirm("Mark " + eqCur.id + " as Disposed? It stays in the records but leaves the masterlist and the PMS schedule.")) return;
+  $("eqSave").disabled = true; msg("eqMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveEquipment", item, by: $("pBy").value || "ICTU" });
+    if (!j.ok) { msg("eqMsg", j.error, "err"); return; }
+    const k = D.inventory.findIndex(x => x.id === j.id);
+    if (k >= 0) D.inventory[k] = j.item; else D.inventory.push(j.item);
+    eqCur = j.item; fillPickers(true); renderAll(); eqViewMode();
+    msg("eqMsg", j.unchanged ? "Nothing was changed." : (k >= 0 ? "Saved." : "Added as " + j.id + "."), "ok");
+  } catch (e) { msg("eqMsg", errText(e), "err"); }
+  finally { if ($("eqSave")) $("eqSave").disabled = false; }
+}
+document.querySelectorAll("dialog [data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
+
+// ---------- schedule ----------
+// Months of year y in which this unit's PM is planned: from its next due date, then every freq months.
+function plannedMonths(it, y) {
+  const m = freqM(it), out = new Set();
+  if (!m || pmState(it) === "off") return out;
+  let d = parse(it.nextDue);
+  if (!d) { const t = parse(todayStr()); d = new Date(t.getFullYear(), t.getMonth(), 1); }
+  for (let i = 0; i < 60 && d.getFullYear() <= y; i++, d = addMonths(d, m)) if (d.getFullYear() === y) out.add(d.getMonth());
+  return out;
+}
+function doneMonths(it, y) {
+  const out = {};
+  pmsOf(it.id).forEach(p => { const d = parse(p.date); if (d && d.getFullYear() === y) out[d.getMonth()] = (out[d.getMonth()] ? out[d.getMonth()] + ", " : "") + p.ref; });
+  return out;
+}
+function schedRows() {
+  const y = +$("sYear").value, o = $("sOffice").value, t = $("sType").value, sh = $("sShow").value;
+  return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && (freqM(it) || Object.keys(doneMonths(it, y)).length) &&
+    (!o || it.office === o) && (!t || it.type === t) &&
+    (!sh || (sh === "late" ? pmState(it) === "late" : pmState(it) === "due")))
+    .sort((a, b) => (a.office + a.id).localeCompare(b.office + b.id));
+}
+function schedCell(it, y, mo, plan, done) {
+  const t = parse(todayStr()), past = y < t.getFullYear() || (y === t.getFullYear() && mo < t.getMonth());
+  if (done[mo]) return { cls: "done", t: "✓", tip: done[mo] };
+  if (plan.has(mo)) return past || (y === t.getFullYear() && mo === t.getMonth() && pmState(it) === "late") ? { cls: "late", t: "!", tip: "Overdue" } : { cls: "plan", t: "P", tip: "Planned" };
+  return null;
+}
+function renderSched() {
+  const y = +$("sYear").value, rows = schedRows(), t = parse(todayStr());
+  $("sCount").textContent = rows.length + " units";
+  if (!rows.length) { $("sTable").innerHTML = '<tbody><tr><td class="empty">No scheduled units match.</td></tr></tbody>'; return; }
+  $("sTable").innerHTML = `<thead><tr><th style="text-align:left">Equipment</th><th style="text-align:left">Office / end user</th><th>Freq.</th>${MONTHS.map(m => `<th>${m}</th>`).join("")}<th></th></tr></thead><tbody>` +
+    rows.map(it => {
+      const plan = plannedMonths(it, y), done = doneMonths(it, y);
+      return `<tr><td><b>${esc(it.id)}</b> ${esc(it.brand)}<div class="s" style="color:var(--muted);font-size:12px">${esc(it.type)}${it.serial ? ", S/N " + esc(it.serial) : ""}</div></td>
+        <td>${esc(it.office)}<div style="color:var(--muted);font-size:12px">${esc(it.endUser)}</div></td><td>${esc(it.freq.replace(NOT_SCHEDULED, "With PC"))}</td>` +
+        MONTHS.map((m, mo) => { const c = schedCell(it, y, mo, plan, done);
+          return `<td class="m${y === t.getFullYear() && mo === t.getMonth() ? " now" : ""}">${c ? `<i class="mk ${c.cls}" title="${esc(c.tip)}">${c.t}</i>` : ""}</td>`; }).join("") +
+        `<td><button class="btn small ghost" data-pm="${esc(it.id)}" type="button">Start PM</button></td></tr>`;
+    }).join("") + "</tbody>";
+  bindRowButtons($("sTable"));
+}
+["sYear", "sOffice", "sType", "sShow"].forEach(id => $(id).addEventListener("input", renderSched));
+
+// ---------- do PM ----------
+let pmItem = null, ck = {}, nextTouched = false, lastSaved = null;
+function renderPick() {
+  const q = $("pmQ").value.trim().toLowerCase();
+  const list = D.inventory.filter(it => active(it) && (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => { const r = s => ({ late: 0, due: 1, soon: 2, ok: 3, ns: 4, off: 5 })[pmState(s)]; return r(a) - r(b) || a.id.localeCompare(b.id); });
+  $("pmList").innerHTML = list.length ? list.slice(0, 60).map(it => `<button type="button" data-id="${esc(it.id)}"><b>${esc(it.id)}  ${esc(eqName(it))}</b>
+    <span>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}${it.nextDue ? ". Next PM " + esc(nice(it.nextDue)) : ""}</span></button>`).join("")
+    : '<div class="empty">No equipment matches. Add it first on the Inventory tab.</div>';
+  $("pmList").querySelectorAll("button").forEach(b => b.onclick = () => pickPM(b.dataset.id));
+}
+$("pmQ").addEventListener("input", renderPick);
+function startPM(id) { show("pm"); pickPM(id); }
+function pickPM(id) {
+  const it = byId(id); if (!it) return;
+  pmItem = it; ck = {}; nextTouched = false;
+  $("pmDone").classList.add("hidden"); $("pmForm").classList.remove("hidden");
+  $("pmPick").classList.add("hidden"); $("pmSel").classList.remove("hidden"); $("pmBody").classList.remove("hidden");
+  $("pmSelT").textContent = it.id + "  " + eqName(it);
+  $("pmSelS").textContent = [it.office, it.endUser, it.serial ? "S/N " + it.serial : "", it.tag ? "Tag " + it.tag : ""].filter(Boolean).join(", ");
+  $("pDate").value = todayStr(); $("pStart").value = nowTime(); $("pEnd").value = "";
+  $("pOffice").value = it.office; $("pEndUser").value = it.endUser; $("pAck").value = it.endUser;
+  $("pPmType").value = "Scheduled PM"; $("pActivity").value = kindOf(it.type).includes("printer") ? "Print Test" : "Cleaning";
+  if (!$("pActivity").value) $("pActivity").selectedIndex = 0;
+  $("pFreq").value = it.freq;
+  $("pWarranty").value = it.warranty ? (parse(it.warranty) >= parse(todayStr()) ? "Yes, until " : "No, ended ") + nice(it.warranty) : "No";
+  $("pComp").value = it.compName; $("pOs").value = it.os; $("pMso").value = it.msOffice; $("pOsLic").value = ""; $("pMsoLic").value = ""; $("pApps").value = "";
+  ["pFind", "pAction", "pParts", "pRemarks"].forEach(k => $(k).value = "");
+  document.querySelectorAll('input[name="ov"]').forEach(r => r.checked = false);
+  $("secC").classList.toggle("hidden", !kindOf(it.type).includes("pc"));
+  setNext(); renderChecks(); padClear(); msg("pmMsg", "");
+  $("pmBar").classList.remove("hidden");
+  setTimeout(sizePad, 30);
+  window.scrollTo(0, 0);
+}
+$("pmChange").onclick = () => { pmItem = null; $("pmPick").classList.remove("hidden"); $("pmSel").classList.add("hidden"); $("pmBody").classList.add("hidden"); $("pmBar").classList.add("hidden"); $("pmQ").focus(); };
+function setNext() {
+  if (nextTouched || !pmItem) return;
+  const m = freqM(pmItem), d = parse($("pDate").value);
+  const ov = (document.querySelector('input[name="ov"]:checked') || {}).value;
+  $("pNext").value = m && d && ov !== "For replacement / condemnation" ? isoDate(addMonths(d, m)) : "";
+}
+$("pDate").addEventListener("input", setNext);
+$("pNext").addEventListener("input", () => nextTouched = true);
+document.querySelectorAll('input[name="ov"]').forEach(r => r.addEventListener("change", setNext));
+function renderChecks() {
+  const kinds = kindOf(pmItem.type);
+  $("ckWrap").innerHTML = CHECKS.map(sec => {
+    const items = sec.items.filter(i => applies(i, kinds));
+    if (!items.length) return "";
+    return `<div class="ck-sec"><h4>${esc(sec.s)}</h4>` + items.map(i => `<div class="ck" data-k="${i[0]}">
+      <div class="lbl">${esc(i[1].replace(/\s*\(media: _+\)|\s*\(No\. _+\)|: _+$/, ""))}</div>
+      <div class="seg" role="group" aria-label="${esc(i[1])}">${["Done", "Issue", "N/A"].map(v => `<button type="button" data-v="${v}" aria-pressed="false">${v === "Done" ? "✓ Done" : v === "Issue" ? "✗ Issue" : "N/A"}</button>`).join("")}</div>
+      ${i[3] || true ? `<input class="note${i[3] ? "" : " hidden"}" placeholder="${esc(i[3] || "What is the issue?")}">` : ""}</div>`).join("") + "</div>";
+  }).join("");
+  $("ckWrap").querySelectorAll(".ck").forEach(row => {
+    const k = row.dataset.k, note = row.querySelector(".note"), def = CHECKS.flatMap(s => s.items).find(i => i[0] === k);
+    row.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+      ck[k] = ck[k] === b.dataset.v ? "" : b.dataset.v;
+      row.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === ck[k] ? "true" : "false"));
+      if (!def[3]) { note.classList.toggle("hidden", ck[k] !== "Issue"); note.placeholder = "What is the issue?"; if (ck[k] === "Issue") note.focus(); }
+      showIssues();
+    });
+    note.addEventListener("input", showIssues);
+  });
+  showIssues();
+}
+function checkList() {
+  const kinds = kindOf(pmItem.type), out = [];
+  CHECKS.forEach(sec => sec.items.forEach(i => {
+    const row = $("ckWrap").querySelector(`.ck[data-k="${i[0]}"]`);
+    out.push({ key: i[0], section: sec.s, item: i[1], result: applies(i, kinds) ? (ck[i[0]] || "") : "N/A", note: row ? row.querySelector(".note").value.trim() : "", shown: !!row });
+  }));
+  return out;
+}
+function showIssues() {
+  if (!pmItem) return;
+  const iss = checkList().filter(c => c.result === "Issue");
+  $("issueList").classList.toggle("hidden", !iss.length);
+  $("issueList").innerHTML = "Items marked with an issue: " + iss.map(c => esc(c.item.replace(/\s*\(.*\)$|: _+$/, "") + (c.note ? " (" + c.note + ")" : ""))).join("; ") +
+    ". These go into the findings if you leave that box blank.";
+}
+$("ckAll").onclick = () => {
+  $("ckWrap").querySelectorAll(".ck").forEach(row => {
+    const k = row.dataset.k, def = CHECKS.flatMap(s => s.items).find(i => i[0] === k);
+    if (ck[k] || /Others:|NO system|NO data/.test(def[1])) return;   // "Others" and owner-requested lines need a person's choice
+    ck[k] = "Done"; row.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === "Done" ? "true" : "false"));
+  });
+  showIssues();
+};
+$("pmReset").onclick = () => { if (pmItem && confirm("Clear this PM form?")) pickPM(pmItem.id); };
+$("pmSave").onclick = async () => {
+  if (!pmItem) return;
+  const ov = (document.querySelector('input[name="ov"]:checked') || {}).value;
+  const checks = checkList();
+  const blank = checks.filter(c => c.shown && !c.result && !/Others:|NO system|NO data/.test(c.item));
+  if (!$("pBy").value) { msg("pmMsg", "Pick who performed the PM (section E).", "err"); $("pBy").focus(); return; }
+  if (!ov) { msg("pmMsg", "Pick the overall status (section D).", "err"); $("pOverall").scrollIntoView({ block: "center" }); return; }
+  if (blank.length && !confirm(blank.length + " checklist item(s) have no answer. They will be saved as N/A. Save anyway?")) return;
+  if (!$("pEnd").value) $("pEnd").value = nowTime();
+  const iss = checks.filter(c => c.result === "Issue").map(c => c.item.replace(/\s*\(.*\)$|: _+$/, "") + (c.note ? ": " + c.note : ""));
+  const pm = { equipmentId: pmItem.id, date: $("pDate").value, timeStart: time12($("pStart").value), timeEnd: time12($("pEnd").value),
+    office: $("pOffice").value, endUser: $("pEndUser").value, pmType: $("pPmType").value, activity: $("pActivity").value,
+    findings: $("pFind").value.trim() || iss.join("; "), action: $("pAction").value, parts: $("pParts").value, overall: ov,
+    nextDue: $("pNext").value, remarks: $("pRemarks").value, compName: $("pComp").value, os: $("pOs").value, osLicense: $("pOsLic").value,
+    msOffice: $("pMso").value, msOfficeLicense: $("pMsoLic").value, apps: $("pApps").value,
+    personnel: $("pBy").value, ackBy: $("pAck").value, verifiedBy: $("pVer").value };
+  const sig = padHasInk() ? padExport() : "";
+  $("pmSave").disabled = true; msg("pmMsg", "Saving…");
+  try {
+    const j = await api({ action: "savePM", pm, checks: checks.map(c => ({ section: c.section, item: c.item, result: c.result || "N/A", note: c.note })), signature: sig });
+    if (!j.ok) { msg("pmMsg", j.error, "err"); return; }
+    D.pms.push(j.pm);
+    const k = D.inventory.findIndex(x => x.id === j.item.id); if (k >= 0) D.inventory[k] = j.item;
+    lastSaved = Object.assign({}, j.pm, { checks: checks.map(c => ({ section: c.section, item: c.item, result: c.result || "N/A", note: c.note })), signature: sig });
+    fillPickers(true); renderAll();
+    pmItem = null; $("pmBar").classList.add("hidden"); $("pmForm").classList.add("hidden"); $("pmDone").classList.remove("hidden");
+    $("pmPick").classList.remove("hidden"); $("pmSel").classList.add("hidden"); $("pmBody").classList.add("hidden"); $("pmQ").value = "";
+    $("pmDoneT").textContent = "Saved as " + j.ref;
+    $("pmDoneP").textContent = j.pm.brand + ", " + j.pm.office + ". " + (j.pm.nextDue ? "Next PM is set for " + longDate(j.pm.nextDue) + "." : "No next PM was set.") +
+      " Print the form for the end user and the Head of the ICT Unit to sign, then file it.";
+    window.scrollTo(0, 0);
+  } catch (e) { msg("pmMsg", errText(e) + " Nothing was lost; tap Save again.", "err"); }
+  finally { $("pmSave").disabled = false; }
+};
+$("pmDonePrint").onclick = () => printForm(lastSaved);
+$("pmDoneNew").onclick = () => { $("pmDone").classList.add("hidden"); $("pmForm").classList.remove("hidden"); renderPick(); $("pmQ").focus(); };
+
+// ---------- signature pad ----------
+const pad = $("pad"), pctx = pad.getContext("2d");
+let strokes = [], cur = null;
+function sizePad() {
+  const r = pad.getBoundingClientRect(); if (!r.width) return;
+  const dpr = window.devicePixelRatio || 1;
+  pad.width = Math.round(r.width * dpr); pad.height = Math.round(r.height * dpr);
+  pctx.setTransform(dpr, 0, 0, dpr, 0, 0); redraw();
+}
+function drawStroke(ctx, s, k) {
+  ctx.lineWidth = 2.4 * k; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#0b1f3a";
+  ctx.beginPath(); ctx.moveTo(s[0].x * k, s[0].y * k);
+  if (s.length === 1) ctx.lineTo(s[0].x * k + .1, s[0].y * k);
+  for (let i = 1; i < s.length; i++) { const p = s[i - 1], q = s[i]; ctx.quadraticCurveTo(p.x * k, p.y * k, (p.x + q.x) / 2 * k, (p.y + q.y) / 2 * k); }
+  ctx.stroke();
+}
+function redraw() {
+  const r = pad.getBoundingClientRect();
+  pctx.clearRect(0, 0, r.width, r.height);
+  strokes.forEach(s => drawStroke(pctx, s, 1));
+  $("padPh").classList.toggle("hidden", strokes.length > 0);
+}
+function pt(ev) { const r = pad.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+pad.addEventListener("pointerdown", ev => { ev.preventDefault(); pad.setPointerCapture(ev.pointerId); cur = [pt(ev)]; strokes.push(cur); redraw(); });
+pad.addEventListener("pointermove", ev => { if (!cur) return; ev.preventDefault(); (ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev]).forEach(e => cur.push(pt(e))); redraw(); });
+["pointerup", "pointercancel", "pointerleave"].forEach(t => pad.addEventListener(t, () => { cur = null; }));
+pad.addEventListener("touchmove", ev => ev.preventDefault(), { passive: false });
+function padClear() { strokes = []; cur = null; redraw(); }
+$("padClear").onclick = padClear;
+function padHasInk() { let len = 0; strokes.forEach(s => { for (let i = 1; i < s.length; i++) len += Math.hypot(s[i].x - s[i - 1].x, s[i].y - s[i - 1].y); }); return len > 60; }
+function padExport() {
+  const xs = [], ys = []; strokes.forEach(s => s.forEach(p => { xs.push(p.x); ys.push(p.y); }));
+  const m = 6, x0 = Math.min(...xs) - m, y0 = Math.min(...ys) - m, w = Math.max(...xs) - x0 + m, h = Math.max(...ys) - y0 + m;
+  const k = Math.min(2, 600 / w);
+  const c = document.createElement("canvas"); c.width = Math.ceil(w * k); c.height = Math.ceil(h * k);
+  const ctx = c.getContext("2d"); ctx.translate(-x0 * k, -y0 * k);
+  strokes.forEach(s => drawStroke(ctx, s, k));
+  return c.toDataURL("image/png");
+}
+window.addEventListener("resize", () => { if (!$("v-pm").classList.contains("hidden")) sizePad(); });
+
+// ---------- PM records ----------
+function renderRecs() {
+  const q = $("rQ").value.trim().toLowerCase(), qt = $("rQtr").value, st = $("rStatus").value, sv = $("rVoid").checked;
+  const list = D.pms.filter(p => (sv || p.recordStatus !== "Voided") && (!qt || p.quarter === qt) && (!st || p.status === st) &&
+    (!q || [p.ref, p.brand, p.type, p.serial, p.tag, p.office, p.endUser, p.personnel, p.findings, p.equipmentId].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => a.ref < b.ref ? 1 : -1);
+  $("rTable").tBodies[0].innerHTML = list.length ? list.map(p => `<tr data-r="${esc(p.ref)}">
+    <td><b>${esc(p.ref)}</b></td><td class="num">${esc(nice(p.date))}</td>
+    <td>${esc(p.brand)}<div class="s">${esc(p.type)}${p.equipmentId ? ", " + esc(p.equipmentId) : ""}</div></td>
+    <td class="hide-m">${esc(p.office)}<div class="s">${esc(p.endUser)}</div></td><td class="hide-m">${esc(p.personnel)}</td>
+    <td>${statusChip(p.status, p.recordStatus)}</td></tr>`).join("") : '<tr><td colspan="6" class="empty">No PM records match.</td></tr>';
+  $("rTable").querySelectorAll("tbody tr[data-r]").forEach(tr => tr.onclick = () => openRec(tr.dataset.r));
+}
+["rQ", "rQtr", "rStatus", "rVoid"].forEach(id => $(id).addEventListener("input", renderRecs));
+let recCur = null;
+async function openRec(ref) {
+  const p = D.pms.find(x => x.ref === ref); if (!p) return;
+  recCur = p;
+  $("pmDlgT").textContent = p.ref + "  " + p.brand;
+  const kv = [["Date", nice(p.date) + (p.timeStart ? ", " + p.timeStart + (p.timeEnd ? " to " + p.timeEnd : "") : "")], ["Equipment", p.equipmentId + ", " + p.type + (p.serial ? ", S/N " + p.serial : "")],
+    ["Office / end user", p.office + (p.endUser ? ", " + p.endUser : "")], ["Maintenance", p.pmType + ", " + p.activity],
+    ["Findings", p.findings], ["Action taken", p.action], ["Parts used", p.parts], ["Overall status", p.overall], ["Next PM", nice(p.nextDue)],
+    ["Performed by", p.personnel], ["Acknowledged by", p.ackBy + (p.hasSignature ? " (signed on screen)" : "")], ["Verified by", p.verifiedBy],
+    ["Remarks", p.remarks], ["Saved", p.loggedAt], ["Record", p.recordStatus]].filter(r => r[1]);
+  $("pmDlgB").innerHTML = `<dl class="kv">${kv.map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>`;
+  $("pmVoid").classList.toggle("hidden", p.recordStatus === "Voided");
+  msg("pmDlgMsg", "");
+  $("pmDlg").showModal();
+}
+$("pmPrint").onclick = async () => {
+  msg("pmDlgMsg", "Getting the checklist…");
+  try {
+    const j = await api({ action: "getPM", ref: recCur.ref });
+    if (!j.ok) { msg("pmDlgMsg", j.error, "err"); return; }
+    msg("pmDlgMsg", j.pm.signatureError || ""); printForm(j.pm);
+  } catch (e) { msg("pmDlgMsg", errText(e), "err"); }
+};
+$("pmVoid").onclick = async () => {
+  const reason = prompt("Why is " + recCur.ref + " being voided? (for example: wrong equipment picked, duplicate entry)");
+  if (!reason || !reason.trim()) return;
+  msg("pmDlgMsg", "Voiding…");
+  try {
+    const j = await api({ action: "voidPM", ref: recCur.ref, reason, by: $("pBy").value || "ICTU" });
+    if (!j.ok) { msg("pmDlgMsg", j.error, "err"); return; }
+    $("pmDlg").close(); await reload();
+  } catch (e) { msg("pmDlgMsg", errText(e), "err"); }
+};
+
+// ---------- printing ----------
+function header() {
+  return `<div class="hd"><img src="${LOGO_DOH}" alt=""><img src="${LOGO_TRC}" alt=""><img class="bp" src="${LOGO_BP}" alt="">
+    <div class="t"><div>Republic of the Philippines</div><div class="d">Department of Health</div><div class="c">TREATMENT AND REHABILITATION CENTER DULAG</div>
+    <div class="a">Brgy. Highway, Dulag, Leyte</div><div class="iso">ISO 9001:2015 CERTIFIED | PRIME HRM AGENCY ACCREDITED: RESOLUTION NO. 2501361</div></div></div>`;
+}
+function doPrint(html, landscape) {
+  $("pageSize").textContent = "@page { size: A4 " + (landscape ? "landscape" : "portrait") + "; margin: " + (landscape ? "9mm" : "8mm 10mm") + "; }";
+  $("printArea").innerHTML = html;
+  document.body.classList.add("printing");
+  const done = () => { document.body.classList.remove("printing"); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  setTimeout(() => { window.print(); setTimeout(done, 1500); }, 150);
+}
+const box = on => `<span class="box">${on ? "✓" : ""}</span>`;
+// The filled (or blank, when p is null) Form COH-IDN-F-02.
+function formHtml(p) {
+  p = p || {};
+  const it = p.equipmentId ? (byId(p.equipmentId) || {}) : {};
+  const type = String(p.type || "");
+  const k = p.type ? kindOf(type) : [];
+  const typeBox = [["Desktop", k.includes("pc") && !k.includes("laptop")], ["Laptop", k.includes("laptop")], ["Printer", k.includes("printer")],
+    ["Scanner", k.includes("scanner")], ["Monitor", k.includes("monitor")], ["UPS/AVR", k.includes("ups")], ["Network", k.includes("net")]];
+  const isOther = p.type && !typeBox.some(t => t[1]);
+  const res = {}; (p.checks || []).forEach(c => res[c.item] = c);
+  const mark = (item, v) => { const c = res[item]; return c && c.result === v ? (v === "Done" ? "✓" : v === "Issue" ? "X" : "N/A") : ""; };
+  const label = item => { const c = res[item]; if (!c || !c.note) return esc(item);
+    if (/media: _+/.test(item)) return esc(item.replace(/_+/, c.note)); if (/No\. _+/.test(item)) return esc(item.replace(/_+/, c.note));
+    if (/^Others: _+/.test(item)) return "Others: " + esc(c.note); return esc(item) + " <i>(" + esc(c.note) + ")</i>"; };
+  const left = [], right = [];
+  CHECKS.forEach((sec, i) => { const col = i < 3 ? left : right; col.push({ h: sec.s }); sec.items.forEach(x => col.push({ i: x[1] })); });
+  const n = Math.max(left.length, right.length);
+  let rows = "";
+  for (let r = 0; r < n; r++) {
+    const cell = c => !c ? '<td></td><td class="cm"></td><td class="cm"></td><td class="cm"></td>' :
+      c.h ? `<td class="cg">${esc(c.h)}</td><td class="cm cg"></td><td class="cm cg"></td><td class="cm cg"></td>` :
+      `<td>${label(c.i)}</td><td class="cm">${mark(c.i, "Done")}</td><td class="cm">${mark(c.i, "Issue")}</td><td class="cm">${mark(c.i, "N/A")}</td>`;
+    rows += "<tr>" + cell(left[r]) + cell(right[r]) + "</tr>";
+  }
+  const ov = ["Functional", "Functional, for monitoring", "For repair", "For replacement / condemnation"];
+  const head = (D.lists.staff.find(s => s[0] === p.verifiedBy) || [])[1] || "Head, ICT Unit";
+  const perfPos = (D.lists.staff.find(s => s[0] === p.personnel) || [])[1] || "";
+  const warrUntil = it.warranty ? nice(it.warranty) : "";
+  return `<div class="sheet">${header()}
+    <h3>ICT EQUIPMENT PREVENTIVE MAINTENANCE CHECKLIST</h3>
+    <table><tr><th>Form No.</th><th>Revision No.</th><th>Effectivity Date</th><th>Page</th><th>PM Ref. No.</th></tr>
+      <tr><td class="c">${esc(D.form.code || "COH-IDN-F-02")}</td><td class="c">${esc(D.form.rev || "01")}</td><td class="c">${esc(D.form.effectivity || "")}</td><td class="c">1 of 1</td><td class="c"><b>${esc(p.ref || "")}</b></td></tr></table>
+    <div class="sec">A. EQUIPMENT INFORMATION</div>
+    <table>
+      <tr><td class="k">Office / Section:</td><td>${esc(p.office)}</td><td class="k">Date:</td><td>${esc(nice(p.date))}</td></tr>
+      <tr><td class="k">End User:</td><td>${esc(p.endUser)}</td><td class="k">Time Start:</td><td>${esc(p.timeStart)}</td></tr>
+      <tr><td class="k">ICT Personnel:</td><td>${esc(p.personnel)}</td><td class="k">Time End:</td><td>${esc(p.timeEnd)}</td></tr>
+      <tr><td class="k">Brand / Model:</td><td>${esc(p.brand)}</td><td class="k">Serial No.:</td><td>${esc(p.serial)}</td></tr>
+      <tr><td class="k">Property Tag No.:</td><td>${esc(p.tag)}</td><td class="k">Computer Name / IP:</td><td>${esc(p.compName)}</td></tr>
+      <tr><td class="k">Equipment Type:</td><td colspan="3">${typeBox.map(t => box(t[1]) + t[0]).join(" ")} ${box(isOther)}Others: ${isOther ? "<u>" + esc(type) + "</u>" : "________"}</td></tr>
+      <tr><td class="k">Maintenance Type:</td><td colspan="3">${box(p.pmType === "Scheduled PM")}Scheduled PM ${box(p.pmType && p.pmType !== "Scheduled PM")}Unscheduled / On Request
+        &nbsp;&nbsp; Frequency: ${box(p.freq === "Quarterly")}Quarterly ${box(p.freq === "Semi-Annual")}Semi-Annual ${box(p.freq === "Annual")}Annual${p.freq === "Monthly" ? " " + box(true) + "Monthly" : ""}</td></tr>
+      <tr><td class="k">Under Warranty?</td><td colspan="3">${box(p.warranty === "Yes")}Yes ${box(p.warranty === "No")}No &nbsp;&nbsp; Warranty Until: ${warrUntil ? "<u>" + esc(warrUntil) + "</u>" : "______________"}</td></tr>
+    </table>
+    <div class="sec">B. PREVENTIVE MAINTENANCE CHECKLIST</div>
+    <div style="font-size:7.5pt;margin-bottom:.8mm">Legend: ✓ = Done / Passed &nbsp; X = Issue found (describe in Section D) &nbsp; N/A = Not applicable</div>
+    <table><tr><th style="text-align:left">CHECK ITEM</th><th class="c">✓</th><th class="c">X</th><th class="c">N/A</th><th style="text-align:left">CHECK ITEM</th><th class="c">✓</th><th class="c">X</th><th class="c">N/A</th></tr>${rows}</table>
+    <div class="sec">C. SYSTEM INFORMATION</div>
+    <table><tr><td class="k">OS Installed:</td><td>${esc(p.os)}</td><td class="k">License Status:</td><td>${esc(p.osLicense)}</td></tr>
+      <tr><td class="k">MS Office Installed:</td><td>${esc(p.msOffice)}</td><td class="k">License Status:</td><td>${esc(p.msOfficeLicense)}</td></tr>
+      <tr><td class="k">Applications Installed:</td><td colspan="3">${esc(p.apps)}</td></tr></table>
+    <div class="sec">D. FINDINGS, ACTION TAKEN AND RECOMMENDATION</div>
+    <table><tr><td class="k">Issues / Findings:</td><td style="height:6mm">${esc(p.findings)}</td></tr>
+      <tr><td class="k">Action Taken:</td><td style="height:6mm">${esc(p.action)}</td></tr>
+      <tr><td class="k">Parts Replaced / Used:</td><td>${esc(p.parts)}</td></tr>
+      <tr><td class="k">Overall Status:</td><td>${ov.map(o => box(p.overall === o) + o).join(" ")}</td></tr>
+      <tr><td class="k">Recommendation / Next PM:</td><td>${esc(p.remarks && !/^VOIDED/.test(p.remarks) ? p.remarks + ". " : "")}Next PM Schedule: ${p.nextDue ? "<u>" + esc(longDate(p.nextDue)) + "</u>" : "____________________"}</td></tr></table>
+    <div class="sec">E. CONFORME</div>
+    <table><tr><th></th><th>PERFORMED BY<br>(ICT Personnel)</th><th>ACKNOWLEDGED BY<br>(End User)</th><th>VERIFIED BY<br>(Head, ICT Unit)</th></tr>
+      <tr><td class="k">Name and Signature</td><td class="sig">${esc(p.personnel)}</td><td class="sig">${p.signature ? `<img src="${p.signature}" alt="">` : ""}${esc(p.ackBy)}</td><td class="sig">${esc(p.verifiedBy)}</td></tr>
+      <tr><td class="k">Position</td><td class="c">${esc(perfPos)}</td><td class="c"></td><td class="c">${p.verifiedBy ? esc(head) : ""}</td></tr>
+      <tr><td class="k">Date</td><td class="c">${esc(nice(p.date))}</td><td class="c">${p.signature ? esc(nice(p.date)) : ""}</td><td class="c"></td></tr></table>
+    <div class="foot">Controlled QMS record: one (1) form per unit per PM activity; record in the ICTU PM Log using the PM Ref. No.; original filed with the ICT Unit.</div>
+    ${p.ref ? `<div class="meta">${esc(p.equipmentId)}. Saved ${esc(p.loggedAt || "")}.${p.recordStatus === "Voided" ? " VOIDED." : ""}${p.hash ? " Record hash " + esc(p.hash.slice(0, 16)) + "…" : ""}</div>` : ""}
+  </div>`;
+}
+function printForm(p) { if (p) doPrint(formHtml(p), false); }
+$("blankForm").onclick = () => doPrint(formHtml(null), false);
+
+function invPrint() {
+  const list = invFiltered().slice().sort((a, b) => (a.office + a.id).localeCompare(b.office + b.id));
+  doPrint(`<div class="sheet land">${header()}<h3>ICT EQUIPMENT INVENTORY MASTERLIST</h3>
+    <div class="sub">Information and Communications Technology Unit (ICTU). As of ${esc(longDate(todayStr()))}. ${list.length} unit(s).</div>
+    <table><thead><tr><th>ID</th><th>Property Tag</th><th>Type</th><th>Brand / Model</th><th>Serial No.</th><th>Office / Section</th><th>End User</th><th>Acquired</th><th>Condition</th><th>PM Freq.</th><th>Last PM</th><th>Next PM</th></tr></thead><tbody>
+    ${list.map(it => `<tr><td>${esc(it.id)}</td><td>${esc(it.tag)}</td><td>${esc(it.type)}</td><td>${esc(it.brand)}${it.desc ? "<br><i>" + esc(it.desc) + "</i>" : ""}</td><td>${esc(it.serial)}</td>
+      <td>${esc(it.office)}</td><td>${esc(it.endUser)}</td><td>${esc(nice(it.acquired))}</td><td>${esc(it.condition)}</td><td>${esc(it.freq.replace(NOT_SCHEDULED, "With PC"))}</td>
+      <td>${esc(nice(it.lastPm))}</td><td>${esc(nice(it.nextDue))}</td></tr>`).join("")}</tbody></table>
+    ${signs()}</div>`, true);
+}
+$("iPrint").onclick = invPrint;
+$("rPrintInv").onclick = () => { $("iQ").value = ""; $("iOffice").value = ""; $("iType").value = ""; $("iCond").value = ""; renderInv(); invPrint(); };
+function signs(prep, noted) {
+  const L = D.lists.staff, head = L.find(s => /head/i.test(s[1])) || [], other = L.find(s => !/head/i.test(s[1])) || [];
+  prep = prep || other; noted = noted || head;
+  return `<div class="signs"><div>Prepared by:<div class="line">${esc(prep[0] || "")}</div>${esc(prep[1] || "ICT Personnel")}</div>
+    <div>Noted by:<div class="line">${esc(noted[0] || "")}</div>${esc(noted[1] || "Head, ICT Unit")}</div></div>`;
+}
+function schedPrint() {
+  const y = +$("sYear").value, rows = schedRows();
+  doPrint(`<div class="sheet land">${header()}<h3>ICT EQUIPMENT PREVENTIVE MAINTENANCE SCHEDULE, CY ${y}</h3>
+    <div class="sub">Information and Communications Technology Unit (ICTU)${$("sOffice").value ? ". " + esc($("sOffice").value) : ""}. P = planned, ✓ = done, ! = planned but not yet done.</div>
+    <table class="sch"><thead><tr><th>ID</th><th>Equipment</th><th>Serial No.</th><th>Office / Section</th><th>End User</th><th>Freq.</th>${MONTHS.map(m => `<th class="m">${m}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(it => { const plan = plannedMonths(it, y), done = doneMonths(it, y);
+      return `<tr><td>${esc(it.id)}</td><td>${esc(it.brand)} (${esc(it.type)})</td><td>${esc(it.serial)}</td><td>${esc(it.office)}</td><td>${esc(it.endUser)}</td><td>${esc(it.freq)}</td>` +
+        MONTHS.map((m, mo) => { const c = schedCell(it, y, mo, plan, done); return `<td class="m">${c ? c.t : ""}</td>`; }).join("") + "</tr>"; }).join("")}
+    </tbody></table>${signs()}</div>`, true);
+}
+$("sPrint").onclick = schedPrint;
+$("rPrintSched").onclick = () => { $("sYear").value = String(new Date().getFullYear()); $("sOffice").value = ""; $("sType").value = ""; $("sShow").value = ""; renderSched(); schedPrint(); };
+
+function quarterPMs() {
+  const y = $("qYear").value, q = $("qQ").value;
+  return D.pms.filter(p => p.quarter === "Q" + q + " " + y && p.recordStatus !== "Voided").sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.ref < b.ref ? -1 : 1);
+}
+$("qPrint").onclick = () => {
+  const y = $("qYear").value, q = +$("qQ").value, list = quarterPMs();
+  const period = "Q" + q + " " + y + ": " + MONTHS_LONG[(q - 1) * 3] + " to " + MONTHS_LONG[(q - 1) * 3 + 2];
+  const resolved = list.filter(p => p.status === "Resolved").length;
+  const units = new Set(list.map(p => p.equipmentId || p.serial || p.brand)).size;
+  const attention = list.filter(p => p.status !== "Resolved");
+  const lines = id => $(id).value.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  const chal = lines("qChal"), rec = lines("qRec");
+  const by = D.lists.staff.find(s => s[0] === $("qBy").value) || [$("qBy").value, $("qPos").value];
+  const noted = D.lists.staff.find(s => s[0] === $("qNoted").value) || [];
+  doPrint(`<div class="sheet land rep">${header()}<h3>ICTU/${esc($("qDiv").value.trim() || "IDADIN")} PREVENTIVE MAINTENANCE REPORT</h3>
+    <table style="width:auto;margin:0 0 2mm"><tr><td class="k">Division:</td><td>${esc($("qDiv").value)}</td><td class="k">Reporting Period:</td><td>${esc(period)}</td></tr>
+      <tr><td class="k">Report Prepared By:</td><td>${esc(by[0])}</td><td class="k">Date of Report:</td><td>${esc(longDate(todayStr()))}</td></tr>
+      <tr><td class="k">Position:</td><td colspan="3">${esc($("qPos").value)}</td></tr></table>
+    <h4>1. Introduction</h4>
+    <p>This report summarizes the preventive maintenance activities conducted for IT equipment during the reporting period. The purpose of these activities is to ensure optimal performance, minimize downtime, and extend the equipment's operational life.</p>
+    <h4>2. Maintenance Activities Summary</h4>
+    <table><thead><tr><th>PM Ref. No.</th><th>Date</th><th>Equipment Type</th><th>Model / Serial Number</th><th>Location</th><th>Maintenance Type</th><th>Issues Identified</th><th>Action Taken</th><th>Remarks</th></tr></thead><tbody>
+    ${list.length ? list.map(p => `<tr><td>${esc(p.ref)}</td><td>${esc(nice(p.date))}</td><td>${esc(p.type)}</td><td>${esc(p.brand)}${p.serial ? " / " + esc(p.serial) : ""}</td><td>${esc(p.office)}</td>
+      <td>${esc(p.activity)}</td><td>${esc(p.findings)}</td><td>${esc(p.action)}</td><td>${esc(p.status)}${p.remarks ? ". " + esc(p.remarks) : ""}</td></tr>`).join("")
+      : '<tr><td colspan="9" class="c">No PM activity was recorded for this period.</td></tr>'}</tbody></table>
+    <p style="font-size:7.5pt">PM: Preventive Maintenance</p>
+    <h4>3. Equipment Condition Summary</h4>
+    <ul><li>Total PM activities conducted: ${list.length} (${units} unit${units === 1 ? "" : "s"})</li><li>Issues resolved: ${resolved}</li>
+      <li>Equipment requiring further attention: ${attention.length}${attention.length ? " (" + attention.map(p => esc(p.brand + ", " + p.office + ", " + p.status)).join("; ") + ")" : ""}</li></ul>
+    ${chal.length ? `<h4>4. Challenges Encountered</h4><ul>${chal.map(c => "<li>" + esc(c) + "</li>").join("")}</ul>` : ""}
+    <h4>${chal.length ? 5 : 4}. Recommendations</h4>
+    ${rec.length ? `<ul>${rec.map(c => "<li>" + esc(c) + "</li>").join("")}</ul>` : "<p>None for this period.</p>"}
+    <h4>${chal.length ? 6 : 5}. Conclusion</h4>
+    <p>${list.length ? "The preventive maintenance activities for the quarter were conducted as scheduled" + (attention.length ? ", and the units listed under further attention are being followed up" : "") + "." : "No preventive maintenance was recorded for this quarter."} ICTU will continue the PMS for the next quarter based on the approved schedule.</p>
+    ${signs(by, noted)}</div>`, true);
+};
+// ---------- CSV ----------
+function csv(name, head, rows) {
+  const q = v => { v = String(v == null ? "" : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const text = "﻿" + [head].concat(rows).map(r => r.map(q).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+$("iCsv").onclick = () => csv("ICT Inventory " + todayStr() + ".csv",
+  ["Equipment ID", "Property Tag No.", "Equipment Type", "Brand / Model", "Description / Specs", "Serial No.", "Office / Section", "End User", "Accountable Officer", "Source Document", "Date Acquired", "Unit Cost", "Warranty Until", "Computer Name / IP", "OS Installed", "MS Office Installed", "PM Frequency", "Last PM", "Last PM Ref No.", "Next PM Due", "Condition", "Remarks"],
+  invFiltered().map(i => [i.id, i.tag, i.type, i.brand, i.desc, i.serial, i.office, i.endUser, i.accountable, i.source, i.acquired, i.cost, i.warranty, i.compName, i.os, i.msOffice, i.freq, i.lastPm, i.lastRef, i.nextDue, i.condition, i.remarks]));
+const PM_CSV_HEAD = ["PM Ref No.", "Date", "Time Start", "Time End", "Quarter", "Office / Section", "End User", "Equipment Type", "Brand / Model", "Serial No.", "Property Tag No.", "Under Warranty?", "Maintenance Type", "Issue Identified", "Action Taken", "Occurrence No.", "Status", "Remarks", "Next Check / PM Due", "ICT Personnel", "End User Acknowledged?", "Equipment ID", "Overall Status", "Record Status"];
+const pmCsvRow = p => [p.ref, p.date, p.timeStart, p.timeEnd, p.quarter, p.office, p.endUser, p.type, p.brand, p.serial, p.tag, p.warranty, p.activity, p.findings, p.action, p.occurrence, p.status, p.remarks, p.nextDue, p.personnel, p.ack, p.equipmentId, p.overall, p.recordStatus];
+$("qCsv").onclick = () => csv("PM Log Q" + $("qQ").value + " " + $("qYear").value + ".csv", PM_CSV_HEAD, quarterPMs().map(pmCsvRow));
+$("rCsvAll").onclick = () => csv("PM Log " + todayStr() + ".csv", PM_CSV_HEAD, D.pms.slice().sort((a, b) => a.ref < b.ref ? -1 : 1).map(pmCsvRow));
+
+initLock();
+</script>
+</body>
+</html>
