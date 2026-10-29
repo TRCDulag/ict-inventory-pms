@@ -145,6 +145,14 @@
   @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
   table.list tfoot td { padding: 0; border-top: 1px solid var(--line); }
   .addrow { display: flex; align-items: center; gap: 10px; width: 100%; background: #F6FBF9; border: 0; padding: 14px 16px; font: inherit; font-size: 15.5px; font-weight: 600; color: var(--brand); cursor: pointer; text-align: left; border-radius: 0 0 var(--r) var(--r); }
+  .sortb { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .sortb:hover { color: var(--brand); }
+  .sortb::after { content: "↕"; font-size: 11px; opacity: .45; }
+  th[aria-sort="ascending"] .sortb, th[aria-sort="descending"] .sortb { color: var(--navy); }
+  th[aria-sort="ascending"] .sortb::after { content: "▲"; opacity: 1; font-size: 9px; }
+  th[aria-sort="descending"] .sortb::after { content: "▼"; opacity: 1; font-size: 9px; }
+  /* the masterlist scrolls inside its box on a PC, with the column names kept in view */
+  @media (min-width: 900px) { .tablewrap.scrolly { max-height: calc(100vh - 150px); overflow: auto; } .tablewrap.scrolly .addrow.top { position: sticky; top: 0; z-index: 3; } .tablewrap.scrolly th { top: 53px; z-index: 2; } }
   .addrow.top { border-radius: var(--r) var(--r) 0 0; border-bottom: 1px solid var(--line); }
   .addrow:hover { background: var(--brand-soft); }
   .addrow .plus { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; line-height: 1; }
@@ -566,8 +574,11 @@
         <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
     </div>
-    <div class="tablewrap"><button class="addrow top need2" id="addEq" type="button"><span class="plus">+</span>Add equipment to the masterlist</button><table class="list" id="iTable"><thead><tr>
-      <th>ID</th><th>Equipment</th><th class="hide-m">Serial no.</th><th class="hide-m">Property tag</th><th>Section / end user</th><th class="hide-m">Condition</th><th>Next PM</th>
+    <div class="tablewrap scrolly"><button class="addrow top need2" id="addEq" type="button"><span class="plus">+</span>Add equipment to the masterlist</button><table class="list" id="iTable"><thead><tr>
+      <th aria-sort="ascending"><button class="sortb" data-s="id" type="button">ID</button></th><th><button class="sortb" data-s="brand" type="button">Equipment</button></th>
+      <th class="hide-m"><button class="sortb" data-s="serial" type="button">Serial no.</button></th><th class="hide-m"><button class="sortb" data-s="tag" type="button">Property tag</button></th>
+      <th><button class="sortb" data-s="office" type="button">Section / end user</button></th><th class="hide-m"><button class="sortb" data-s="condition" type="button">Condition</button></th>
+      <th><button class="sortb" data-s="next" type="button">Next PM</button></th>
     </tr></thead><tbody></tbody></table></div>
   </section>
 
@@ -1180,7 +1191,7 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.6";
+const APP_VERSION = "1.3.7";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -1725,8 +1736,33 @@ function invFiltered() {
     (c === "*" ? true : c ? it.condition === c : active(it)) &&
     (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser, it.desc, it.compName, it.accountable].join(" ").toLowerCase().includes(q)));
 }
+// Column sorting: click a column name; click again to reverse.
+let invSort = { k: "id", dir: 1 };
+const PM_RANK = { late: 0, due: 1, soon: 2, ok: 3, ns: 4, off: 5 };
+function invSortKey(it, k) {
+  if (k === "id") return it.id;
+  if (k === "brand") return (it.brand + " " + it.type).toLowerCase();
+  if (k === "office") return (it.office + " " + it.endUser).toLowerCase();
+  if (k === "condition") { const i = D.lists.conditions.indexOf(it.condition); return String(i < 0 ? 99 : i).padStart(2, "0") + it.condition; }
+  if (k === "next") return PM_RANK[pmState(it)] + (it.nextDue || "0000");
+  return String(it[k] || "").toLowerCase();
+}
+function sortInv(list) {
+  const k = invSort.k;
+  return list.slice().sort((a, b) => {
+    const x = invSortKey(a, k), y = invSortKey(b, k);
+    if (!x !== !y) return x ? -1 : 1;   // blanks always last
+    return (String(x).localeCompare(String(y), undefined, { numeric: true }) || a.id.localeCompare(b.id, undefined, { numeric: true })) * invSort.dir;
+  });
+}
+$("iTable").querySelectorAll(".sortb").forEach(b => b.onclick = () => {
+  invSort = { k: b.dataset.s, dir: invSort.k === b.dataset.s ? -invSort.dir : 1 };
+  $("iTable").querySelectorAll("th").forEach(th => th.removeAttribute("aria-sort"));
+  b.closest("th").setAttribute("aria-sort", invSort.dir > 0 ? "ascending" : "descending");
+  renderInv();
+});
 function renderInv() {
-  const list = invFiltered();
+  const list = sortInv(invFiltered());
   $("iCount").textContent = list.length + " of " + D.inventory.length + " units";
   $("iTable").tBodies[0].innerHTML = list.length ? list.map(it => `<tr data-id="${esc(it.id)}">
     <td class="num"><b>${esc(it.id)}</b></td>

@@ -222,6 +222,18 @@ const shots = path.join(__dirname, 'screenshots');
   await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
   await page.selectOption('#iOffice', '');
   ok(await page.evaluate(() => { const b = document.getElementById('addEq').getBoundingClientRect(), t = document.querySelector('#iTable thead').getBoundingClientRect(); return b.height > 0 && b.bottom <= t.top + 1; }), 'add equipment sits at the top of the list');
+  // column sorting
+  const firstId = () => page.$eval('#iTable tbody tr', tr => tr.dataset.id);
+  await page.click('.sortb[data-s="id"]');
+  ok(await firstId() === await page.evaluate(() => D.inventory.map(i => i.id).filter(id => active(byId(id))).sort().pop()), 'ID sorts high to low on a second click, got ' + await firstId());
+  await page.click('.sortb[data-s="brand"]');
+  const brands = await page.$$eval('#iTable tbody tr td:nth-child(2)', t => t.map(x => x.childNodes[0].textContent.trim().toLowerCase()));
+  ok(brands.every((v, i) => !i || brands[i - 1].localeCompare(v) <= 0), 'equipment sorts A to Z');
+  await page.click('.sortb[data-s="next"]');
+  ok(/No PM yet|Overdue/.test(await page.textContent('#iTable tbody tr td:last-child')), 'next PM puts the overdue first');
+  await page.click('.sortb[data-s="id"]');
+  ok(await firstId() === 'ICT-0001', 'back to ID order');
+  ok(await page.evaluate(() => { const w = document.querySelector('#v-inv .tablewrap'); return w.scrollHeight > w.clientHeight && getComputedStyle(w).overflowY === 'auto'; }), 'the masterlist scrolls inside its box');
 
   // a photo of the property sticker fills the form (Gemini stand-in in the mock)
   be.gas._props.GEMINI_API_KEY = 'test-key';

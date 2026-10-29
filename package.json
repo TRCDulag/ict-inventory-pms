@@ -1,6 +1,6 @@
 {
   "name": "ict-inventory-pms",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "private": true,
   "description": "ICT equipment inventory masterlist and PMS schedule, checklist and forms (ICTU, DOH TRC Dulag)",
   "scripts": {
