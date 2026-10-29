@@ -33,6 +33,11 @@
  * Equipment ID blank). The next time the app loads, each new row gets its ID and
  * its Next PM Due, and the Audit Trail notes it.
  *
+ * READING PROPERTY STICKERS (optional, free): get a key at aistudio.google.com (Get API key,
+ * Create API key), add it as the Script property GEMINI_API_KEY (Project Settings, Script
+ * Properties), run testGemini once from the editor and allow it. The Add equipment form's
+ * "Read property sticker" button then fills the form from a photo of the yellow sticker.
+ *
  * JOB ORDERS: staff file requests on the app's public "Request ICT help" page (no account needed) or by
  * scanning the QR label on the equipment. ICTU logs walk-in and phone requests in the app.
  * Each one gets the next JO No. (ICTU-YYYY-NNNN) in the JO Log tab. To continue the numbers of the
@@ -55,7 +60,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.3.5';
+const VERSION = '1.3.6';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -118,7 +123,7 @@ const NET_HEADERS = ['Net ID', 'Kind', 'Name / Label', 'Location', 'IP Address',
 const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 // The lowest role that may do each action. Anything not listed is refused.
 const NEED = { load: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
-  saveEquipment: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
+  saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
   voidPM: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
@@ -211,6 +216,7 @@ function handle_(req) {
       case 'load':          return Object.assign(load_(), { me: publicMe_(me) });
       case 'saveEquipment': return saveEquipment_(req);
       case 'importRows':    return importRows_(req);
+      case 'readSticker':   return readSticker_(req);
       case 'savePM':        return savePM_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
@@ -1280,6 +1286,57 @@ function writeRegRow_(spec, sh, r, row) {
 }
 
 // A transfer or turnover. Kept as a log (never edited) and the masterlist row is updated to match.
+// Reads a photo of a "DOH TRC DULAG PROPERTY" sticker with Google's Gemini (free tier) and returns
+// its fields for the Add equipment form. Needs the Script property GEMINI_API_KEY (a free key from
+// aistudio.google.com). Nothing is saved; the person checks the fields and saves the form.
+function readSticker_(req) {
+  const props = PropertiesService.getScriptProperties();
+  const apiKey = props.getProperty('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('Reading stickers is not set up yet. Add a free Gemini key as the Script property GEMINI_API_KEY (see the README).');
+  const img = String(req.image || '');
+  if (!/^[A-Za-z0-9+/=]{100,}$/.test(img) || img.length > 4e6) throw new Error('Please take the photo again.');
+  const types = lists_().types.map(t => t[0]);
+  const prompt = 'This is a photo of a property sticker on ICT equipment of DOH Treatment and Rehabilitation Center Dulag. ' +
+    'Read it and answer in JSON with these keys (empty string when not on the sticker): ' +
+    'type (the closest of: ' + types.join('; ') + '), brand (brand and model, for example "Lenovo"), propertyNo, icsNo, parNo, ' +
+    'accountable (as written), cost (as written), eulYears (number), serial, dateAcquired (YYYY-MM-DD). ' +
+    'Copy codes exactly, letter by letter. If this is not a property sticker, return all keys empty.';
+  const body = { contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: img } }] }],
+    generationConfig: { responseMimeType: 'application/json', temperature: 0 } };
+  const models = (props.getProperty('GEMINI_MODEL') || 'gemini-flash-latest,gemini-flash-lite-latest').split(',');
+  let last = '';
+  for (let i = 0; i < models.length; i++) {
+    const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i].trim() + ':generateContent',
+      { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': apiKey }, payload: JSON.stringify(body), muteHttpExceptions: true });
+    const code = res.getResponseCode();
+    if (code === 200) {
+      let f = {};
+      try { f = JSON.parse(JSON.parse(res.getContentText()).candidates[0].content.parts.map(p => p.text || '').join('')); } catch (e) { last = 'unreadable answer'; continue; }
+      const out = {};
+      ['type', 'brand', 'propertyNo', 'icsNo', 'parNo', 'accountable', 'cost', 'serial', 'dateAcquired'].forEach(k => out[k] = clean_(f[k]).slice(0, 120));
+      out.eulYears = toNum_(f.eulYears);
+      out.cost = toNum_(out.cost);
+      if (types.indexOf(out.type) < 0) out.type = '';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(out.dateAcquired)) out.dateAcquired = '';
+      return { ok: true, sticker: out };
+    }
+    last = 'HTTP ' + code;
+    if (code !== 429 && code !== 404 && code < 500) break;   // a wrong key will not work on the next model either
+  }
+  throw new Error('Could not read the sticker right now (' + last + '). Please type the details, or try again later.');
+}
+
+// Run this once from the Apps Script editor after adding GEMINI_API_KEY. It asks for the
+// "connect to an external service" permission and checks that the key works.
+function testGemini() {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+  if (!apiKey) throw new Error('Add the Script property GEMINI_API_KEY first.');
+  const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1',
+    { headers: { 'x-goog-api-key': apiKey }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Gemini did not accept the key (HTTP ' + res.getResponseCode() + '). Check that it was copied whole.');
+  Logger.log('The Gemini key works. The app can now read property stickers.');
+}
+
 // Head only: rows from an Excel file with the same column names as the Inventory and PM Log tabs
 // (for example the ICT Inventory and PMS Register). Units already in the masterlist (same ID or
 // serial no.) and PM records already in the log (same PM Ref No.) are skipped, never overwritten.

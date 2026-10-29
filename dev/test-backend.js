@@ -290,6 +290,16 @@ ok(call(imp).added.length === 0, 'importing the same file again adds nothing');
 const i1 = got.inventory.find(i => i.id === 'ICT-0001');
 ok(call({ action: 'importRows', inventory: [{ 'Equipment ID': 'ICT-0001', 'Equipment Type': i1.type, 'Brand / Model': i1.brand }] }).skipped.join() === 'ICT-0001', 'same ID, type and brand without a serial no. is skipped');
 
+// reading a property sticker photo (Gemini stand-in)
+ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');
+be.gas._props.GEMINI_API_KEY = 'test-key';
+ok(asTech({ action: 'readSticker', image: 'A'.repeat(200) }).ok, 'a technician can read stickers');
+r = call({ action: 'readSticker', image: 'A'.repeat(200) });
+ok(r.ok && r.sticker.propertyNo === 'SEICT-HV-25-11-102' && r.sticker.cost === 45500 && r.sticker.type === 'Laptop' && r.sticker.eulYears === 5, 'sticker read: ' + JSON.stringify(r));
+const fx = be.gas._fetches[be.gas._fetches.length - 1];
+ok(/gemini-flash-latest:generateContent$/.test(fx.url) && !/key=/.test(fx.url) && fx.body.contents[0].parts[1].inline_data.data.length === 200, 'photo sent to Gemini with the key in a header, not the link');
+ok(!call({ action: 'readSticker', image: 'not a photo' }).ok, 'bad image refused');
+
 const aud4 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['USER ADDED', 'USER UPDATED', 'SIGNED IN', 'SIGN-IN FAILED', 'PASSWORD CHANGED', 'CSM RATING', 'TRANSFER', 'STOCK ITEM ADDED', 'STOCK RECEIVED', 'STOCK ISSUED',
  'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));

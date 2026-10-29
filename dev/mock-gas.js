@@ -53,7 +53,7 @@ function makeSheet(name) {
 }
 
 function createGas() {
-  const sheets = {}, order = [], props = {}, files = {}, cache = {}, triggers = [], copies = [];
+  const sheets = {}, order = [], props = {}, files = {}, cache = {}, triggers = [], copies = [], fetches = [];
   let seq = 0;
   const ss = {
     getSheetByName: n => sheets[n] || null,
@@ -85,6 +85,10 @@ function createGas() {
       newTrigger: h => { const t = { timeBased: () => t, onMonthDay: () => t, atHour: () => t, create: () => { triggers.push(h); return t; } }; return t; } },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     Logger: { log: () => {} },
+    // Stands in for Gemini: answers a sticker photo with the fields of the sample sticker.
+    UrlFetchApp: { fetch: (url, o) => { fetches.push({ url, body: JSON.parse(o.payload) });
+      const text = JSON.stringify({ type: 'Laptop', brand: 'Lenovo', propertyNo: 'SEICT-HV-25-11-102', icsNo: '2025-11-212', parNo: '', accountable: 'JA Elona', cost: 'Php 45,500.00', eulYears: 5, serial: '', dateAcquired: '' });
+      return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }) }; } },
     HtmlService: { createHtmlOutputFromFile: () => { const o = { setTitle: () => o, setFaviconUrl: () => o, addMetaTag: () => o, setXFrameOptionsMode: () => o }; return o; }, XFrameOptionsMode: { ALLOWALL: 1 } },
     ContentService: { createTextOutput: t => ({ text: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
     DriveApp: {
@@ -109,7 +113,7 @@ function createGas() {
       getUuid: () => crypto.randomUUID(),
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }
     },
-    _ss: ss, _props: props, _files: files, _cache: cache, _triggers: triggers, _copies: copies
+    _ss: ss, _props: props, _files: files, _cache: cache, _triggers: triggers, _copies: copies, _fetches: fetches
   };
   return gas;
 }

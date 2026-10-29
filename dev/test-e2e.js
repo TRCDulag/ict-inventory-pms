@@ -6,7 +6,7 @@ const { start } = require('./server');
 const shots = path.join(__dirname, 'screenshots');
 
 (async () => {
-  const { server } = await start(8799);
+  const { server, be } = await start(8799);
   const browser = await chromium.launch();
   const errors = [];
   const page = await browser.newPage({ viewport: { width: 1280, height: 860 } });
@@ -222,6 +222,16 @@ const shots = path.join(__dirname, 'screenshots');
   await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
   await page.selectOption('#iOffice', '');
   ok(await page.evaluate(() => { const b = document.getElementById('addEq').getBoundingClientRect(), t = document.querySelector('#iTable thead').getBoundingClientRect(); return b.height > 0 && b.bottom <= t.top + 1; }), 'add equipment sits at the top of the list');
+
+  // a photo of the property sticker fills the form (Gemini stand-in in the mock)
+  be.gas._props.GEMINI_API_KEY = 'test-key';
+  await page.click('#addEq'); await page.waitForSelector('#eqDlg[open]');
+  await page.setInputFiles('#eStkFile', path.join(__dirname, 'fixtures', 'sticker-sample.jpg'));
+  await page.waitForFunction(() => /Filled in/.test(document.getElementById('eStkMsg').textContent));
+  const stk = await page.evaluate(() => ['eType', 'eBrand', 'eTag', 'eSource', 'eAcc', 'eCost'].map(id => document.getElementById(id).value));
+  ok(stk.join('|') === 'Laptop|Lenovo|SEICT-HV-25-11-102|ICS 2025-11-212|James Adrian M. Elona|45500', 'sticker photo fills the form: ' + stk.join('|'));
+  await page.screenshot({ path: path.join(shots, '25-sticker.png') });
+  await page.click('#eqDlg .dh [data-close]');
 
   // scan or type a code
   await page.click('#scanBtn');
