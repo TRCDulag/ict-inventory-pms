@@ -55,7 +55,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.3.2';
+const VERSION = '1.3.3';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -961,13 +961,15 @@ function signIn_(req) {
   const c = CacheService.getScriptCache();
   if (!u || !req.password) throw new Error('Type your username and password.');
   if (c.get('lock_' + u)) throw new Error('Too many wrong tries. Please wait 15 minutes, or ask the Head of ICTU to reset your password.');
+  throttle_();   // the sign-in is open to anyone, so keep guessing slow
   return withLock_(() => {
     const f = findUser_(u);
     if (!f || f.row[U['Status']] !== 'Active' || !pwCheck_(req.password, f.row[U['Password']])) {
       const n = Number(c.get('fail_' + u) || 0) + 1;
       c.put('fail_' + u, String(n), 900);
       if (n >= 5) { c.put('lock_' + u, '1', 900); c.remove('fail_' + u); }
-      audit_(u, 'SIGN-IN FAILED', u, n >= 5 ? 'Locked for 15 minutes after 5 wrong tries.' : 'Wrong username or password (' + n + ').', req.device);
+      // Only real accounts go in the Audit Trail, so made-up usernames cannot fill it up.
+      if (f) audit_(u, 'SIGN-IN FAILED', u, n >= 5 ? 'Locked for 15 minutes after 5 wrong tries.' : 'Wrong username or password (' + n + ').', req.device);
       throw new Error(f && f.row[U['Status']] !== 'Active' && pwCheck_(req.password, f.row[U['Password']])
         ? 'Your account is disabled. Please ask the Head of ICTU.' : 'Wrong username or password.');
     }

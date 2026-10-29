@@ -227,6 +227,8 @@
   .choice label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #C3D3CC; border-radius: var(--r-ctl); padding: 9px 14px; font-size: 15px; cursor: pointer; background: #fff; min-height: 44px; }
   .choice input { width: auto; min-height: 0; margin: 0; }
   .choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); color: var(--navy); font-weight: 600; }
+  .hnote { background: var(--warn-soft); color: var(--ink); border: 1px solid #EBD98A; border-radius: var(--r); padding: 12px 16px; font-size: 15px; line-height: 1.5; margin-bottom: 14px; }
+  .hnote b { color: var(--navy); }
   .issues { background: var(--bad-soft); color: var(--bad); border-radius: 10px; padding: 10px 14px; font-size: 14.5px; margin-bottom: 10px; }
   .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); padding: 10px 20px; padding-bottom: max(10px, env(safe-area-inset-bottom)); box-shadow: 0 -4px 16px rgba(31,42,69,.08); z-index: 25; }
   .savebar .in { max-width: 1180px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
@@ -518,6 +520,7 @@
 <main>
   <!-- HOME -->
   <section class="view" id="v-home">
+    <div id="homeNote"></div>
     <div class="tiles">
       <button class="tile" data-go="inv"><div class="lb">Equipment in service</div><div class="val" id="tInv">0</div><div class="sm" id="tInvS"></div></button>
       <button class="tile" data-go="sched" id="tLateT"><div class="lb">Overdue or never done</div><div class="val" id="tLate">0</div><div class="sm">needs PM now</div></button>
@@ -1172,7 +1175,7 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.2";
+const APP_VERSION = "1.3.3";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -1426,7 +1429,7 @@ async function showLock() {
 // The very first time there are no accounts yet: show the setup card.
 async function checkSetup() {
   if (!GAS && !gsUrl()) return false;
-  try { const j = await api({ action: "publicInit" }); if (j.ok) { PUB = j; if (j.needsSetup) { lockPane("setup"); return true; } } } catch (e) {}
+  try { const j = await api({ action: "publicInit" }); if (j.ok) { PUB = j; if (j.version && j.version !== APP_VERSION) $("lockVer").textContent = "v" + APP_VERSION + " (script " + j.version + ")"; if (j.needsSetup) { lockPane("setup"); return true; } } } catch (e) {}
   return false;
 }
 // "ict 1", "ICT-0001" or a scanned link -> "ICT-0001"
@@ -1518,7 +1521,7 @@ function fillPickers(keep) {
   const keepVal = (id, html) => { const v = $(id).value; $(id).innerHTML = html; if (keep) $(id).value = v; };
   keepVal("iOffice", opts(offices, "All sections")); keepVal("sOffice", opts(offices, "All sections"));
   keepVal("iType", opts(types, "All types")); keepVal("sType", opts(types, "All types"));
-  keepVal("iCond", '<option value="">In service (all but disposed)</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
+  keepVal("iCond", '<option value="">In service</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
   keepVal("eType", opts(L.types.map(t => t[0])));
   keepVal("eFreq", opts(["Monthly", "Quarterly", "Semi-Annual", "Annual", NOT_SCHEDULED]));
   keepVal("eCond", opts(L.conditions));
@@ -1575,6 +1578,12 @@ function renderHome() {
   const late = sch.filter(i => pmState(i) === "late"), due = sch.filter(i => pmState(i) === "due"), soon = sch.filter(i => pmState(i) === "soon");
   const q = quarterOf(todayStr());
   const done = D.pms.filter(p => p.quarter === q && p.recordStatus !== "Voided");
+  const notes = [];
+  if (D.version && D.version !== APP_VERSION && can("Head"))
+    notes.push(`<b>The Apps Script is still on version ${esc(D.version)}</b>, while this page is ${esc(APP_VERSION)}. Paste the new Code.gs and Index into Apps Script, then Deploy, Manage deployments, Edit, New version.`);
+  if (!D.inventory.length)
+    notes.push(`<b>No equipment yet.</b> Add units on the Inventory tab, or paste your equipment list into the Inventory tab of the Google Sheet (leave the Equipment ID blank) and press Refresh data.`);
+  $("homeNote").innerHTML = notes.map(n => `<div class="hnote">${n}</div>`).join("");
   $("tInv").textContent = act.length; $("tInvS").textContent = sch.length + " on the PMS schedule";
   $("navLate").textContent = late.length; $("navLate").classList.toggle("hidden", !late.length);
   $("tLate").textContent = late.length; $("tLateT").className = "tile" + (late.length ? " bad" : "");
@@ -1881,7 +1890,7 @@ function renderSched() {
         <td>${esc(it.office)}<div style="color:var(--muted);font-size:12px">${esc(it.endUser)}</div></td><td>${esc(it.freq.replace(NOT_SCHEDULED, "With PC"))}</td>` +
         MONTHS.map((m, mo) => { const c = schedCell(it, y, mo, plan, done);
           return `<td class="m${y === t.getFullYear() && mo === t.getMonth() ? " now" : ""}">${c ? `<i class="mk ${c.cls}" title="${esc(c.tip)}">${c.t}</i>` : ""}</td>`; }).join("") +
-        `<td><button class="btn small ghost need2" data-pm="${esc(it.id)}" type="button">Start PM</button></td></tr>`;
+        `<td><button class="btn small ghost need2" data-pm="${esc(it.id)}" type="button" style="white-space:nowrap">Start PM</button></td></tr>`;
     }).join("") + "</tbody>";
   bindRowButtons($("sTable"));
 }

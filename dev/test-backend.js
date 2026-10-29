@@ -23,6 +23,9 @@ let A = call({ action: 'saveUser', user: { isNew: true, username: 'argie', fullN
 ok(A.ok && /^[a-z]{5}\d{4}$/.test(A.tempPassword) && A.users.length === 2, 'technician added with a temporary password: ' + A.error);
 ok(!call({ action: 'saveUser', user: { isNew: true, username: 'ARGIE', fullName: 'X', role: 'Viewer' } }).ok, 'duplicate username refused');
 ok(raw({ action: 'signIn', username: 'argie', password: 'nope' }).error === 'Wrong username or password.', 'wrong password refused');
+const audN = () => be.gas._ss.getSheetByName('Audit Trail')._data.length;
+const audBefore = audN();
+ok(raw({ action: 'signIn', username: 'nobody-here', password: 'x' }).error === 'Wrong username or password.' && audN() === audBefore, 'unknown username refused without an Audit Trail row');
 let S0 = raw({ action: 'signIn', username: 'Argie', password: A.tempPassword });
 ok(S0.ok && S0.me.mustChange && S0.me.role === 'Technician', 'temporary password signs in, must change');
 ok(/change your temporary password/.test(raw({ action: 'load', token: S0.token }).error), 'must change the password first');
