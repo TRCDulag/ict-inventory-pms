@@ -1294,7 +1294,8 @@ $("iImpFile").onchange = async () => {
     if (!j.ok) { alert(j.error); $("syncState").textContent = ""; return; }
     await reload();
     alert(`Imported ${units(j.added.length, ["unit", "units"])} and ${units(j.pmAdded.length, ["PM record", "PM records"])}.` +
-      (j.skipped.length + j.pmSkipped.length ? `\nSkipped, already there: ${j.skipped.concat(j.pmSkipped).slice(0, 30).join(", ")}${j.skipped.length + j.pmSkipped.length > 30 ? "…" : ""}` : ""));
+      (j.skipped.length + j.pmSkipped.length ? `\nSkipped, already there: ${j.skipped.concat(j.pmSkipped).slice(0, 30).join(", ")}${j.skipped.length + j.pmSkipped.length > 30 ? "…" : ""}` : "") +
+      (Object.keys(j.renumbered || {}).length ? `\nGiven a new ID because a different unit already had the old one: ${Object.entries(j.renumbered).slice(0, 30).map(([a, b]) => a + " is now " + b).join(", ")}` : ""));
   } catch (e) { alert(errText(e)); }
 };
 

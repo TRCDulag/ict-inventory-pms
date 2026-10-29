@@ -275,18 +275,20 @@ ok(call({ action: 'load' }).backup.last, 'last backup shown');
 // import from an Excel file (Head only): new units added, ones already there skipped
 const invBefore = call({ action: 'load' }).inventory.length;
 const imp = { action: 'importRows', file: 'test.xlsx', inventory: [
-  { 'Equipment ID': 'ICT-0001', 'Equipment Type': 'Desktop Computer', 'Brand / Model': 'Same ID', 'Office / Section': 'ICTU' },
+  { 'Equipment ID': 'ICT-0001', 'Equipment Type': 'Laptop', 'Brand / Model': 'Different unit, same ID', 'Serial No.': 'IMP-SN-0', 'Office / Section': 'ICTU' },
   { 'Equipment Type': 'Printer', 'Brand / Model': 'Epson L121', 'Serial No.': 'IMP-SN-1', 'Office / Section': 'ICTU', 'Date Acquired': '2024-03-01', 'Unit Cost': '8,500.00', 'Last PM': '2026-09-15' },
   { 'Equipment Type': 'Monitor', 'Brand / Model': '=HYPERLINK("x")', 'Serial No.': 'imp-sn-1' }],
-  pms: [{ 'PM Ref No.': 'PM-2025-099', 'Date': '2025-12-01', 'Equipment Type': 'Printer', 'Brand / Model': 'Epson L121', 'Status': 'Resolved', 'ICT Personnel': 'ELONA' }, { 'PM Ref No.': 'not a ref' }] };
+  pms: [{ 'PM Ref No.': 'PM-2025-099', 'Date': '2025-12-01', 'Equipment Type': 'Printer', 'Brand / Model': 'Epson L121', 'Status': 'Resolved', 'ICT Personnel': 'ELONA', 'Equipment ID': 'ICT-0001' }, { 'PM Ref No.': 'not a ref' }] };
 ok(/role \(Technician\)/.test(asTech(imp).error), 'only the Head imports');
 r = call(imp);
-ok(r.ok && r.added.length === 1 && r.skipped.length === 2 && r.pmAdded.join() === 'PM-2025-099', 'import adds new rows and skips duplicates: ' + JSON.stringify(r));
+ok(r.ok && r.added.length === 2 && r.added[0] !== 'ICT-0001' && r.skipped.length === 1 && r.pmAdded.join() === 'PM-2025-099', 'import adds new rows and skips duplicates: ' + JSON.stringify(r));
 const got = call({ action: 'load' });
 const newIt = got.inventory.find(i => i.serial === 'IMP-SN-1');
-ok(got.inventory.length === invBefore + 1 && newIt.acquired === '2024-03-01' && +newIt.cost === 8500 && newIt.freq === 'Quarterly' && newIt.nextDue, 'imported unit has its dates, cost, frequency and next PM: ' + JSON.stringify(newIt));
-ok(got.pms.some(p => p.ref === 'PM-2025-099' && p.personnel === 'James Adrian M. Elona'), 'imported PM record is in the log, surname made the full name');
+ok(got.inventory.length === invBefore + 2 && got.inventory.find(i => i.id === 'ICT-0001').brand !== 'Different unit, same ID' && newIt.acquired === '2024-03-01' && +newIt.cost === 8500 && newIt.freq === 'Quarterly' && newIt.nextDue, 'imported unit has its dates, cost, frequency and next PM: ' + JSON.stringify(newIt));
+ok(got.pms.some(p => p.ref === 'PM-2025-099' && p.personnel === 'James Adrian M. Elona' && p.equipmentId === r.renumbered['ICT-0001']), 'imported PM record is in the log, surname made the full name');
 ok(call(imp).added.length === 0, 'importing the same file again adds nothing');
+const i1 = got.inventory.find(i => i.id === 'ICT-0001');
+ok(call({ action: 'importRows', inventory: [{ 'Equipment ID': 'ICT-0001', 'Equipment Type': i1.type, 'Brand / Model': i1.brand }] }).skipped.join() === 'ICT-0001', 'same ID, type and brand without a serial no. is skipped');
 
 const aud4 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['USER ADDED', 'USER UPDATED', 'SIGNED IN', 'SIGN-IN FAILED', 'PASSWORD CHANGED', 'CSM RATING', 'TRANSFER', 'STOCK ITEM ADDED', 'STOCK RECEIVED', 'STOCK ISSUED',

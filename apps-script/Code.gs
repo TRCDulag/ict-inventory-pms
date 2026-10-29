@@ -1292,27 +1292,32 @@ function importRows_(req) {
   const val = (o, k, dates) => dates.indexOf(k) >= 0 ? (toDate_(String(o[k] || '').slice(0, 10)) || '') : clean_(o[k]);
   return withLock_(() => {
     const now = new Date(), by = clean_(req.by);
-    const out = { ok: true, added: [], skipped: [], pmAdded: [], pmSkipped: [] };
+    const out = { ok: true, added: [], skipped: [], pmAdded: [], pmSkipped: [], renumbered: {} };
     const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
     const ids = {}, serials = {};
-    rows.forEach(r => { ids[r[I['Equipment ID']]] = 1; const sn = String(r[I['Serial No.']]).trim().toLowerCase(); if (sn) serials[sn] = 1; });
-    const newRows = [];
+    const same = (a, b) => String(a[I['Equipment Type']]).toLowerCase() === String(b[I['Equipment Type']]).toLowerCase() &&
+      String(a[I['Brand / Model']]).toLowerCase() === String(b[I['Brand / Model']]).toLowerCase();
+    rows.forEach(r => { ids[r[I['Equipment ID']]] = r; const sn = String(r[I['Serial No.']]).trim().toLowerCase(); if (sn) serials[sn] = 1; });
+    const newRows = [], moved = {};
     inv.forEach(o => {
       if (!o || typeof o !== 'object') return;
       const row = INV_HEADERS.map(k => val(o, k, INV_DATES));
       if (!row[I['Equipment Type']] && !row[I['Brand / Model']] && !row[I['Serial No.']]) return;
       const id = row[I['Equipment ID']], sn = String(row[I['Serial No.']]).toLowerCase();
-      if ((id && ids[id]) || (sn && serials[sn])) { out.skipped.push(id || row[I['Serial No.']]); return; }
-      if (!/^ICT-\d{4,}$/.test(id)) row[I['Equipment ID']] = nextEquipmentId_(rows.concat(newRows));
+      // Already there: the same serial no., or (with no serial no.) the same ID for the same type and brand.
+      if ((sn && serials[sn]) || (!sn && id && ids[id] && same(ids[id], row))) { out.skipped.push(id || row[I['Serial No.']]); return; }
+      // A different unit already uses this ID, so this one gets the next free ID.
+      if (!/^ICT-\d{4,}$/.test(id) || ids[id]) { row[I['Equipment ID']] = nextEquipmentId_(rows.concat(newRows)); if (id) moved[id] = row[I['Equipment ID']]; }
       row[I['Unit Cost']] = toNum_(row[I['Unit Cost']]);
       if (!row[I['PM Frequency']]) row[I['PM Frequency']] = defaultFreq_(row[I['Equipment Type']]);
       if (!row[I['Condition']]) row[I['Condition']] = 'Serviceable';
       row[I['Next PM Due']] = nextDue_(row[I['Last PM']], row[I['PM Frequency']], row[I['Condition']]);
       row[I['Added At']] = row[I['Added At']] || now;
       row[I['Updated At']] = now; row[I['Updated By']] = by;
-      ids[row[I['Equipment ID']]] = 1; if (sn) serials[sn] = 1;
+      ids[row[I['Equipment ID']]] = row; if (sn) serials[sn] = 1;
       newRows.push(row); out.added.push(row[I['Equipment ID']]);
     });
+    out.renumbered = moved;
     if (newRows.length) {
       const r0 = lastRow_(sh) + 1;
       formatInvRow_(sh, r0, newRows.length);
@@ -1333,6 +1338,7 @@ function importRows_(req) {
       if (!/^PM-\d{4}-\d+$/.test(ref)) return;
       if (refs[ref]) { out.pmSkipped.push(ref); return; }
       row[P['ICT Personnel']] = fullName(row[P['ICT Personnel']]);
+      if (moved[row[P['Equipment ID']]]) row[P['Equipment ID']] = moved[row[P['Equipment ID']]];   // its unit got a new ID above
       row[P['Record Status']] = row[P['Record Status']] || 'Valid';
       row[P['Record Hash']] = '';   // made outside the app, so it has no hash to check
       row[P['Logged At']] = row[P['Logged At']] || now;
