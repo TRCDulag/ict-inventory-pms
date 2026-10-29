@@ -344,10 +344,11 @@
   .lbl-card .t .o { font-weight: bold; font-size: 6pt; letter-spacing: .02em; }
   .lbl-card .t .id { font-weight: bold; font-size: 13pt; margin: .6mm 0; }
   .lbl-card .t .s { font-size: 6pt; color: #333; margin-top: .6mm; }
-  .poster { text-align: center; font-family: Arial, Helvetica, sans-serif; color: #000; padding-top: 8mm; }
-  .poster h1 { font-size: 30pt; margin: 8mm 0 2mm; color: #1F2A45; }
-  .poster p { font-size: 14pt; margin: 2mm 0; }
-  .poster svg { width: 110mm; height: 110mm; margin: 8mm auto 4mm; display: block; }
+  .poster { text-align: center; font-family: Arial, Helvetica, sans-serif; color: #000; width: 132mm; margin: 0 auto; }
+  .poster .hdimg { width: 100%; display: block; }
+  .poster h1 { font-size: 24pt; margin: 9mm 0 2mm; color: #1F2A45; }
+  .poster p { font-size: 11.5pt; margin: 1.5mm 0; }
+  .poster svg { width: 96mm; height: 96mm; margin: 7mm auto 3mm; display: block; }
   .sheet .jo td.lb { font-weight: bold; white-space: nowrap; }
   .sheet .jo td.sm, .sheet .sm { font-size: 7.4pt; }
   .sheet .xs { font-size: 6.6pt; }
@@ -1165,12 +1166,13 @@ const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyZfBU_2nFesgP3UQRn
 const PUBLIC_URL = "https://trcdulag.github.io/ict-inventory-pms/";
 
 const LOGO_DOH = "%%LOGO_DOH%%";
+const HEADER_BLACK = "%%HEADER_BLACK%%";   // the official header for light documents
 const LOGO_TRC = "%%LOGO_TRC%%";
 const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.1";
+const APP_VERSION = "1.3.2";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -2417,8 +2419,8 @@ function header() {
     <div class="t"><div>Republic of the Philippines</div><div class="d">Department of Health</div><div class="c">TREATMENT AND REHABILITATION CENTER DULAG</div>
     <div class="a">Brgy. Highway, Dulag, Leyte</div><div class="iso">ISO 9001:2015 CERTIFIED | PRIME HRM AGENCY ACCREDITED: RESOLUTION NO. 2501361</div></div></div>`;
 }
-function doPrint(html, landscape) {
-  $("pageSize").textContent = "@page { size: A4 " + (landscape ? "landscape" : "portrait") + "; margin: " + (landscape ? "9mm" : "8mm 10mm") + "; }";
+function doPrint(html, landscape, paper) {
+  $("pageSize").textContent = "@page { size: " + (paper || "A4") + " " + (landscape ? "landscape" : "portrait") + "; margin: " + (landscape ? "9mm" : paper ? "8mm" : "8mm 10mm") + "; }";
   $("printArea").innerHTML = html;
   document.body.classList.add("printing");
   const done = () => { document.body.classList.remove("printing"); window.removeEventListener("afterprint", done); };
@@ -2578,9 +2580,11 @@ function printLabels(list) {
 }
 $("iLabels").onclick = () => printLabels(invFiltered().slice().sort((a, b) => a.id.localeCompare(b.id)));
 function printPoster() {
-  doPrint(`<div class="poster">${header()}<h1>Need ICT help?</h1><p>Scan the code with your phone camera to file a job order request with the ICT Unit.</p>
-    ${qrSvg(PUBLIC_URL + "#request")}<p style="font-size:11pt">${esc(PUBLIC_URL)}#request</p>
-    <p style="font-size:11pt;margin-top:6mm">For P1 concerns (internet down, system down, data loss), call or walk in to the ICT Unit right away. The form can follow.</p></div>`, false);
+  // Half of an A4 (A5), with the official header for light documents.
+  doPrint(`<div class="poster"><img class="hdimg" src="${HEADER_BLACK}" alt="Department of Health, Treatment and Rehabilitation Center Dulag">
+    <h1>Need ICT help?</h1><p>Scan the code with your phone camera to file a job order request with the ICT Unit.</p>
+    ${qrSvg(PUBLIC_URL + "#request")}<p style="font-size:9pt">${esc(PUBLIC_URL)}#request</p>
+    <p style="font-size:9pt;margin-top:4mm">For P1 concerns (internet down, system down, data loss), call or walk in to the ICT Unit right away. The form can follow.</p></div>`, false, "A5");
 }
 function printSm(it) {
   const h = smHistory(it.id).slice().reverse();
