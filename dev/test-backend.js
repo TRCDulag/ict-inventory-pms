@@ -272,9 +272,25 @@ be.code.monthlyBackup();
 ok(be.gas._copies.length === 2 && /backup \d{4}-\d{2}-\d{2} \d{4}$/.test(be.gas._copies[1]), 'monthly backup makes a dated copy');
 ok(call({ action: 'load' }).backup.last, 'last backup shown');
 
+// import from an Excel file (Head only): new units added, ones already there skipped
+const invBefore = call({ action: 'load' }).inventory.length;
+const imp = { action: 'importRows', file: 'test.xlsx', inventory: [
+  { 'Equipment ID': 'ICT-0001', 'Equipment Type': 'Desktop Computer', 'Brand / Model': 'Same ID', 'Office / Section': 'ICTU' },
+  { 'Equipment Type': 'Printer', 'Brand / Model': 'Epson L121', 'Serial No.': 'IMP-SN-1', 'Office / Section': 'ICTU', 'Date Acquired': '2024-03-01', 'Unit Cost': '8,500.00', 'Last PM': '2026-09-15' },
+  { 'Equipment Type': 'Monitor', 'Brand / Model': '=HYPERLINK("x")', 'Serial No.': 'imp-sn-1' }],
+  pms: [{ 'PM Ref No.': 'PM-2025-099', 'Date': '2025-12-01', 'Equipment Type': 'Printer', 'Brand / Model': 'Epson L121', 'Status': 'Resolved', 'ICT Personnel': 'ELONA' }, { 'PM Ref No.': 'not a ref' }] };
+ok(/role \(Technician\)/.test(asTech(imp).error), 'only the Head imports');
+r = call(imp);
+ok(r.ok && r.added.length === 1 && r.skipped.length === 2 && r.pmAdded.join() === 'PM-2025-099', 'import adds new rows and skips duplicates: ' + JSON.stringify(r));
+const got = call({ action: 'load' });
+const newIt = got.inventory.find(i => i.serial === 'IMP-SN-1');
+ok(got.inventory.length === invBefore + 1 && newIt.acquired === '2024-03-01' && +newIt.cost === 8500 && newIt.freq === 'Quarterly' && newIt.nextDue, 'imported unit has its dates, cost, frequency and next PM: ' + JSON.stringify(newIt));
+ok(got.pms.some(p => p.ref === 'PM-2025-099' && p.personnel === 'James Adrian M. Elona'), 'imported PM record is in the log, surname made the full name');
+ok(call(imp).added.length === 0, 'importing the same file again adds nothing');
+
 const aud4 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['USER ADDED', 'USER UPDATED', 'SIGNED IN', 'SIGN-IN FAILED', 'PASSWORD CHANGED', 'CSM RATING', 'TRANSFER', 'STOCK ITEM ADDED', 'STOCK RECEIVED', 'STOCK ISSUED',
- 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
+ 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
 const byCol = be.gas._ss.getSheetByName('Audit Trail')._data.filter(r => r[2] === 'TRANSFER').map(r => r[3]);
 ok(byCol[0] === 'Argie R. Lopez', 'audit names the signed-in person, not what the page sends');
 console.log('backend: ' + n + ' checks passed');

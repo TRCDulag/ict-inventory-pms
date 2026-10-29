@@ -72,6 +72,7 @@ Picking an employee fills in the section / unit where that employee is assigned 
 ## Day to day
 
 - **Adding equipment.** Inventory tab, *Add equipment to the masterlist* at the bottom of the list. Or paste many rows straight into the Inventory tab of the Sheet with the Equipment ID left blank. The next time the app opens it gives each row an ID and notes it in the Audit Trail.
+- **Importing from Excel (Head only).** Inventory tab, *Import from Excel*, then pick an .xlsx or .csv whose first row has the same column names as the Inventory tab (and, if any, a PM Log tab with the PM Log column names), such as the ICT Inventory and PMS Register. Units already in the masterlist (same Equipment ID or serial no.) and PM records already in the log are skipped, so importing the same file twice does no harm.
 - **Doing a PM.** Home or PMS Schedule, *Start PM* on the unit (or the Do PM tab and search). Fill in sections A to E, then *Save PM record*. Print the filled form for the end user and the Head of the ICT Unit to sign, then file it with the ICT Unit.
 - **A wrong PM entry.** PM Records, open it, *Void this record* and give the reason. It stays in the Sheet marked Voided, and the unit goes back to its previous PM date.
 - **Lists.** Offices, staff names and positions, equipment types with their default PM frequency, work types and conditions are in the Lists tab of the Sheet. Edit them there (you are the owner) and choose *Refresh data* in the ICTU menu at the top right of the app.

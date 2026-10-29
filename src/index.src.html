@@ -560,6 +560,7 @@
         <button class="btn ghost small" id="iLabels" type="button">Print QR labels</button>
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
+        <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
     </div>
     <div class="tablewrap"><table class="list" id="iTable"><thead><tr>
@@ -1175,7 +1176,7 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.3";
+const APP_VERSION = "1.3.4";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -1201,6 +1202,102 @@ let D = { inventory: [], pms: [], jos: [], employees: [], masterlist: {}, lists:
 
 // ---------- connection ----------
 function gsUrl() { return (store.get("gsUrl") || DEFAULT_URL).trim(); }
+// ---------- import from Excel (.xlsx or .csv), Head only ----------
+// Reads the Inventory and PM Log tabs of a workbook whose first row has the same column names as the Sheet.
+async function unzip(buf) {
+  const v = new DataView(buf), u8 = new Uint8Array(buf), files = {};
+  let e = buf.byteLength - 22; while (e >= 0 && v.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error("This is not an Excel (.xlsx) file.");
+  let p = v.getUint32(e + 16, true); const n = v.getUint16(e + 10, true);
+  for (let i = 0; i < n; i++) {
+    const method = v.getUint16(p + 10, true), size = v.getUint32(p + 20, true), nl = v.getUint16(p + 28, true),
+      xl = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true), off = v.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+    const start = off + 30 + v.getUint16(off + 26, true) + v.getUint16(off + 28, true);
+    const raw = u8.subarray(start, start + size);
+    files[name] = method === 0 ? raw : method === 8 ? new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()) : null;
+    p += 46 + nl + xl + cl;
+  }
+  return files;
+}
+async function readXlsx(buf) {
+  const f = await unzip(buf), td = new TextDecoder(), xml = n => f[n] ? new DOMParser().parseFromString(td.decode(f[n]), "application/xml") : null;
+  const tags = (d, t) => d ? Array.from(d.getElementsByTagNameNS("*", t)) : [];
+  const shared = tags(xml("xl/sharedStrings.xml"), "si").map(si => tags(si, "t").map(t => t.textContent).join(""));
+  const rels = {}; tags(xml("xl/_rels/workbook.xml.rels"), "Relationship").forEach(r => rels[r.getAttribute("Id")] = r.getAttribute("Target"));
+  const out = {};
+  tags(xml("xl/workbook.xml"), "sheet").forEach(sh => {
+    const rid = sh.getAttribute("r:id") || Array.from(sh.attributes).find(a => /:id$/.test(a.name)).value;
+    const t = rels[rid].replace(/^\/?(xl\/)?/, "");
+    const rows = [];
+    tags(xml("xl/" + t), "row").forEach(r => {
+      const row = [];
+      tags(r, "c").forEach(c => {
+        const col = (c.getAttribute("r") || "").replace(/\d+/g, "").split("").reduce((a, ch) => a * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+        const ty = c.getAttribute("t"), vv = tags(c, "v")[0];
+        let val = ty === "inlineStr" ? tags(c, "t").map(x => x.textContent).join("") : vv ? vv.textContent : "";
+        if (ty === "s") val = shared[+val] || ""; else if (!ty || ty === "n") val = val === "" ? "" : +val;
+        row[col < 0 ? row.length : col] = val;
+      });
+      rows[+r.getAttribute("r") - 1 || rows.length] = row;
+    });
+    out[sh.getAttribute("name")] = rows.filter(Boolean);
+  });
+  return out;
+}
+function readCsv(text) {
+  const rows = [[]]; let cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+    else if (ch === '"') q = true; else if (ch === ",") { rows[rows.length - 1].push(cur); cur = ""; }
+    else if (ch === "\n") { rows[rows.length - 1].push(cur.replace(/\r$/, "")); cur = ""; rows.push([]); } else cur += ch;
+  }
+  rows[rows.length - 1].push(cur);
+  return rows.filter(r => r.some(x => String(x).trim()));
+}
+const IMP_ALIAS = { "Source Document": "Source Document (RIS / PAR / ICS)", "Occurrence No.": "Occurrence No. (same unit & type)" };
+const IMP_DATES = ["Date Acquired", "Warranty Until", "Last PM", "Next PM Due", "Added At", "Updated At", "Date", "Logged At"];
+function impDate(x) {
+  if (typeof x === "number") { const d = new Date(Math.round((x - 25569) * 864e5)); return d.toISOString().slice(0, 10); }
+  x = String(x || "").trim(); if (!x) return "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(x)) return x.slice(0, 10);
+  const d = new Date(x); return isNaN(d) ? "" : isoDate(d);
+}
+// The table whose header row has `mark` in it, as objects keyed by the column names.
+function impTable(rows, mark) {
+  const h = rows.findIndex(r => (r || []).some(c => String(c).trim() === mark));
+  if (h < 0) return [];
+  const head = rows[h].map(c => { c = String(c == null ? "" : c).trim(); return IMP_ALIAS[c] || c; });
+  return rows.slice(h + 1).filter(r => r && r.some(c => String(c == null ? "" : c).trim())).map(r => {
+    const o = {}; head.forEach((k, i) => { if (k) o[k] = IMP_DATES.includes(k) ? impDate(r[i]) : String(r[i] == null ? "" : r[i]).trim(); }); return o;
+  });
+}
+$("iImp").onclick = () => { $("iImpFile").value = ""; $("iImpFile").click(); };
+$("iImpFile").onchange = async () => {
+  const file = $("iImpFile").files[0]; if (!file) return;
+  let inv = [], pms = [];
+  try {
+    if (/\.csv$/i.test(file.name)) { const rows = readCsv(await file.text()); inv = impTable(rows, "Brand / Model"); pms = impTable(rows, "PM Ref No."); if (pms.length) inv = []; }
+    else {
+      const book = await readXlsx(await file.arrayBuffer());
+      Object.keys(book).forEach(n => { if (!inv.length) inv = impTable(book[n], "Brand / Model").filter(o => !o["PM Ref No."]); if (!pms.length) pms = impTable(book[n], "PM Ref No."); });
+    }
+  } catch (e) { alert("Could not read " + file.name + ". " + (e.message || "")); return; }
+  inv = inv.filter(o => o["Equipment Type"] || o["Brand / Model"] || o["Serial No."]);
+  pms = pms.filter(o => /^PM-\d{4}-\d+$/.test(o["PM Ref No."] || ""));
+  if (!inv.length && !pms.length) { alert("No equipment or PM records found in " + file.name + ". The first row of the table needs the same column names as the Inventory or PM Log tab (for example Brand / Model, PM Ref No.)."); return; }
+  if (!confirm(`Import from ${file.name}?\n\n${units(inv.length, ["unit", "units"])} for the masterlist and ${units(pms.length, ["PM record", "PM records"])}.\nUnits already in the masterlist (same ID or serial no.) and PM records already in the log are skipped.`)) return;
+  $("syncState").textContent = "Importing…";
+  try {
+    const j = await api({ action: "importRows", inventory: inv, pms: pms, file: file.name });
+    if (!j.ok) { alert(j.error); $("syncState").textContent = ""; return; }
+    await reload();
+    alert(`Imported ${units(j.added.length, ["unit", "units"])} and ${units(j.pmAdded.length, ["PM record", "PM records"])}.` +
+      (j.skipped.length + j.pmSkipped.length ? `\nSkipped, already there: ${j.skipped.concat(j.pmSkipped).slice(0, 30).join(", ")}${j.skipped.length + j.pmSkipped.length > 30 ? "…" : ""}` : ""));
+  } catch (e) { alert(errText(e)); }
+};
+
 function api(req) {
   req = Object.assign({ token: TOKEN, device: device() }, req);
   const p = GAS ? new Promise((ok, no) =>

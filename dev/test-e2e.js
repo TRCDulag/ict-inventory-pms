@@ -376,6 +376,17 @@ const shots = path.join(__dirname, 'screenshots');
   await page.waitForFunction(() => /Done/.test(document.getElementById('bkMsg').textContent));
   ok(/Last backup/.test(await page.textContent('#bkInfo')), 'backup now');
 
+  // the Head imports equipment and PM records from an Excel file
+  await page.click('nav.tabs button[data-v="inv"]');
+  const before = await page.evaluate(() => D.inventory.length);
+  const msgs = []; const onDlg = d => msgs.push(d.message()); page.on('dialog', onDlg);
+  await page.setInputFiles('#iImpFile', path.join(__dirname, 'fixtures', 'import-sample.xlsx'));
+  await page.waitForFunction(n => D.inventory.length === n + 2, before);
+  page.off('dialog', onDlg);
+  const imp = await page.evaluate(() => ({ a: D.inventory.find(i => i.id === 'ICT-0101'), b: D.inventory.find(i => i.serial === 'FIX-SN-102'), p: D.pms.find(p => p.ref === 'PM-2026-090') }));
+  ok(imp.a && imp.a.acquired === '2023-06-01' && +imp.a.cost === 45000 && imp.b && imp.b.lastPm === '2026-09-10' && imp.b.nextDue && imp.p, 'Excel import: ' + JSON.stringify(imp));
+  ok(/2 units for the masterlist and 1 PM record/.test(msgs[0] || ''), 'import asks first: ' + msgs[0]);
+
   // public pages: a phone scans the QR label (no passcode)
   const pub = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   pub.on('pageerror', e => errors.push(e.message));

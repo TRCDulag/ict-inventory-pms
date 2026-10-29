@@ -55,7 +55,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.3.3';
+const VERSION = '1.3.4';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -120,7 +120,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
-  voidPM: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head' };
+  voidPM: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -210,6 +210,7 @@ function handle_(req) {
       case 'saveNetwork':   return saveReg_(REG.network, req.item, req);
       case 'load':          return Object.assign(load_(), { me: publicMe_(me) });
       case 'saveEquipment': return saveEquipment_(req);
+      case 'importRows':    return importRows_(req);
       case 'savePM':        return savePM_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
@@ -1279,6 +1280,74 @@ function writeRegRow_(spec, sh, r, row) {
 }
 
 // A transfer or turnover. Kept as a log (never edited) and the masterlist row is updated to match.
+// Head only: rows from an Excel file with the same column names as the Inventory and PM Log tabs
+// (for example the ICT Inventory and PMS Register). Units already in the masterlist (same ID or
+// serial no.) and PM records already in the log (same PM Ref No.) are skipped, never overwritten.
+const INV_DATES = ['Date Acquired', 'Warranty Until', 'Last PM', 'Next PM Due', 'Added At', 'Updated At'];
+const PM_DATES = ['Date', 'Logged At'];
+function importRows_(req) {
+  const inv = Array.isArray(req.inventory) ? req.inventory.slice(0, 2000) : [];
+  const pms = Array.isArray(req.pms) ? req.pms.slice(0, 2000) : [];
+  if (!inv.length && !pms.length) throw new Error('The file has no Inventory or PM Log rows.');
+  const val = (o, k, dates) => dates.indexOf(k) >= 0 ? (toDate_(String(o[k] || '').slice(0, 10)) || '') : clean_(o[k]);
+  return withLock_(() => {
+    const now = new Date(), by = clean_(req.by);
+    const out = { ok: true, added: [], skipped: [], pmAdded: [], pmSkipped: [] };
+    const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
+    const ids = {}, serials = {};
+    rows.forEach(r => { ids[r[I['Equipment ID']]] = 1; const sn = String(r[I['Serial No.']]).trim().toLowerCase(); if (sn) serials[sn] = 1; });
+    const newRows = [];
+    inv.forEach(o => {
+      if (!o || typeof o !== 'object') return;
+      const row = INV_HEADERS.map(k => val(o, k, INV_DATES));
+      if (!row[I['Equipment Type']] && !row[I['Brand / Model']] && !row[I['Serial No.']]) return;
+      const id = row[I['Equipment ID']], sn = String(row[I['Serial No.']]).toLowerCase();
+      if ((id && ids[id]) || (sn && serials[sn])) { out.skipped.push(id || row[I['Serial No.']]); return; }
+      if (!/^ICT-\d{4,}$/.test(id)) row[I['Equipment ID']] = nextEquipmentId_(rows.concat(newRows));
+      row[I['Unit Cost']] = toNum_(row[I['Unit Cost']]);
+      if (!row[I['PM Frequency']]) row[I['PM Frequency']] = defaultFreq_(row[I['Equipment Type']]);
+      if (!row[I['Condition']]) row[I['Condition']] = 'Serviceable';
+      row[I['Next PM Due']] = nextDue_(row[I['Last PM']], row[I['PM Frequency']], row[I['Condition']]);
+      row[I['Added At']] = row[I['Added At']] || now;
+      row[I['Updated At']] = now; row[I['Updated By']] = by;
+      ids[row[I['Equipment ID']]] = 1; if (sn) serials[sn] = 1;
+      newRows.push(row); out.added.push(row[I['Equipment ID']]);
+    });
+    if (newRows.length) {
+      const r0 = lastRow_(sh) + 1;
+      formatInvRow_(sh, r0, newRows.length);
+      sh.getRange(r0, 1, newRows.length, INV_HEADERS.length).setValues(newRows);
+      audit_(out.added[0] + (out.added.length > 1 ? ' to ' + out.added[out.added.length - 1] : ''), 'EQUIPMENT IMPORTED', by,
+        out.added.length + ' unit(s) imported from ' + (clean_(req.file) || 'an Excel file') + (out.skipped.length ? '; ' + out.skipped.length + ' already in the masterlist were skipped.' : '.'), req.device);
+    }
+    // A surname alone ("ELONA") becomes the full name from the ICT Personnel list.
+    const staff = lists_().staff.map(x => x[0]);
+    const fullName = n => { const m = staff.filter(f => n && f.toLowerCase().split(/\s+/).pop() === n.toLowerCase()); return m.length === 1 ? m[0] : n; };
+    const log = sheet_(PM), refs = {};
+    readRows_(PM, PM_HEADERS).forEach(r => refs[r[P['PM Ref No.']]] = 1);
+    const pmRows = [];
+    pms.forEach(o => {
+      if (!o || typeof o !== 'object') return;
+      const row = PM_HEADERS.map(k => val(o, k, PM_DATES));
+      const ref = row[P['PM Ref No.']];
+      if (!/^PM-\d{4}-\d+$/.test(ref)) return;
+      if (refs[ref]) { out.pmSkipped.push(ref); return; }
+      row[P['ICT Personnel']] = fullName(row[P['ICT Personnel']]);
+      row[P['Record Status']] = row[P['Record Status']] || 'Valid';
+      row[P['Record Hash']] = '';   // made outside the app, so it has no hash to check
+      row[P['Logged At']] = row[P['Logged At']] || now;
+      refs[ref] = 1; pmRows.push(row); out.pmAdded.push(ref);
+    });
+    if (pmRows.length) {
+      const r0 = lastRow_(log) + 1;
+      formatPmRow_(log, r0, pmRows.length);
+      log.getRange(r0, 1, pmRows.length, PM_HEADERS.length).setValues(pmRows);
+      audit_(out.pmAdded.join(', ').slice(0, 300), 'PM IMPORTED', by, out.pmAdded.length + ' PM record(s) imported from ' + (clean_(req.file) || 'an Excel file') + '.', req.device);
+    }
+    return out;
+  });
+}
+
 function saveTransfer_(req) {
   const it = req.item || {};
   const spec = REG.transfer, H = idx_(spec.h);
@@ -1624,19 +1693,21 @@ function findRow_(sh, key) {
 }
 
 // Text columns are plain text so serials like "0012" or times like "5:30 PM" stay as typed.
-function formatInvRow_(sh, r) {
+function formatInvRow_(sh, r, n) {
+  n = n || 1;
   ['Equipment ID', 'Property Tag No.', 'Serial No.', 'Computer Name / IP', 'Remarks', 'Last PM Ref No.']
-    .forEach(k => sh.getRange(r, I[k] + 1).setNumberFormat('@'));
-  ['Date Acquired', 'Warranty Until', 'Last PM', 'Next PM Due'].forEach(k => sh.getRange(r, I[k] + 1).setNumberFormat('mmm d, yyyy'));
-  sh.getRange(r, I['Unit Cost'] + 1).setNumberFormat('#,##0.00');
-  ['Added At', 'Updated At'].forEach(k => sh.getRange(r, I[k] + 1).setNumberFormat('mmm d, yyyy h:mm am/pm'));
+    .forEach(k => sh.getRange(r, I[k] + 1, n, 1).setNumberFormat('@'));
+  ['Date Acquired', 'Warranty Until', 'Last PM', 'Next PM Due'].forEach(k => sh.getRange(r, I[k] + 1, n, 1).setNumberFormat('mmm d, yyyy'));
+  sh.getRange(r, I['Unit Cost'] + 1, n, 1).setNumberFormat('#,##0.00');
+  ['Added At', 'Updated At'].forEach(k => sh.getRange(r, I[k] + 1, n, 1).setNumberFormat('mmm d, yyyy h:mm am/pm'));
 }
 
-function formatPmRow_(sh, r) {
+function formatPmRow_(sh, r, n) {
+  n = n || 1;
   ['PM Ref No.', 'Time Start', 'Time End', 'Serial No.', 'Property Tag No.', 'Issue Identified', 'Action Taken', 'Remarks',
-   'Computer Name / IP', 'Parts Replaced / Used'].forEach(k => sh.getRange(r, P[k] + 1).setNumberFormat('@'));
-  ['Date', 'Next Check / PM Due'].forEach(k => sh.getRange(r, P[k] + 1).setNumberFormat('mmm d, yyyy'));
-  sh.getRange(r, P['Logged At'] + 1).setNumberFormat('mmm d, yyyy h:mm am/pm');
+   'Computer Name / IP', 'Parts Replaced / Used'].forEach(k => sh.getRange(r, P[k] + 1, n, 1).setNumberFormat('@'));
+  ['Date', 'Next Check / PM Due'].forEach(k => sh.getRange(r, P[k] + 1, n, 1).setNumberFormat('mmm d, yyyy'));
+  sh.getRange(r, P['Logged At'] + 1, n, 1).setNumberFormat('mmm d, yyyy h:mm am/pm');
 }
 
 function audit_(ref, action, by, details, device) {
