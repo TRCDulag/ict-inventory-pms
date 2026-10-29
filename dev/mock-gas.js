@@ -53,12 +53,13 @@ function makeSheet(name) {
 }
 
 function createGas() {
-  const sheets = {}, order = [], props = {}, files = {};
+  const sheets = {}, order = [], props = {}, files = {}, cache = {}, triggers = [], copies = [];
   let seq = 0;
   const ss = {
     getSheetByName: n => sheets[n] || null,
     insertSheet: n => { sheets[n] = makeSheet(n); order.push(n); return sheets[n]; },
     getSheets: () => order.map(n => sheets[n]),
+    getId: () => 'SHEETID', getName: () => 'ICT Inventory and PMS Register (ICTU)',
     setSpreadsheetTimeZone: () => {}
   };
   const pad = n => String(n).padStart(2, '0');
@@ -68,6 +69,7 @@ function createGas() {
     const Y = x.getUTCFullYear(), M = x.getUTCMonth(), D = x.getUTCDate(), h = x.getUTCHours(), m = x.getUTCMinutes(), s = x.getUTCSeconds();
     const map = { 'yyyy': String(Y), 'yyyy-MM': Y + '-' + pad(M + 1), 'yyyy-MM-dd': Y + '-' + pad(M + 1) + '-' + pad(D),
       'yyyy-MM-dd HH:mm': Y + '-' + pad(M + 1) + '-' + pad(D) + ' ' + pad(h) + ':' + pad(m),
+      'yyyy-MM-dd HHmm': Y + '-' + pad(M + 1) + '-' + pad(D) + ' ' + pad(h) + pad(m),
       'yyyy-MM-dd HHmmss': Y + '-' + pad(M + 1) + '-' + pad(D) + ' ' + pad(h) + pad(m) + pad(s),
       'MMM d, yyyy h:mm a': MON[M] + ' ' + D + ', ' + Y + ' ' + (h % 12 || 12) + ':' + pad(m) + ' ' + (h < 12 ? 'AM' : 'PM') };
     if (!(f in map)) throw new Error('mock formatDate: unsupported pattern ' + f);
@@ -78,7 +80,10 @@ function createGas() {
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
     Session: { getEffectiveUser: () => ({ getEmail: () => 'salagfacility@gmail.com' }) },
-    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/MOCK/exec' }) },
+    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/MOCK/exec' }),
+      getProjectTriggers: () => triggers.map(h => ({ getHandlerFunction: () => h })),
+      newTrigger: h => { const t = { timeBased: () => t, onMonthDay: () => t, atHour: () => t, create: () => { triggers.push(h); return t; } }; return t; } },
+    CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     Logger: { log: () => {} },
     HtmlService: { createHtmlOutputFromFile: () => { const o = { setTitle: () => o, addMetaTag: () => o, setXFrameOptionsMode: () => o }; return o; }, XFrameOptionsMode: { ALLOWALL: 1 } },
     ContentService: { createTextOutput: t => ({ text: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
@@ -89,7 +94,10 @@ function createGas() {
         return { getUrl: () => 'https://drive.google.com/file/d/' + id + '/view', getId: () => id };
       } }),
       getFolderById: id => { throw new Error('not found'); },
-      getFileById: id => { if (!files[id]) throw new Error('no file'); return { getBlob: () => files[id] }; }
+      getFileById: id => {
+        if (id === 'SHEETID') return { makeCopy: (name, folder) => { copies.push(name); return { getUrl: () => 'https://docs.google.com/spreadsheets/d/copy' + copies.length, getId: () => 'copy' + copies.length }; } };
+        if (!files[id]) throw new Error('no file'); return { getBlob: () => files[id] };
+      }
     },
     Utilities: {
       formatDate,
@@ -101,7 +109,7 @@ function createGas() {
       getUuid: () => crypto.randomUUID(),
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }
     },
-    _ss: ss, _props: props, _files: files
+    _ss: ss, _props: props, _files: files, _cache: cache, _triggers: triggers, _copies: copies
   };
   return gas;
 }
@@ -111,7 +119,7 @@ function loadBackend() {
   const gas = createGas();
   const ctx = vm.createContext(Object.assign({ console, Date }, gas));
   const src = fs.readFileSync(path.join(__dirname, '..', 'apps-script', 'Code.gs'), 'utf8');
-  vm.runInContext(src + '\n;this.__exports = { setup, verifyRecords, handle_, doGet, doPost, api, lists_ }; this.target_ = target_;', ctx, { filename: 'Code.gs' });
+  vm.runInContext(src + '\n;this.__exports = { setup, verifyRecords, handle_, doGet, doPost, api, lists_, monthlyBackup }; this.target_ = target_;', ctx, { filename: 'Code.gs' });
   return { gas, code: ctx.__exports, ctx };
 }
 

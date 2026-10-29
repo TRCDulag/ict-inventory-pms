@@ -53,17 +53,19 @@ for p in S["pms"]:
 
 ws = wb.create_sheet("Checklist Results"); tab(ws, H["CHK"])
 ws = wb.create_sheet("JO Log"); tab(ws, H["JO"])
+for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET")]:
+    ws = wb.create_sheet(name); tab(ws, H[key])
 ws = wb.create_sheet("Audit Trail"); tab(ws, H["AUD"])
 if S["items"]:
     ws.append([now, "", "INITIAL LOAD", "ICTU", "Masterlist started with %d unit(s) and %d PM record(s) carried over from the ICTU files." % (len(S["items"]), len(S["pms"])), "Template"])
     ws.cell(2, 1).number_format = "mmm d, yyyy h:mm am/pm"
 
 L = H["L"]
-ws = wb.create_sheet("Lists"); tab(ws, ["Equipment Type", "Default PM Frequency", "Office / Section", "ICT Personnel", "Position", "Maintenance Type", "Condition"])
+ws = wb.create_sheet("Lists"); tab(ws, H["LH"])
 n = max(len(L["types"]), len(L["offices"]), len(L["staff"]), len(L["activities"]), len(L["conditions"]))
 g = lambda a, i, j=None: (a[i] if j is None else a[i][j]) if i < len(a) else None
 for i in range(n):
-    ws.append([g(L["types"], i, 0), g(L["types"], i, 1), g(L["offices"], i), g(L["staff"], i, 0), g(L["staff"], i, 1), g(L["activities"], i), g(L["conditions"], i)])
+    ws.append([g(L["types"], i, 0), g(L["types"], i, 1), g(L["offices"], i), g(L["staff"], i, 0), g(L["staff"], i, 1), g(L["activities"], i), g(L["conditions"], i), g(L["types"], i, 2), (0 if i < len(L["types"]) else None)])
 
 ws = wb.create_sheet("About")
 about = [["ICT Inventory and PMS Register (ICTU)"], [],
@@ -75,9 +77,14 @@ about = [["ICT Inventory and PMS Register (ICTU)"], [],
  ["PM Log", "One row per PM activity. The first 21 columns match ICTU_Preventive_Maintenance_Log.xlsx. PM Ref. No. continues the PM-YYYY-NNN series. Wrong entries are voided, never deleted."],
  ["Checklist Results", "The Done / Issue / N/A answer of every checklist item, by PM Ref. No."],
  ["JO Log", "One row per job order. The first 33 columns match the old ICTU Job Order Log, so its rows can be pasted here. JO No. is ICTU-YYYY-NNNN. Cancelled job orders stay on record."],
- ["Lists", "Choices shown in the app. Edit these to add offices, staff, equipment types and their default PM frequency."],
+ ["Users", "ICTU accounts (Head, Technician, Viewer). Passwords are stored only as salted hashes. Manage accounts in the app, not here."],
+ ["Transfers", "Transfers and turnovers of equipment (section, end user, accountable officer; PAR / ICS / PTR no.). TR-YYYY-NNN. Never edited."],
+ ["Stock Items / Stock Movements", "Spare parts and consumables, and every receipt, issue and adjustment (SM-YYYY-NNNN). The balance is the sum of the movements."],
+ ["Incidents", "ICT security incidents and data breaches (INC-YYYY-NNN), with the DPO and NPC dates."],
+ ["Network", "Network devices, fixed IP addresses and internet lines (NET-NNN). No passwords."],
+ ["Lists", "Choices shown in the app. Edit these to add offices, staff, equipment types with their default PM frequency, useful life (years) and replacement cost."],
  ["PM frequency", "Monthly, Quarterly, Semi-Annual, Annual, or Not scheduled (checked with its PC) for monitors, keyboards, hubs and other parts of a PC set."],
- ["Protection", "After setup, every tab can be edited by hand only by the Sheet owner. The app writes through Apps Script with the ICTU passcode."]]
+ ["Protection", "After setup, every tab can be edited by hand only by the Sheet owner. The app writes through Apps Script, only for a signed-in ICTU account whose role allows it. A copy of the Sheet is saved to Drive every month."]]
 for r in about: ws.append(r)
 ws["A1"].font = Font(bold=True, size=13); ws.column_dimensions["A"].width = 20; ws.column_dimensions["B"].width = 110
 for r in ws.iter_rows(min_row=3):

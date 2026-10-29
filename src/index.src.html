@@ -52,8 +52,8 @@
   .menupanel button.danger { color: var(--bad); } .menupanel button.danger svg { stroke: var(--bad); }
   .menupanel hr { border: 0; border-top: 1px solid var(--line-2); margin: 4px 0; }
   .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 72px); }
-  nav.tabs { background: #fff; border-right: 1px solid var(--line-2); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 72px; align-self: start; height: calc(100vh - 72px); }
-  nav.tabs button { display: flex; align-items: center; gap: 12px; background: transparent; color: var(--ink); border: 1px solid transparent; border-radius: 10px; padding: 10px 14px; min-height: 46px; font: inherit; font-size: 15.5px; font-weight: 500; cursor: pointer; text-align: left; }
+  nav.tabs { background: #fff; border-right: 1px solid var(--line-2); padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 72px; align-self: start; height: calc(100vh - 72px); overflow-y: auto; scrollbar-width: thin; }
+  nav.tabs button { display: flex; align-items: center; gap: 12px; background: transparent; color: var(--ink); border: 1px solid transparent; border-radius: 10px; padding: 8px 14px; min-height: 42px; font: inherit; font-size: 15.5px; font-weight: 500; cursor: pointer; text-align: left; }
   nav.tabs button svg { width: 22px; height: 22px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
   nav.tabs button:hover { background: var(--mint); }
   nav.tabs button[aria-selected="true"] { background: var(--honeydew); color: var(--navy); font-weight: 600; }
@@ -153,7 +153,7 @@
   label.cb { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; padding: 4px 0; cursor: pointer; font-weight: 400; }
   label.cb input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; }
   .hist { white-space: pre-line; font-size: 13px; color: var(--muted); background: #F6FBF9; border-radius: 8px; padding: 10px 12px; max-height: 140px; overflow: auto; }
-  /* public pages (no passcode): request ICT help, equipment status from a QR label */
+  /* public pages (no sign-in): request ICT help, equipment status from a QR label */
   #pub { min-height: 100vh; min-height: 100dvh; background: var(--navy) center / cover no-repeat fixed; padding: 0 0 32px; }
   #pub .pubhead { display: flex; align-items: center; gap: 12px; padding: 14px 18px; color: #fff; max-width: 900px; margin: 0 auto; }
   #pub .pubhead b { display: block; font-size: 18px; } #pub .pubhead span { font-size: 13px; opacity: .8; }
@@ -245,13 +245,54 @@
   .x { background: transparent; border: 0; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px 8px; border-radius: 8px; }
   .x:hover { background: var(--mint); }
 
-  /* passcode screen: navy wallpaper like Document Tracking */
-  #lock { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px 16px; background: var(--navy) center / cover no-repeat; }
-  #lock .card { width: min(400px, 100%); background: rgba(246, 248, 250, .97); border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.35); padding: 28px 24px 22px; }
-  #lock h1 { font-size: 24px; font-weight: 600; margin: 0; text-align: center; color: var(--navy); }
-  #lock p.s { text-align: center; color: var(--muted); margin: 4px 0 18px; font-size: 15px; }
-  #lock .btn { width: 100%; min-height: 52px; font-size: 17px; }
-  #lock .ver { text-align: right; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  /* sign-in screen: navy wallpaper like Document Tracking, one card */
+  #lock { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: var(--navy) center / cover no-repeat; }
+  #lock .card { width: min(420px, 100%); background: #fff; border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,.38); overflow: hidden; }
+  #lock .ch { background: var(--navy); color: #fff; padding: 22px 24px 18px; text-align: center; }
+  #lock .ch .seals { justify-content: center; margin-bottom: 10px; }
+  #lock .ch .seals img { width: 54px; height: 54px; }
+  #lock h1 { font-size: 22px; font-weight: 600; margin: 0; color: #fff; letter-spacing: .005em; }
+  #lock .ch p { margin: 2px 0 0; font-size: 14px; color: rgba(255,255,255,.75); }
+  #lock .cb2 { padding: 22px 24px 8px; }
+  #lock .cb2 h2 { font-size: 17px; margin: 0 0 4px; }
+  #lock .cb2 p.s { color: var(--muted); margin: 0 0 14px; font-size: 14.5px; }
+  #lock label.f + label.f { margin-top: 12px; }
+  #lock .pw { position: relative; }
+  #lock .pw input { padding-right: 64px; }
+  #lock .pw button { position: absolute; right: 6px; bottom: 6px; height: 34px; border: 0; background: none; color: var(--brand); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0 8px; border-radius: 6px; }
+  #lock .btn.go { width: 100%; min-height: 50px; font-size: 17px; margin-top: 18px; }
+  #lock .alt { border-top: 1px solid var(--line-2); margin-top: 18px; padding: 14px 24px 4px; }
+  #lock .alt .lb { font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
+  #lock .alt .row .btn { flex: 1; }
+  #lock .cf { display: flex; align-items: center; gap: 12px; padding: 12px 24px 16px; font-size: 13px; color: var(--muted); }
+  #lock .cf a, #lock .linkbtn { color: var(--brand); font-weight: 600; text-decoration: none; background: none; border: 0; padding: 0; font: inherit; font-size: 13.5px; cursor: pointer; }
+  #lock .cf a:hover, #lock .linkbtn:hover { text-decoration: underline; }
+  #lock .cf svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; vertical-align: -3px; margin-right: 3px; }
+  .privtext p { margin: 0 0 10px; }
+  /* roles: r1 Viewer, r2 Technician, r3 Head. need2 / need3 hide what a role cannot do. */
+  body.r1 .need2, body.r1 .need3, body.r2 .need3 { display: none !important; }
+  nav.tabs .grp { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 12px 14px 2px; }
+  @media (max-width: 899px) { nav.tabs .grp { display: none; } }
+  .temp { font-family: ui-monospace, Consolas, monospace; font-size: 20px; font-weight: 700; letter-spacing: .08em; background: var(--warn-soft); color: var(--navy); padding: 4px 10px; border-radius: 8px; }
+  .csmlink { display: flex; gap: 12px; align-items: center; background: var(--mint); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+  .csmlink svg { width: 84px; height: 84px; flex: none; }
+  .csmlink a { overflow-wrap: anywhere; font-size: 13.5px; }
+  .rate { display: grid; gap: 14px; }
+  .rate fieldset { border: 0; padding: 0; margin: 0; }
+  .rate legend { font-weight: 600; color: var(--head); margin-bottom: 6px; }
+  /* charts (hand-drawn SVG, one hue) */
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+  .charts .panel { margin: 0; }
+  .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .chart .bar { fill: var(--brand); }
+  .chart .bar.soft { fill: #9DB9E4; }
+  .chart .hit:hover + .bar, .chart g.bh:hover .bar { fill: var(--brand-hover); }
+  .chart text { font: 15px "Barlow", system-ui, sans-serif; fill: var(--muted); }
+  .chart text.v { fill: var(--ink); font-weight: 600; }
+  .chart .grid line { stroke: var(--line-2); }
+  .chart .axis { stroke: #B9CCC4; }
+  .tip { position: fixed; z-index: 90; pointer-events: none; background: var(--navy); color: #fff; font-size: 13px; padding: 6px 9px; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+  .money, table.list th.money { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 
   /* ---------- printouts (A4) ---------- */
   #printArea { display: none; }
@@ -310,6 +351,8 @@
   .sheet .jo td.tall { height: 9mm; }
   .sheet .jo td.sig { height: 11mm; vertical-align: bottom; text-align: center; font-weight: normal; }
   .sheet .jo .v { font-weight: bold; color: #0b2a6b; }
+  .sheet .rateqr { display: flex; gap: 2mm; align-items: center; margin-top: 1mm; }
+  .sheet .rateqr svg { width: 15mm; height: 15mm; flex: none; }
   .sheet .fbar { border-top: 1pt solid #1F2A45; margin-top: 2mm; padding-top: 1mm; font-size: 6.6pt; text-align: center; }
   @media print {
     body { background: #fff; }
@@ -321,33 +364,64 @@
 </head>
 <body>
 
-<!-- ============ passcode ============ -->
+<!-- ============ sign in (ICTU staff only) ============ -->
 <div id="lock">
-  <form class="card" id="lockForm" autocomplete="off">
-    <h1>ICT Inventory and PMS</h1>
-    <p class="s">Enter the ICTU passcode to open.</p>
-    <label class="f">ICTU passcode<input id="pinIn" type="password" inputmode="numeric" autocomplete="current-password" required></label>
-    <label class="f hidden" id="urlWrap" style="margin-top:10px">Google Sheet link (the Apps Script web app URL ending in /exec)
-      <input id="urlIn" type="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
-    <div class="row" style="margin-top:16px"><button class="btn" id="lockBtn" type="submit">Open</button></div>
-    <div class="msg" id="lockMsg" role="status"></div>
-    <p class="hint" id="urlToggleWrap"><a href="#" id="urlToggle">Change the Google Sheet link</a></p>
-    <div class="ver" id="lockVer"></div>
-  </form>
-  <div class="card" style="padding:18px 24px">
-    <p class="s" style="margin:0 0 10px;text-align:left"><b style="color:var(--navy)">Not ICTU?</b> You can still ask for ICT help or check a unit.</p>
-    <div class="row"><a class="btn" href="#request" id="lockReq" style="flex:1">Request ICT help (job order)</a></div>
-    <form class="row" id="lockCodeForm" style="margin-top:10px;flex-wrap:nowrap"><input id="lockCode" placeholder="Equipment code, e.g. ICT-0001" style="margin:0" autocomplete="off"><button class="btn ghost" type="submit">View</button></form>
+  <div class="card">
+    <div class="ch"><div class="seals"><img class="pDoh" alt="Department of Health"><img class="pTrc" alt="TRC Dulag"></div>
+      <h1>ICT Inventory and PMS</h1><p>ICT Unit, DOH TRC Dulag</p></div>
+    <!-- sign in -->
+    <form class="cb2" id="lockForm" autocomplete="on">
+      <h2>Sign in</h2><p class="s">For ICT Unit staff. Use your own username and password.</p>
+      <label class="f">Username<input id="uIn" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label class="f pw">Password<input id="pwIn" type="password" autocomplete="current-password" required><button type="button" class="pwShow" aria-label="Show password">Show</button></label>
+      <label class="f hidden" id="urlWrap" style="margin-top:12px">Google Sheet link (the Apps Script web app URL ending in /exec)
+        <input id="urlIn" type="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
+      <button class="btn go" id="lockBtn" type="submit">Sign in</button>
+      <div class="msg" id="lockMsg" role="status"></div>
+    </form>
+    <!-- first time: the Head of ICTU makes the first account with the setup passcode -->
+    <form class="cb2 hidden" id="setupForm" autocomplete="off">
+      <h2>Set up the first account</h2><p class="s">No one has an account yet. The Head of ICTU makes the first one with the setup passcode, then adds the rest of the staff.</p>
+      <label class="f">Setup passcode<input id="suPin" type="password" inputmode="numeric" required></label>
+      <label class="f">Full name<input id="suName" required placeholder="James Adrian M. Elona"></label>
+      <label class="f">Position<input id="suPos" value="Head, ICT Unit"></label>
+      <label class="f">Username<input id="suUser" autocapitalize="none" spellcheck="false" required placeholder="for example jelona"></label>
+      <label class="f pw">Password<input id="suPw" type="password" autocomplete="new-password" required><button type="button" class="pwShow" aria-label="Show password">Show</button></label>
+      <p class="hint">At least 8 characters, with letters and numbers.</p>
+      <button class="btn go" id="suBtn" type="submit">Make my account</button>
+      <div class="msg" id="suMsg" role="status"></div>
+    </form>
+    <!-- first sign-in with a temporary password -->
+    <form class="cb2 hidden" id="chgForm" autocomplete="off">
+      <h2>Set your own password</h2><p class="s" id="chgLead">You signed in with a temporary password. Choose your own before you go on.</p>
+      <label class="f pw">New password<input id="chgPw" type="password" autocomplete="new-password" required><button type="button" class="pwShow" aria-label="Show password">Show</button></label>
+      <label class="f">Type it again<input id="chgPw2" type="password" autocomplete="new-password" required></label>
+      <p class="hint">At least 8 characters, with letters and numbers. Do not share it with anyone.</p>
+      <button class="btn go" id="chgBtn" type="submit">Save and continue</button>
+      <div class="msg" id="chgMsg" role="status"></div>
+    </form>
+    <div class="alt" id="lockAlt">
+      <div class="lb">Not ICTU staff? You can still ask for help or check a unit.</div>
+      <div class="row"><a class="btn ghost small" href="#request" id="lockReq">Request ICT help</a><button class="btn ghost small" type="button" id="lockCodeBtn">Check a unit</button></div>
+      <form class="row hidden" id="lockCodeForm" style="margin-top:8px;flex-wrap:nowrap"><input id="lockCode" placeholder="Code on the sticker, e.g. ICT-0001" style="margin:0" autocomplete="off"><button class="btn small" type="submit">View</button></form>
+    </div>
+    <div class="cf"><button type="button" class="linkbtn" id="privLink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Data privacy notice</button>
+      <span class="spacer"></span><a href="#" id="urlToggle">Sheet link</a><span id="lockVer"></span></div>
   </div>
-  <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
-  <div><b>Data privacy notice</b><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173). Only ICTU personnel can open or change the records, and every change is logged. Please do not copy or share the data for any other purpose. For corrections or concerns, please reach the ICT Unit.</p></div></footer>
 </div>
+<dialog id="privDlg" class="small">
+  <div class="dh"><h3>Data privacy notice</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db privtext"><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173).</p>
+    <p>Only ICTU personnel can open or change the records, each with their own account, and every change is logged. Please do not copy or share the data for any other purpose. Other offices may ask the ICT Unit for reports through a job order (data request).</p>
+    <p>For corrections or concerns, please reach the ICT Unit.</p></div>
+  <div class="df"><button class="btn" type="button" data-close>Close</button></div>
+</dialog>
 
-<!-- ============ public pages: request ICT help, equipment status (no passcode) ============ -->
+<!-- ============ public pages: request ICT help, equipment status (no sign-in) ============ -->
 <div id="pub" class="hidden">
   <div class="pubhead"><div class="seals"><img class="pDoh" alt="DOH"><img class="pTrc" alt="TRC Dulag"></div>
     <div style="flex:1;min-width:0"><b>ICT Unit Help Desk</b><span>DOH Treatment and Rehabilitation Center Dulag</span></div>
-    <a class="hbtn" href="#" id="pubIctu">ICTU sign in</a></div>
+    <a class="hbtn" href="#" id="pubIctu">ICTU staff sign in</a></div>
   <div class="pubwrap">
     <!-- equipment status after scanning its QR label -->
     <div class="panel hidden" id="pubEq"></div>
@@ -391,6 +465,8 @@
         <div class="row" style="margin-top:12px"><button class="btn" id="reqSend" type="submit">Submit request</button></div></div>
     </form>
     <div class="panel hidden" id="reqDone"></div>
+    <!-- the requestor's own job order, from the link or QR on their form -->
+    <div class="panel hidden" id="pubTrack"></div>
     <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
   <div><b>Data privacy notice</b><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173). Only ICTU personnel can open or change the records, and every change is logged. Please do not copy or share the data for any other purpose. For corrections or concerns, please reach the ICT Unit.</p></div></footer>
   </div>
@@ -403,26 +479,35 @@
   <div class="apptitle"><b>ICT Inventory and PMS</b><span>ICT Unit, DOH Treatment and Rehabilitation Center Dulag</span></div>
   <button class="hbtn" id="scanBtn" type="button" title="Scan or type an equipment code"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h3v3H8zM13 13h3v3h-3zM13 9h3M8 15h3"/></svg><span class="lbl">Scan code</span></button>
   <div class="menu">
-    <button class="hbtn" id="menuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menuPanel"><span class="av">IT</span><span class="mt">ICTU<small id="syncState"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    <button class="hbtn" id="menuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menuPanel"><span class="av" id="meAv">IT</span><span class="mt"><span id="meName">ICTU</span><small id="syncState"></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="menupanel hidden" id="menuPanel" role="menu">
-      <div class="mh"><b>ICT Unit</b>Opened with the ICTU passcode</div>
+      <div class="mh"><b id="meName2">ICT Unit</b><span id="meRole"></span></div>
       <button role="menuitem" id="reloadBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Refresh data</button>
       <button role="menuitem" id="mScan" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/></svg>Scan or type an equipment code</button>
       <button role="menuitem" id="mReq" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg>Open the staff request page</button>
+      <button role="menuitem" id="mPw" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg>Change my password</button>
       <hr>
-      <button role="menuitem" id="lockOut" class="danger" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Lock the app</button>
+      <button role="menuitem" id="lockOut" class="danger" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>Sign out</button>
     </div>
   </div>
 </header>
 <div class="shell">
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-v="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
+    <button role="tab" data-v="dash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Dashboard</button>
+    <div class="grp">Equipment</div>
     <button role="tab" data-v="inv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>Inventory</button>
     <button role="tab" data-v="sched"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h2M14 14h2M8 17h2"/></svg>PMS Schedule<span class="badge hidden" id="navLate"></span></button>
-    <button role="tab" data-v="pm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Do PM</button>
-    <button role="tab" data-v="jo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8 12l2.5 2.5L16 9"/></svg>Job Orders<span class="badge hidden" id="navJo" style="background:var(--brand)"></span></button>
+    <button role="tab" class="need2" data-v="pm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Do PM</button>
     <button role="tab" data-v="recs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>PM Records</button>
+    <button role="tab" data-v="tr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg>Transfers</button>
+    <button role="tab" data-v="stock"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/></svg>Spare Parts</button>
+    <button role="tab" data-v="net"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/></svg>Network and IP</button>
+    <div class="grp">Service desk</div>
+    <button role="tab" data-v="jo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8 12l2.5 2.5L16 9"/></svg>Job Orders<span class="badge hidden" id="navJo" style="background:var(--brand)"></span></button>
+    <button role="tab" data-v="inc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.5"/></svg>Incidents</button>
     <button role="tab" data-v="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Reports and Forms</button>
+    <button role="tab" data-v="acc" class="need3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M17 11h4M19 9v4"/></svg>Accounts</button>
   </nav>
 <main>
   <!-- HOME -->
@@ -471,7 +556,7 @@
     <div class="tablewrap"><table class="list" id="iTable"><thead><tr>
       <th>ID</th><th>Equipment</th><th class="hide-m">Serial no.</th><th class="hide-m">Property tag</th><th>Section / end user</th><th class="hide-m">Condition</th><th>Next PM</th>
     </tr></thead><tbody></tbody>
-    <tfoot><tr><td colspan="7"><button class="addrow" id="addEq" type="button"><span class="plus">+</span>Add equipment to the masterlist</button></td></tr></tfoot></table></div>
+    <tfoot><tr><td colspan="7"><button class="addrow need2" id="addEq" type="button"><span class="plus">+</span>Add equipment to the masterlist</button></td></tr></tfoot></table></div>
   </section>
 
   <!-- SCHEDULE -->
@@ -614,7 +699,7 @@
         <label class="f">Month<select id="jMonth"></select></label>
       </div>
       <div class="row" style="margin-top:12px">
-        <button class="btn" id="newJo" type="button">Log a job order</button>
+        <button class="btn need2" id="newJo" type="button">Log a job order</button>
         <span class="hint" id="jCount" style="margin:0"></span><span class="spacer"></span>
         <button class="btn ghost small" id="jPoster" type="button">Print request QR poster</button>
         <button class="btn ghost small" id="jCsv" type="button">Download for Excel</button>
@@ -654,6 +739,19 @@
       <div class="row" style="margin-top:12px"><button class="btn" id="mrPrint" type="button">Print monthly JO report</button></div>
     </div>
     <div class="panel">
+      <h3>Replacement plan by age <span class="sub">date acquired plus the useful life of its type</span></h3>
+      <p class="hint" style="margin:0 0 10px">Useful life and replacement cost per type are in the Lists tab of the Sheet (columns H and I). When the replacement cost is blank, the unit's own cost is used.</p>
+      <div class="grid"><label class="f">Plan from year<select id="rpFrom"></select></label><label class="f">Number of years<select id="rpYears"><option>3</option><option selected>5</option><option>7</option></select></label></div>
+      <div id="rpView" style="margin-top:12px"></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="rpPrint" type="button">Print replacement plan</button><button class="btn ghost" id="rpCsv" type="button">Download for Excel</button></div>
+    </div>
+    <div class="panel">
+      <h3>Cost per unit <span class="sub">unit cost, parts issued and outside repairs</span></h3>
+      <p class="hint" style="margin:0 0 10px">Units whose repairs have reached half of their cost are flagged. These are good candidates for a TIR and replacement.</p>
+      <div id="cuView"></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="cuPrint" type="button">Print cost per unit</button><button class="btn ghost" id="cuCsv" type="button">Download for Excel</button></div>
+    </div>
+    <div class="panel">
       <h3>Blank forms and lists</h3>
       <div class="row">
         <button class="btn ghost" id="blankForm" type="button">Print a blank PMS checklist (COH-IDN-F-02)</button>
@@ -667,6 +765,88 @@
       <h3>About</h3>
       <p class="hint" id="aboutTxt" style="margin:0"></p>
     </div>
+  </section>
+  <!-- DASHBOARD -->
+  <section class="view hidden" id="v-dash">
+    <h2>Dashboard</h2>
+    <p class="lead">How the ICT Unit is doing. Hover or tap a bar to see its number.</p>
+    <div class="tiles" id="dTiles"></div>
+    <div class="charts">
+      <div class="panel chart"><h3>Job orders received <span class="sub">last 12 months</span></h3><div id="cJo"></div></div>
+      <div class="panel chart"><h3>PM done <span class="sub">last 12 months</span></h3><div id="cPm"></div></div>
+      <div class="panel chart"><h3>Job orders by type of request <span class="sub">last 12 months</span></h3><div id="cType"></div></div>
+      <div class="panel chart"><h3>Equipment by condition <span class="sub">in service</span></h3><div id="cCond"></div></div>
+      <div class="panel chart"><h3>Equipment by age <span class="sub">from the date acquired</span></h3><div id="cAge"></div></div>
+      <div class="panel chart"><h3>Equipment by section <span class="sub">top 10</span></h3><div id="cOff"></div></div>
+    </div>
+  </section>
+
+  <!-- TRANSFERS -->
+  <section class="view hidden" id="v-tr">
+    <h2>Transfers and turnovers</h2>
+    <p class="lead">Each time a unit moves to another section, gets a new end user, or a new accountable officer (PAR / ICS), record it here. The masterlist follows, and the history is kept.</p>
+    <div class="panel"><div class="filters">
+      <label class="f q">Search<input id="tQ" type="search" placeholder="Transfer no., equipment, section, name, PAR / ICS no."></label>
+      <label class="f">Kind<select id="tKind"></select></label>
+      <label class="f">Year<select id="tYear"></select></label></div>
+      <div class="row" style="margin-top:12px"><button class="btn need2" id="newTr" type="button">Record a transfer or turnover</button><span class="hint" id="tCount" style="margin:0"></span></div></div>
+    <div class="tablewrap"><table class="list" id="tTable"><thead><tr><th>Transfer no.</th><th>Date</th><th>Equipment</th><th>From</th><th>To</th><th class="hide-m">PAR / ICS / PTR</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- SPARE PARTS AND CONSUMABLES -->
+  <section class="view hidden" id="v-stock">
+    <h2>Spare parts and consumables</h2>
+    <p class="lead">Stock on hand of ink, toner, cables, RAM, SSDs and other parts. Receive what arrives, issue what you use. Parts issued to a unit are added to its cost.</p>
+    <div class="tiles" id="kTiles"></div>
+    <div class="panel"><div class="filters">
+      <label class="f q">Search<input id="kQ" type="search" placeholder="Item, category, code"></label>
+      <label class="f">Category<select id="kCat"></select></label>
+      <label class="chk"><input type="checkbox" id="kLow"> Low stock only</label></div>
+      <div class="row" style="margin-top:12px"><span class="hint" id="kCount" style="margin:0"></span><span class="spacer"></span>
+        <button class="btn ghost small" id="kPrint" type="button">Print stock list</button></div></div>
+    <div class="tablewrap"><table class="list" id="kTable"><thead><tr><th>Code</th><th>Item</th><th class="money">On hand</th><th class="hide-m money">Reorder at</th><th class="hide-m money">Unit cost</th><th class="hide-m money">Value</th><th></th></tr></thead><tbody></tbody>
+      <tfoot class="need2"><tr><td colspan="7"><button class="addrow" id="addStock" type="button"><span class="plus">+</span>Add a part or supply to the list</button></td></tr></tfoot></table></div>
+    <div class="panel" style="margin-top:16px"><h3>Latest movements</h3><div class="tablewrap"><table class="list" id="mTable"><thead><tr><th>Ref. no.</th><th>Date</th><th>Item</th><th>Movement</th><th class="money">Qty</th><th class="hide-m">For / reference</th><th class="hide-m">By</th></tr></thead><tbody></tbody></table></div></div>
+  </section>
+
+  <!-- NETWORK -->
+  <section class="view hidden" id="v-net">
+    <h2>Network and IP inventory</h2>
+    <p class="lead">Routers, switches, access points, servers, fixed IP addresses and internet lines. Never type passwords here.</p>
+    <div class="panel"><div class="filters">
+      <label class="f q">Search<input id="nQ" type="search" placeholder="Name, IP, MAC, location, provider"></label>
+      <label class="f">Kind<select id="nKind"></select></label>
+      <label class="f">Status<select id="nStatus"><option value="">Active and spare</option><option>Active</option><option>Spare</option><option>Retired</option><option value="*">Everything</option></select></label></div>
+      <div class="row" style="margin-top:12px"><span class="hint" id="nCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="nPrint" type="button">Print the list</button></div></div>
+    <div class="tablewrap"><table class="list" id="nTable"><thead><tr><th>ID</th><th>Name / kind</th><th>IP address</th><th class="hide-m">MAC address</th><th class="hide-m">Location</th><th>Status</th></tr></thead><tbody></tbody>
+      <tfoot class="need2"><tr><td colspan="6"><button class="addrow" id="addNet" type="button"><span class="plus">+</span>Add a network device, IP or internet line</button></td></tr></tfoot></table></div>
+  </section>
+
+  <!-- INCIDENTS -->
+  <section class="view hidden" id="v-inc">
+    <h2>Incident and data breach log</h2>
+    <p class="lead">Security incidents and outages. When personal data may be involved, tell the DPO right away. Under NPC Circular 16-03, a breach that needs notice must reach the NPC within 72 hours of knowing about it.</p>
+    <div class="panel"><div class="filters">
+      <label class="f q">Search<input id="xQ" type="search" placeholder="Incident no., type, system, description"></label>
+      <label class="f">Show<select id="xShow"><option value="open">Not yet closed</option><option value="">All incidents</option></select></label></div>
+      <div class="row" style="margin-top:12px"><button class="btn need2" id="newInc" type="button">Record an incident</button><span class="hint" id="xCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="xPrint" type="button">Print the log</button></div></div>
+    <div class="tablewrap"><table class="list" id="xTable"><thead><tr><th>Incident no.</th><th>Discovered</th><th>Type / description</th><th>Severity</th><th>Status</th><th class="hide-m">Personal data</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- ACCOUNTS AND BACKUP (Head) -->
+  <section class="view hidden" id="v-acc">
+    <h2>Accounts and backup</h2>
+    <p class="lead">Only ICT Unit staff get an account. Other offices file job orders on the request page, and ask for reports through a "Data request" job order.</p>
+    <div class="panel"><h3>ICTU accounts</h3>
+      <p class="hint" style="margin:0 0 10px"><b>Head</b> does everything, including accounts, voiding PM records and backups. <b>Technician</b> records PMs, job orders, transfers, stock, incidents and the network list. <b>Viewer</b> can look and print, but not change anything.</p>
+      <div class="tablewrap"><table class="list" id="uTable"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th class="hide-m">Last sign-in</th></tr></thead><tbody></tbody>
+        <tfoot><tr><td colspan="5"><button class="addrow" id="addUser" type="button"><span class="plus">+</span>Add an ICTU staff account</button></td></tr></tfoot></table></div>
+      <div class="msg" id="uMsg" role="status"></div></div>
+    <div class="panel"><h3>Backup of the Google Sheet</h3>
+      <p class="hint" style="margin:0 0 10px">A copy of the whole Sheet is saved on the 1st of every month, at about 6 AM, to the Drive folder "ICT Inventory and PMS Backups". You can also make one now, for example before a big change.</p>
+      <p id="bkInfo" style="margin:0 0 10px"></p>
+      <div class="row"><button class="btn" id="bkNow" type="button">Back up now</button></div>
+      <div class="msg" id="bkMsg" role="status"></div></div>
   </section>
   <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
   <div><b>Data privacy notice</b><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173). Only ICTU personnel can open or change the records, and every change is logged. Please do not copy or share the data for any other purpose. For corrections or concerns, please reach the ICT Unit.</p></div></footer>
@@ -712,7 +892,7 @@
 <dialog id="pmDlg">
   <div class="dh"><h3 id="pmDlgT">PM record</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
   <div class="db"><div id="pmDlgB"></div><div class="msg" id="pmDlgMsg" role="status"></div></div>
-  <div class="df"><button class="btn danger" id="pmVoid" type="button">Void this record</button><span class="spacer"></span><button class="btn" id="pmPrint" type="button">Print the filled form</button></div>
+  <div class="df"><button class="btn danger need3" id="pmVoid" type="button">Void this record</button><span class="spacer"></span><button class="btn" id="pmPrint" type="button">Print the filled form</button></div>
 </dialog>
 
 <!-- job order dialog (ICTU side) -->
@@ -763,7 +943,15 @@
         <label class="f">PR no. or referred to<input id="jNote" placeholder="Supplier, KMITS or ISP"></label>
         <label class="f span2">Remarks<input id="jRem"></label>
       </div>
-      <h4 style="margin:18px 0 8px">Part III. Client feedback <span class="sub" style="font-weight:400;color:var(--muted)">copy from the signed form</span></h4>
+      <h4 style="margin:18px 0 8px">Technical Inspection Report (TIR) <span class="sub" style="font-weight:400;color:var(--muted)">when the unit needs parts, outside repair or replacement</span></h4>
+      <div class="grid g3">
+        <label class="f">Recommendation<select id="jTirRec"></select></label>
+        <label class="f">Estimated repair cost (PHP)<input id="jTirCost" inputmode="decimal"></label>
+        <label class="f">Paid for outside repair (PHP)<input id="jRepCost" inputmode="decimal"></label>
+      </div>
+      <p class="hint" id="jTirNo"></p>
+      <h4 style="margin:18px 0 8px">Part III. Client feedback <span class="sub" style="font-weight:400;color:var(--muted)">from the requestor's phone, or copied from the signed form</span></h4>
+      <div id="joCsm"></div>
       <div class="grid g3">
         <label class="f">Speed of service<select id="jCsmS" class="csm"></select></label>
         <label class="f">Quality of the solution<select id="jCsmQ" class="csm"></select></label>
@@ -773,7 +961,7 @@
       <div id="joHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="joHist"></div></div>
       <div class="msg" id="joMsg" role="status"></div>
     </div>
-    <div class="df"><button class="btn ghost" type="button" id="joPrint">Print the form</button><span class="spacer"></span><button class="btn" type="button" id="joSave">Save</button></div>
+    <div class="df"><button class="btn ghost" type="button" id="joPrint">Print the form</button><button class="btn ghost" type="button" id="joTir">Print TIR</button><span class="spacer"></span><button class="btn need2" type="button" id="joSave">Save</button></div>
   </form>
 </dialog>
 
@@ -818,6 +1006,145 @@
     <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="empSave">Add employee</button></div>
   </form>
 </dialog>
+<!-- transfer / turnover -->
+<dialog id="trDlg">
+  <form id="trForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="trTitle">Record a transfer or turnover</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="grid g3">
+        <label class="f"><span class="req">Equipment code</span><input id="trEq" class="combo" data-combo="eq" placeholder="ICT-0001"></label>
+        <label class="f"><span class="req">Kind</span><select id="trKind"></select></label>
+        <label class="f">Date<input id="trDate" type="date"></label>
+      </div>
+      <div id="trNow" class="eqcard hidden" style="margin-top:12px"></div>
+      <h4 style="margin:16px 0 8px">Goes to <span class="sub" style="font-weight:400;color:var(--muted)">leave a box blank to keep it as it is</span></h4>
+      <div class="grid g3">
+        <label class="f">New end user<input id="trUser" class="combo" data-combo="emp"></label>
+        <label class="f">New section / unit<input id="trOffice" class="combo" data-combo="office"></label>
+        <label class="f">New accountable officer<input id="trOfficer" class="combo" data-combo="emp"></label>
+        <label class="f">PAR / ICS / PTR no.<input id="trDoc" placeholder="For example ICS 2026-10-015"></label>
+        <label class="f span2">Reason / remarks<input id="trRem"></label>
+      </div>
+      <div class="msg" id="trMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost hidden" type="button" id="trPrint">Print transfer slip</button><span class="spacer"></span><button class="btn" type="submit" id="trSave">Save transfer</button></div>
+  </form>
+</dialog>
+<!-- stock item and stock movement -->
+<dialog id="kDlg" class="small">
+  <form id="kForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="kTitle">Add a part or supply</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db"><div class="grid">
+      <label class="f wide"><span class="req">Item</span><input id="kItem" placeholder="For example: Epson 003 ink, black"></label>
+      <label class="f">Category<input id="kCatIn" list="dlCat"></label>
+      <label class="f"><span class="req">Unit</span><input id="kUnit" list="dlUnit" placeholder="piece, bottle, box"></label>
+      <label class="f">Reorder when down to<input id="kReorder" inputmode="numeric"></label>
+      <label class="f">Unit cost (PHP)<input id="kCost" inputmode="decimal"></label>
+      <label class="f wide">Remarks<input id="kRem"></label></div>
+      <div class="msg" id="kMsg" role="status"></div></div>
+    <div class="df"><button class="btn ghost" type="button" id="kCard">Print stock card</button><span class="spacer"></span><button class="btn need2" type="submit" id="kSave">Save</button></div>
+  </form>
+</dialog>
+<dialog id="mDlg" class="small">
+  <form id="mForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="mTitle">Stock movement</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div id="mItem" class="eqcard" style="margin-bottom:12px"></div>
+      <div class="grid">
+        <label class="f"><span class="req">Movement</span><select id="mKind"></select></label>
+        <label class="f"><span class="req">Quantity</span><input id="mQty" inputmode="decimal"></label>
+        <label class="f">Date<input id="mDate" type="date"></label>
+        <label class="f" id="mCostWrap">Unit cost (PHP)<input id="mCost" inputmode="decimal"></label>
+        <label class="f" id="mEqWrap">For equipment<input id="mEq" class="combo" data-combo="eq" placeholder="ICT-0001"></label>
+        <label class="f" id="mUnitWrap">Section / unit<input id="mUnit" class="combo" data-combo="office"></label>
+        <label class="f">Reference (JO, PM, PR or IAR no.)<input id="mRef"></label>
+        <label class="f wide">Remarks<input id="mRem"></label>
+      </div>
+      <div class="msg" id="mMsg" role="status"></div></div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="mSave">Save</button></div>
+  </form>
+</dialog>
+<!-- network item -->
+<dialog id="nDlg">
+  <form id="nForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="nTitle">Network item</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db"><div class="grid g3">
+      <label class="f"><span class="req">Kind</span><select id="nKindIn"></select></label>
+      <label class="f span2"><span class="req">Name / label</span><input id="nName" placeholder="For example: Main router, 2F switch, PLDT fiber"></label>
+      <label class="f">IP address<input id="nIp" placeholder="192.168.1.1" inputmode="decimal"></label>
+      <label class="f">MAC address<input id="nMac" placeholder="00:1A:2B:3C:4D:5E"></label>
+      <label class="f">VLAN / subnet<input id="nVlan" placeholder="192.168.1.0/24"></label>
+      <label class="f">Location<input id="nLoc" class="combo" data-combo="office"></label>
+      <label class="f">Brand / model<input id="nModel"></label>
+      <label class="f">Equipment code<input id="nEq" class="combo" data-combo="eq" placeholder="if it is in the masterlist"></label>
+      <label class="f">Provider / ISP<input id="nProv"></label>
+      <label class="f">Account / circuit no.<input id="nAcct"></label>
+      <label class="f">Bandwidth<input id="nBw" placeholder="200 Mbps"></label>
+      <label class="f">Contract ends<input id="nEnd" type="date"></label>
+      <label class="f">Monthly cost (PHP)<input id="nCost" inputmode="decimal"></label>
+      <label class="f">Status<select id="nStat"><option>Active</option><option>Spare</option><option>Retired</option></select></label>
+      <label class="f wide">Remarks (no passwords)<input id="nRem"></label></div>
+      <div class="msg" id="nMsg" role="status"></div></div>
+    <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="nSave">Save</button></div>
+  </form>
+</dialog>
+<!-- incident -->
+<dialog id="xDlg">
+  <form id="xForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="xTitle">Incident</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div id="xClock"></div>
+      <div class="grid g3">
+        <label class="f"><span class="req">Discovered on</span><input id="xAt" type="datetime-local"></label>
+        <label class="f"><span class="req">Type</span><select id="xType"></select></label>
+        <label class="f">Severity<select id="xSev"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></label>
+        <label class="f">Personal data involved?<select id="xPd"><option>Not sure yet</option><option>Yes</option><option>No</option></select></label>
+        <label class="f">Systems / equipment affected<input id="xSys"></label>
+        <label class="f">Equipment code<input id="xEq" class="combo" data-combo="eq"></label>
+        <label class="f wide"><span class="req">What happened</span><textarea id="xDesc" placeholder="What was seen, who reported it, what data or systems may be affected"></textarea></label>
+        <label class="f wide">Actions taken<textarea id="xAct" placeholder="Containment, recovery, who was told"></textarea></label>
+        <label class="f">Reported to the DPO on<input id="xDpo" type="datetime-local"></label>
+        <label class="f">NPC notice needed?<select id="xNpc"><option value="">Not decided</option><option>To be assessed</option><option>Yes</option><option>No</option></select></label>
+        <label class="f">NPC notified on<input id="xNpcOn" type="datetime-local"></label>
+        <label class="f">Status<select id="xStat"><option>Open</option><option>Contained</option><option>Resolved</option><option>Closed</option></select></label>
+        <label class="f">Related JO no.<input id="xJo" placeholder="ICTU-2026-0001"></label>
+      </div>
+      <div id="xHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="xHist"></div></div>
+      <div class="msg" id="xMsg" role="status"></div></div>
+    <div class="df"><button class="btn ghost hidden" type="button" id="xPrintOne">Print incident report</button><span class="spacer"></span><button class="btn need2" type="submit" id="xSave">Save</button></div>
+  </form>
+</dialog>
+<!-- user account (Head) -->
+<dialog id="uDlg" class="small">
+  <form id="uForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="uTitle">ICTU account</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db"><div class="grid">
+      <label class="f wide"><span class="req">Full name</span><input id="uName" class="combo" data-combo="emp"></label>
+      <label class="f wide">Position<input id="uPos"></label>
+      <label class="f"><span class="req">Username</span><input id="uUser" autocapitalize="none" spellcheck="false" placeholder="for example alopez"></label>
+      <label class="f"><span class="req">Role</span><select id="uRole"><option>Technician</option><option>Viewer</option><option>Head</option></select></label>
+      <label class="f" id="uStatWrap">Status<select id="uStat"><option>Active</option><option>Disabled</option></select></label>
+      <label class="cb wide" id="uResetWrap"><input type="checkbox" id="uReset"> Reset the password (a new temporary one is shown once)</label></div>
+      <div id="uTemp" class="hidden" style="margin-top:12px"></div>
+      <div class="msg" id="uDlgMsg" role="status"></div></div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Close</button><button class="btn" type="submit" id="uSave">Save</button></div>
+  </form>
+</dialog>
+<!-- change my password -->
+<dialog id="pwDlg" class="small">
+  <form id="pwForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Change my password</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db"><div class="grid">
+      <label class="f wide">Current password<input id="pwOld" type="password" autocomplete="current-password"></label>
+      <label class="f wide">New password<input id="pwNew" type="password" autocomplete="new-password"></label>
+      <label class="f wide">Type it again<input id="pwNew2" type="password" autocomplete="new-password"></label></div>
+      <p class="hint">At least 8 characters, with letters and numbers.</p>
+      <div class="msg" id="pwMsg" role="status"></div></div>
+    <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="pwSave">Change password</button></div>
+  </form>
+</dialog>
+<datalist id="dlCat"><option>Ink / toner</option><option>Printer parts</option><option>Computer parts</option><option>Storage (SSD / HDD / flash drive)</option><option>Cables and connectors</option><option>Network parts</option><option>Batteries / UPS</option><option>Cleaning supplies</option><option>Others</option></datalist>
+<datalist id="dlUnit"><option>piece</option><option>bottle</option><option>cartridge</option><option>box</option><option>roll</option><option>meter</option><option>set</option><option>pack</option></datalist>
 <datalist id="dlOs"><option>Windows 11 Pro</option><option>Windows 11 Home</option><option>Windows 10 Pro</option><option>Windows 10 Home</option><option>Ubuntu</option></datalist>
 <datalist id="dlMso"><option>Microsoft Office 2021</option><option>Microsoft Office 2019</option><option>Microsoft Office 2016</option><option>Microsoft 365</option><option>WPS Office</option><option>LibreOffice</option><option>None</option></datalist>
 <datalist id="dlLic"><option>Licensed / activated</option><option>Not activated</option><option>Free / open source</option><option>Not checked</option></datalist>
@@ -838,7 +1165,7 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -855,18 +1182,28 @@ const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "Ju
 const FREQ = { "Monthly": 1, "Quarterly": 3, "Semi-Annual": 6, "Annual": 12 };
 const NOT_SCHEDULED = "Not scheduled (checked with its PC)";
 
-let PIN = store.sget("pin") || "";
-let D = { inventory: [], pms: [], jos: [], employees: [], masterlist: {}, lists: { types: [], offices: [], staff: [], activities: [], conditions: [] }, form: {}, joForm: {}, today: "" };
+let TOKEN = store.get("token") || "";   // sign-in token; the server keeps it for 6 hours from the last use
+let ME = null;                           // { username, name, position, role, mustChange }
+const RANK = { Viewer: 1, Technician: 2, Head: 3 };
+const can = role => !!ME && RANK[ME.role] >= RANK[role];
+let D = { inventory: [], pms: [], jos: [], employees: [], masterlist: {}, lists: { types: [], offices: [], staff: [], activities: [], conditions: [] }, form: {}, joForm: {}, today: "",
+  transfers: [], stock: [], moves: [], incidents: [], network: [], backup: {}, tirRecs: [], choices: {} };
 
 // ---------- connection ----------
 function gsUrl() { return (store.get("gsUrl") || DEFAULT_URL).trim(); }
 function api(req) {
-  req = Object.assign({ pin: PIN, device: device() }, req);
-  if (GAS) return new Promise((ok, no) =>
-    google.script.run.withSuccessHandler(t => ok(JSON.parse(t))).withFailureHandler(e => no(e)).api(JSON.stringify(req)));
-  if (!gsUrl()) return Promise.reject(new Error("nourl"));
-  return fetch(gsUrl(), { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(req) })
-    .then(r => r.json());
+  req = Object.assign({ token: TOKEN, device: device() }, req);
+  const p = GAS ? new Promise((ok, no) =>
+    google.script.run.withSuccessHandler(t => ok(JSON.parse(t))).withFailureHandler(e => no(e)).api(JSON.stringify(req)))
+    : !gsUrl() ? Promise.reject(new Error("nourl"))
+    : fetch(gsUrl(), { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(req) }).then(r => r.json());
+  // An expired or ended sign-in sends the person back to the sign-in card.
+  return p.then(j => { if (j && j.signIn && TOKEN && !$("app").classList.contains("hidden")) signedOut(j.error); return j; });
+}
+function signedOut(why) {
+  TOKEN = ""; store.set("token", ""); ME = null;
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  $("app").classList.add("hidden"); lockStarted = false; showLock(); msg("lockMsg", why || "Please sign in again.", "err");
 }
 function errText(e) {
   if (e && e.message === "nourl") return "Put in the Google Sheet link first.";
@@ -982,58 +1319,108 @@ const CHECKS = [
 ];
 function applies(item, kinds) { return item[2] === "*" || item[2].split(" ").some(k => kinds.includes(k)); }
 
-// ---------- start ----------
+// ---------- start: sign in ----------
 function initLock() {
   const wall = "linear-gradient(rgba(31,42,69,.35), rgba(31,42,69,.35)), url(" + WALLPAPER + ")";
   $("lock").style.backgroundImage = wall; $("pub").style.backgroundImage = "linear-gradient(rgba(31,42,69,.72), rgba(31,42,69,.72)), url(" + WALLPAPER + ")";
   $("hdDoh").src = SEAL_DOH; $("hdTrc").src = SEAL_TRC;
   document.querySelectorAll(".pDoh").forEach(i => i.src = SEAL_DOH); document.querySelectorAll(".pTrc").forEach(i => i.src = SEAL_TRC);
-  $("lockVer").textContent = "Version " + APP_VERSION;
+  $("lockVer").textContent = "v" + APP_VERSION;
   $("urlIn").value = gsUrl();
   const needUrl = !GAS && !gsUrl();
   $("urlWrap").classList.toggle("hidden", !needUrl);
-  $("urlToggleWrap").classList.toggle("hidden", GAS || needUrl);
-  $("urlToggle").onclick = e => { e.preventDefault(); $("urlWrap").classList.remove("hidden"); $("urlToggleWrap").classList.add("hidden"); };
+  $("urlToggle").classList.toggle("hidden", !!GAS || needUrl);
+  $("urlToggle").onclick = e => { e.preventDefault(); $("urlWrap").classList.remove("hidden"); $("urlToggle").classList.add("hidden"); };
+  document.querySelectorAll(".pwShow").forEach(b => b.onclick = () => {
+    const i = b.previousElementSibling, on = i.type === "password"; i.type = on ? "text" : "password"; b.textContent = on ? "Hide" : "Show"; });
+  $("privLink").onclick = () => $("privDlg").showModal();
+  $("lockCodeBtn").onclick = () => { $("lockCodeForm").classList.toggle("hidden"); if (!$("lockCodeForm").classList.contains("hidden")) $("lockCode").focus(); };
+  const saveUrl = () => { if (!GAS && !$("urlWrap").classList.contains("hidden")) store.set("gsUrl", $("urlIn").value.trim()); };
+  $("urlIn").addEventListener("change", () => { saveUrl(); checkSetup(); });
   $("lockForm").onsubmit = async e => {
-    e.preventDefault();
-    if (!GAS && !$("urlWrap").classList.contains("hidden")) store.set("gsUrl", $("urlIn").value.trim());
-    PIN = $("pinIn").value.trim();
-    $("lockBtn").disabled = true; msg("lockMsg", "Opening…");
+    e.preventDefault(); saveUrl();
+    if (!PUB.version && await checkSetup()) return;
+    $("lockBtn").disabled = true; msg("lockMsg", "Signing in…");
     try {
-      const j = await api({ action: "load" });
+      const j = await api({ action: "signIn", username: $("uIn").value.trim(), password: $("pwIn").value });
       if (!j.ok) { msg("lockMsg", j.error, "err"); return; }
-      store.sset("pin", PIN);
-      openApp(j);
+      TOKEN = j.token; store.set("token", TOKEN); store.set("user", $("uIn").value.trim()); ME = j.me;
+      if (ME.mustChange) return lockPane("chg");
+      $("pwIn").value = ""; await startApp();
     } catch (err) { msg("lockMsg", errText(err), "err"); }
     finally { $("lockBtn").disabled = false; }
   };
+  $("setupForm").onsubmit = async e => {
+    e.preventDefault(); saveUrl();
+    $("suBtn").disabled = true; msg("suMsg", "Making the account…");
+    try {
+      const j = await api({ action: "firstHead", pin: $("suPin").value.trim(), user: { fullName: $("suName").value, position: $("suPos").value, username: $("suUser").value, password: $("suPw").value } });
+      if (!j.ok) { msg("suMsg", j.error, "err"); return; }
+      TOKEN = j.token; store.set("token", TOKEN); store.set("user", j.me.username); ME = j.me; await startApp();
+    } catch (err) { msg("suMsg", errText(err), "err"); }
+    finally { $("suBtn").disabled = false; }
+  };
+  $("chgForm").onsubmit = async e => {
+    e.preventDefault();
+    if ($("chgPw").value !== $("chgPw2").value) { msg("chgMsg", "The two passwords are not the same.", "err"); return; }
+    $("chgBtn").disabled = true; msg("chgMsg", "Saving…");
+    try {
+      const j = await api({ action: "changePassword", old: $("pwIn").value, password: $("chgPw").value });
+      if (!j.ok) { msg("chgMsg", j.error, "err"); return; }
+      ME = j.me; $("pwIn").value = ""; $("chgPw").value = ""; $("chgPw2").value = ""; await startApp();
+    } catch (err) { msg("chgMsg", errText(err), "err"); }
+    finally { $("chgBtn").disabled = false; }
+  };
   $("lockCodeForm").onsubmit = e => { e.preventDefault(); const c = codeOf($("lockCode").value); if (c) location.hash = "eq=" + c; else $("lockCode").focus(); };
+  $("uIn").value = store.get("user") || "";
   window.addEventListener("hashchange", route);
   route();
 }
-// Public pages (no passcode) come from the hash: #request, #request&eq=ICT-0001, #eq=ICT-0001.
+function lockPane(which) {
+  ["lockForm", "setupForm", "chgForm"].forEach(id => $(id).classList.add("hidden"));
+  $({ sign: "lockForm", setup: "setupForm", chg: "chgForm" }[which]).classList.remove("hidden");
+  $("lockAlt").classList.toggle("hidden", which === "chg");
+  const f = { sign: $("uIn").value ? "pwIn" : "uIn", setup: "suPin", chg: "chgPw" }[which];
+  setTimeout(() => $(f).focus(), 30);
+}
+async function startApp() {
+  msg("lockMsg", "Opening…");
+  const j = await api({ action: "load" });
+  if (!j.ok) { if (j.signIn) { TOKEN = ""; store.set("token", ""); lockPane("sign"); } msg("lockMsg", j.error, "err"); return; }
+  openApp(j);
+}
+// Public pages (no sign-in) come from the hash: #request, #request&eq=ICT-0001, #eq=ICT-0001, #track=<link code>.
 let wantEq = "";
 function route() {
   const h = decodeURIComponent((location.hash || "").replace(/^#/, ""));
   const eq = (h.match(/(?:^|&)eq=([^&]+)/) || [])[1] || "";
+  const inApp = !$("app").classList.contains("hidden");
   if (/^request/.test(h)) return showPublic("request", codeOf(eq));
+  if (/^track=/.test(h)) return showPublic("track", h.slice(6));
   if (/^eq=/.test(h)) {
-    if (PIN && !$("app").classList.contains("hidden")) { const c = codeOf(eq); history.replaceState(null, "", "#inv"); show("inv"); if (byId(c)) openEq(c); return; }
-    if (PIN) { wantEq = codeOf(eq); return showLock(); }
+    if (inApp) { const c = codeOf(eq); history.replaceState(null, "", "#inv"); show("inv"); if (byId(c)) openEq(c); return; }
+    if (TOKEN) { wantEq = codeOf(eq); return showLock(); }
     return showPublic("eq", codeOf(eq));
   }
   if (!$("pub").classList.contains("hidden")) showLock();
-  else if (!$("app").classList.contains("hidden")) { const v = h.split("&")[0]; if (VIEWS.includes(v)) show(v); }
+  else if (inApp) { const v = h.split("&")[0]; if (VIEWS.includes(v)) show(v); }
   else showLock();
 }
 let lockStarted = false;
-function showLock() {
+async function showLock() {
   $("pub").classList.add("hidden");
   if (!$("app").classList.contains("hidden")) return;
   $("lock").classList.remove("hidden");
   if (lockStarted) return; lockStarted = true;
-  if (PIN) { $("pinIn").value = PIN; $("lockForm").requestSubmit(); }
-  else $("pinIn").focus();
+  if (TOKEN) { lockPane("sign"); try { await startApp(); msg("lockMsg", ""); } catch (e) { msg("lockMsg", errText(e), "err"); } return; }
+  lockPane("sign");
+  checkSetup();
+}
+// The very first time there are no accounts yet: show the setup card.
+async function checkSetup() {
+  if (!GAS && !gsUrl()) return false;
+  try { const j = await api({ action: "publicInit" }); if (j.ok) { PUB = j; if (j.needsSetup) { lockPane("setup"); return true; } } } catch (e) {}
+  return false;
 }
 // "ict 1", "ICT-0001" or a scanned link -> "ICT-0001"
 function codeOf(t) {
@@ -1042,19 +1429,28 @@ function codeOf(t) {
 }
 function msg(id, t, cls) { const el = $(id); el.textContent = t || ""; el.className = "msg" + (cls ? " " + cls : ""); }
 
-const VIEWS = ["home", "inv", "sched", "pm", "recs", "jo", "reports"];
+const VIEWS = ["home", "dash", "inv", "sched", "pm", "recs", "tr", "stock", "net", "jo", "inc", "reports", "acc"];
 function openApp(j) {
   take(j);
+  setMe(j.me || ME);
   $("lock").classList.add("hidden"); $("pub").classList.add("hidden"); $("app").classList.remove("hidden");
   fillPickers();
   renderAll();
   const v = (location.hash || "").replace("#", "");
   if (wantEq) { show("inv"); if (byId(wantEq)) openEq(wantEq); wantEq = ""; return; }
-  show(VIEWS.includes(v) ? v : "home");
+  show(VIEWS.includes(v) && (v !== "acc" || can("Head")) && (v !== "pm" || can("Technician")) ? v : "home");
+}
+function setMe(me) {
+  ME = me;
+  document.body.classList.remove("r1", "r2", "r3"); document.body.classList.add("r" + (RANK[me.role] || 1));
+  $("meAv").textContent = me.name.split(/\s+/).filter(w => /^[A-Za-z]/.test(w) && !/^[A-Z]\.?$/.test(w)).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "IT";
+  $("meName").textContent = me.name.split(/\s+/)[0]; $("meName2").textContent = me.name; $("meRole").textContent = me.role + (me.position ? ", " + me.position : "");
 }
 function take(j) {
   D = { inventory: j.inventory || [], pms: j.pms || [], jos: j.jos || [], lists: j.lists, form: j.form || {}, joForm: j.joForm || {}, today: j.today || isoDate(new Date()),
-    version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {} };
+    version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {},
+    transfers: j.transfers || [], stock: j.stock || [], moves: j.moves || [], incidents: j.incidents || [], network: j.network || [],
+    backup: j.backup || {}, tirRecs: j.tirRecs || [], choices: j.choices || {} };
   $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 async function reload() {
@@ -1075,7 +1471,23 @@ $("reloadBtn").onclick = () => { menuOpen(false); reload(); };
 $("mScan").onclick = () => { menuOpen(false); openScan(); };
 $("scanBtn").onclick = () => openScan();
 $("mReq").onclick = () => { menuOpen(false); window.open(PUBLIC_URL + "#request", "_blank", "noopener"); };
-$("lockOut").onclick = () => { store.sset("pin", null); PIN = ""; location.hash = ""; location.reload(); };
+$("lockOut").onclick = async () => {
+  menuOpen(false);
+  try { await api({ action: "signOut" }); } catch (e) {}
+  store.set("token", ""); TOKEN = ""; location.hash = ""; location.reload();
+};
+$("mPw").onclick = () => { menuOpen(false); ["pwOld", "pwNew", "pwNew2"].forEach(id => $(id).value = ""); msg("pwMsg", ""); $("pwDlg").showModal(); $("pwOld").focus(); };
+$("pwForm").onsubmit = async e => {
+  e.preventDefault();
+  if ($("pwNew").value !== $("pwNew2").value) { msg("pwMsg", "The two new passwords are not the same.", "err"); return; }
+  $("pwSave").disabled = true; msg("pwMsg", "Saving…");
+  try {
+    const j = await api({ action: "changePassword", old: $("pwOld").value, password: $("pwNew").value });
+    if (!j.ok) { msg("pwMsg", j.error, "err"); return; }
+    msg("pwMsg", "Your password was changed.", "ok"); setTimeout(() => $("pwDlg").close(), 900);
+  } catch (err) { msg("pwMsg", errText(err), "err"); }
+  finally { $("pwSave").disabled = false; }
+};
 
 // ---------- navigation ----------
 function show(v) {
@@ -1083,6 +1495,8 @@ function show(v) {
   document.querySelectorAll("section.view").forEach(s => s.classList.toggle("hidden", s.id !== "v-" + v));
   $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
   if (v === "pm") setTimeout(sizePad, 30);
+  if (v === "dash") renderDash();
+  if (v === "acc") loadUsers();
   try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) {}
   window.scrollTo(0, 0);
 }
@@ -1111,6 +1525,15 @@ function fillPickers(keep) {
   keepVal("jMonth", '<option value="">All months</option>' + months.map(m => '<option value="' + m + '">' + monthName(m) + "</option>").join(""));
   keepVal("mrMonth", months.map(m => '<option value="' + m + '">' + monthName(m) + "</option>").join(""));
   keepVal("jPri", '<option value="">All priorities</option>' + opts(JO_PRIORITY) + '<option value="none">No priority yet</option>');
+  const C = D.choices || {};
+  keepVal("tKind", opts(C.transfer || [], "All kinds")); keepVal("trKind", opts(C.transfer || []));
+  keepVal("mKind", opts(C.move || [])); keepVal("xType", opts(C.incType || []));
+  keepVal("nKind", opts(C.netKind || [], "All kinds")); keepVal("nKindIn", opts(C.netKind || []));
+  keepVal("jTirRec", opts(D.tirRecs || [], "None (no TIR needed)"));
+  keepVal("kCat", opts([...new Set(D.stock.map(k => k.category).filter(Boolean))].sort(), "All categories"));
+  const ty = new Date().getFullYear();
+  keepVal("tYear", opts([...new Set(D.transfers.map(t => t.date.slice(0, 4)).concat([String(ty)]))].sort().reverse(), "All years"));
+  keepVal("rpFrom", [ty - 1, ty, ty + 1, ty + 2].map(v => "<option" + (v === ty ? " selected" : "") + ">" + v + "</option>").join(""));
   if (!keep) {
     const head = L.staff.find(s => /head/i.test(s[1]));
     if (head) { $("pVer").value = head[0]; $("qNoted").value = head[0]; }
@@ -1118,6 +1541,8 @@ function fillPickers(keep) {
     if (other) { $("qBy").value = other[0]; $("mrBy").value = other[0]; }
     if (head) $("mrNoted").value = head[0];
     $("qPos").value = (L.staff.find(s => s[0] === $("qBy").value) || [])[1] || "";
+    // The signed-in person is the default "performed by" and "serviced by".
+    if (ME && staff.includes(ME.name)) { $("pBy").value = ME.name; $("qBy").value = ME.name; $("mrBy").value = ME.name; $("qPos").value = (L.staff.find(s => s[0] === ME.name) || [])[1] || ""; }
   }
   const y = new Date().getFullYear();
   const years = [...new Set(D.pms.map(p => +p.date.slice(0, 4)).concat([y - 1, y, y + 1]))].filter(Boolean).sort();
@@ -1133,7 +1558,8 @@ function fillPickers(keep) {
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
-function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); }
+function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderRepl(); renderCost(); renderBackup();
+  if (!$("v-dash").classList.contains("hidden")) renderDash(); }
 
 // ---------- home ----------
 function renderHome() {
@@ -1150,7 +1576,7 @@ function renderHome() {
   const list = late.concat(due, soon).sort((a, b) => (a.nextDue || "0") < (b.nextDue || "0") ? -1 : 1);
   $("homeDue").innerHTML = list.length ? list.slice(0, 40).map(it => `<div class="due-item"><div class="t"><b>${esc(it.id)}  ${esc(eqName(it))}</b>
       <span>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}</span></div>
-      ${dueChip(it)}<button class="btn small" data-pm="${esc(it.id)}" type="button">Start PM</button></div>`).join("") +
+      ${dueChip(it)}<button class="btn small need2" data-pm="${esc(it.id)}" type="button">Start PM</button></div>`).join("") +
       (list.length > 40 ? '<p class="hint">' + (list.length - 40) + " more on the PMS Schedule tab.</p>" : "")
     : '<div class="empty">Nothing is due in the next 30 days.</div>';
   const rec = D.pms.filter(p => p.recordStatus !== "Voided").slice().sort((a, b) => a.ref < b.ref ? 1 : -1).slice(0, 6);
@@ -1210,22 +1636,29 @@ function eqViewMode() {
   const hist = smHistory(it.id);
   const kv = [["Equipment type", it.type], ["Brand / model", it.brand], ["Description / specs", it.desc], ["Serial no.", it.serial],
     ["Property tag no.", it.tag], ["Section / unit", it.office], ["End user", it.endUser], ["Accountable officer", it.accountable],
-    ["Source document", it.source], ["Date acquired", nice(it.acquired)], ["Unit cost", it.cost ? "PHP " + Number(it.cost).toLocaleString("en-PH", { minimumFractionDigits: 2 }) : ""],
+    ["Source document", it.source], ["Date acquired", nice(it.acquired)], ["Unit cost", it.cost ? peso(it.cost) : ""],
+    ["Parts and outside repairs", (() => { const c = costOf(it); return c.spent ? peso(c.spent) + (c.pct != null ? " (" + Math.round(c.pct * 100) + "% of its cost)" : "") : ""; })()],
+    ["Replace by", (() => { const r = replOf(it); return r.year ? r.year + " (useful life " + r.life + " years)" : ""; })()],
     ["Warranty until", nice(it.warranty)], ["Computer name / IP", it.compName], ["OS installed", it.os], ["MS Office installed", it.msOffice],
     ["PM frequency", it.freq], ["Last PM", it.lastPm ? nice(it.lastPm) + " (" + it.lastRef + ")" : "None yet"], ["Remarks", it.remarks],
     ["Last updated", it.updatedAt ? it.updatedAt + (it.updatedBy ? " by " + it.updatedBy : "") : ""]].filter(r => r[1]);
-  $("eqView").innerHTML = `<div class="row" style="margin-bottom:10px">${condChip(it.condition)} ${dueChip(it)}</div>
+  const cst = costOf(it), trs = D.transfers.filter(t => t.equipmentId === it.id).sort((a, b) => a.no < b.no ? 1 : -1);
+  $("eqView").innerHTML = `<div class="row" style="margin-bottom:10px">${condChip(it.condition)} ${dueChip(it)}${cst.pct >= .5 ? ' <span class="chip bad">Repairs reached ' + Math.round(cst.pct * 100) + "% of its cost</span>" : ""}</div>
     <dl class="kv">${kv.map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>
     <h4 style="margin:16px 0 6px">Service and maintenance history <span style="font-weight:400;color:var(--muted)">PMs and job orders</span></h4>
     ${hist.length ? `<div class="tablewrap"><table class="list"><thead><tr><th>Reference</th><th>Date</th><th>Work done or problem</th><th>By</th><th>Status</th></tr></thead><tbody>
       ${hist.map(h => `<tr data-${h.kind}="${esc(h.ref)}"><td><b>${esc(h.ref)}</b></td><td class="num">${esc(nice(h.date))}</td><td>${esc(h.what)}<div class="s">${esc(h.detail)}</div></td><td>${esc(h.by)}</td><td>${h.chip}</td></tr>`).join("")}
-      </tbody></table></div>` : '<p class="hint">No PM or job order for this unit yet.</p>'}`;
+      </tbody></table></div>` : '<p class="hint">No PM or job order for this unit yet.</p>'}
+    ${trs.length ? `<h4 style="margin:16px 0 6px">Transfers and turnovers</h4><div class="tablewrap"><table class="list"><thead><tr><th>Transfer no.</th><th>Date</th><th>From</th><th>To</th><th>PAR / ICS</th></tr></thead><tbody>
+      ${trs.map(t => `<tr data-tr="${esc(t.no)}"><td><b>${esc(t.no)}</b></td><td class="num">${esc(nice(t.date))}</td><td>${esc(t.fromOffice)}<div class="s">${esc(t.fromUser)}</div></td><td>${esc(t.toOffice)}<div class="s">${esc(t.toUser)}</div></td><td>${esc(t.doc)}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+  $("eqView").querySelectorAll("tr[data-tr]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openTr(tr.dataset.tr); });
   $("eqView").querySelectorAll("tr[data-pm]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openRec(tr.dataset.pm); });
   $("eqView").querySelectorAll("tr[data-jo]").forEach(tr => tr.onclick = () => { $("eqDlg").close(); openJo(tr.dataset.jo); });
-  $("eqFoot").innerHTML = `<button class="btn ghost" type="button" id="eqEditBtn">Edit details</button>
+  $("eqFoot").innerHTML = `<button class="btn ghost need2" type="button" id="eqEditBtn">Edit details</button><button class="btn ghost need2" type="button" id="eqTrBtn">Transfer</button>
     <button class="btn ghost" type="button" id="eqQrBtn">Print QR label</button><button class="btn ghost" type="button" id="eqSmBtn">Print S&amp;M history</button><span class="spacer"></span>
-    <button class="btn ghost" type="button" id="eqJoBtn">New job order</button>` +
-    (it.condition !== "Disposed" ? `<button class="btn" type="button" id="eqPmBtn">Start PM</button>` : "");
+    <button class="btn ghost need2" type="button" id="eqJoBtn">New job order</button>` +
+    (it.condition !== "Disposed" ? `<button class="btn need2" type="button" id="eqPmBtn">Start PM</button>` : "");
+  $("eqTrBtn").onclick = () => { $("eqDlg").close(); openTr(null, it.id); };
   $("eqEditBtn").onclick = eqEditMode;
   $("eqQrBtn").onclick = () => printLabels([it]);
   $("eqSmBtn").onclick = () => printSm(it);
@@ -1348,8 +1781,8 @@ combo($("rUnit"), { source: officeRows });
 
 // Picking an employee sets the section / unit (and position) to where that employee is assigned.
 // ICTU can still change the section afterwards.
-const EMP_OFFICE = { eEndUser: "eOffice", pEndUser: "pOffice", jName: "jUnit" };
-const EMP_POS = { jName: "jPos" };
+const EMP_OFFICE = { eEndUser: "eOffice", pEndUser: "pOffice", jName: "jUnit", trUser: "trOffice" };
+const EMP_POS = { jName: "jPos", uName: "uPos" };
 function applyEmp(input) {
   const e = findEmp(input.value.trim());
   if (!e) return;
@@ -1441,7 +1874,7 @@ function renderSched() {
         <td>${esc(it.office)}<div style="color:var(--muted);font-size:12px">${esc(it.endUser)}</div></td><td>${esc(it.freq.replace(NOT_SCHEDULED, "With PC"))}</td>` +
         MONTHS.map((m, mo) => { const c = schedCell(it, y, mo, plan, done);
           return `<td class="m${y === t.getFullYear() && mo === t.getMonth() ? " now" : ""}">${c ? `<i class="mk ${c.cls}" title="${esc(c.tip)}">${c.t}</i>` : ""}</td>`; }).join("") +
-        `<td><button class="btn small ghost" data-pm="${esc(it.id)}" type="button">Start PM</button></td></tr>`;
+        `<td><button class="btn small ghost need2" data-pm="${esc(it.id)}" type="button">Start PM</button></td></tr>`;
     }).join("") + "</tbody>";
   bindRowButtons($("sTable"));
 }
@@ -1725,7 +2158,8 @@ let joCur = null;
 const JO_FIELDS = { jPos: "position", jUnit: "unit", jContact: "contact", jMode: "mode", jEq: "equipmentId", jEquip: "equipment", jModel: "model",
   jSerial: "serial", jLoc: "location", jUrgent: "urgent", jUrgReason: "urgentReason", jOthers: "others", jDesc: "description", jHead: "unitHead",
   jPriority: "priority", jStatus: "status", jRecvBy: "receivedBy", jBy: "personnel", jClass: "classification", jService: "service",
-  jFind: "findings", jAction: "action", jParts: "parts", jNote: "statusNote", jRem: "remarks", jCsmS: "csmSpeed", jCsmQ: "csmQuality", jCsmC: "csmCourtesy", jSugg: "suggestions" };
+  jFind: "findings", jAction: "action", jParts: "parts", jNote: "statusNote", jRem: "remarks", jCsmS: "csmSpeed", jCsmQ: "csmQuality", jCsmC: "csmCourtesy", jSugg: "suggestions",
+  jTirRec: "tirRec", jTirCost: "tirCost", jRepCost: "repairCost" };
 // eqId: start a new job order for this unit
 function openJo(no, eqId) {
   joCur = no ? D.jos.find(j => j.jo === no) : null;
@@ -1743,6 +2177,7 @@ function openJo(no, eqId) {
   $("joHistWrap").classList.toggle("hidden", !joCur);
   $("joHist").textContent = joCur ? (j.history || "") + (j.target ? "\nTarget: " + niceDt(j.target) + (j.withinTarget ? (j.withinTarget === "Yes" ? ", met" : ", missed") : "") : "") : "";
   $("joPrint").classList.toggle("hidden", !joCur);
+  joExtras(joCur);
   msg("joMsg", "");
   $("joDlg").showModal();
   (joCur ? $("jPriority") : $("jName")).focus();
@@ -1787,13 +2222,28 @@ $("joSave").onclick = async () => {
     if (k >= 0) D.jos[k] = j.jo; else D.jos.push(j.jo);
     if (j.item) { const i = D.inventory.findIndex(x => x.id === j.item.id); if (i >= 0) D.inventory[i] = j.item; }
     fillPickers(true); renderAll();
-    joCur = j.jo; $("joTitle").textContent = j.jo.jo + "  " + joWho(j.jo); $("joPrint").classList.remove("hidden");
+    joCur = j.jo; $("joTitle").textContent = j.jo.jo + "  " + joWho(j.jo); $("joPrint").classList.remove("hidden"); joExtras(joCur);
     $("joHistWrap").classList.remove("hidden"); $("joHist").textContent = j.jo.history || "";
     msg("joMsg", j.unchanged ? "Nothing was changed." : (k >= 0 ? "Saved." : "Logged as " + j.jo.jo + "."), "ok");
   } catch (e) { msg("joMsg", errText(e), "err"); }
   finally { $("joSave").disabled = false; }
 };
 $("joPrint").onclick = () => { if (joCur) doPrint(joFormHtml(joCur), false); };
+$("joTir").onclick = () => { if (joCur) printTir(joCur); };
+const trackLink = t => PUBLIC_URL + "#track=" + t;
+// TIR number, and the requestor's feedback link (QR) on a saved job order.
+function joExtras(j) {
+  $("joTir").classList.toggle("hidden", !(j && j.tirRec));
+  $("jTirNo").textContent = j && j.tirNo ? "TIR No. " + j.tirNo + ". Print it from the button below." : "Pick a recommendation when the unit needs parts, outside repair, condemnation or replacement. Saving gives it a TIR No.";
+  const box = $("joCsm");
+  if (!j || !j.token) { box.innerHTML = ""; return; }
+  const link = trackLink(j.token), closed = !joOpen(j) && j.status !== "Cancelled";
+  box.innerHTML = j.csmAt ? `<p class="hint" style="margin:0 0 8px">The requestor rated this job order on ${esc(niceDt(j.csmAt))}.</p>`
+    : `<div class="csmlink">${qrSvg(link)}<div><b>${closed ? "Ask the requestor to rate the service" : "Requestor's link"}</b>
+      <div class="hint" style="margin:2px 0 6px">${closed ? "They scan this with their phone, or you send them the link. It is also printed on the form." : "They can follow the job order with it, and rate it once it is done."}</div>
+      <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a> <button class="btn ghost small" type="button" id="csmCopy">Copy link</button></div></div>`;
+  if ($("csmCopy")) $("csmCopy").onclick = () => { try { navigator.clipboard.writeText(link); $("csmCopy").textContent = "Copied"; } catch (e) {} };
+}
 $("blankJo").onclick = () => doPrint(joFormHtml(null), false);
 $("jCsv").onclick = () => csv("ICTU JO Log " + todayStr() + ".csv",
   ["JO No.", "Date/Time Logged", "Status", "Priority", "Requestor", "Position", "Section / Unit", "Mode of Request", "Equipment ID", "Equipment / System", "Brand / Model",
@@ -1815,9 +2265,10 @@ function smHistory(id) {
 let PUB = {};
 async function showPublic(kind, eq) {
   $("lock").classList.add("hidden"); $("app").classList.add("hidden"); $("pub").classList.remove("hidden");
-  ["pubEq", "reqForm", "reqDone"].forEach(id => $(id).classList.add("hidden"));
+  ["pubEq", "reqForm", "reqDone", "pubTrack"].forEach(id => $(id).classList.add("hidden"));
   window.scrollTo(0, 0);
   if (kind === "eq") return pubEquipment(eq);
+  if (kind === "track") return pubTrack(eq);
   $("reqForm").classList.remove("hidden"); msg("reqMsg", "");
   $("rEqId").value = eq || "";
   $("reqEq").classList.add("hidden");
@@ -1857,6 +2308,44 @@ async function pubEquipment(code) {
     $("pubFull").onclick = e => { e.preventDefault(); wantEq = it.id; history.replaceState(null, "", "#inv"); showLock(); };
   } catch (e) { box.innerHTML = "<p>" + esc(errText(e)) + "</p>"; }
 }
+// The requestor's own job order, from the link or QR on their form. Shows no staff names.
+async function pubTrack(t) {
+  const box = $("pubTrack"); box.classList.remove("hidden");
+  box.innerHTML = '<p class="hint">Looking up your job order…</p>';
+  try {
+    const j = await api({ action: "trackJO", t });
+    if (!j.ok) { box.innerHTML = "<p>" + esc(j.error) + '</p><a class="btn" href="#request">Request ICT help</a>'; return; }
+    const o = j.jo, scale = j.scale || CSM;
+    const kv = [["Filed", niceDt(o.logged)], ["Section / unit", o.unit], ["Equipment / system", o.equipment], ["Your request", o.description],
+      ["Target", o.finishedAt ? "" : niceDt(o.target)], ["Done on", niceDt(o.finishedAt)], ["Action taken", o.action]].filter(r => r[1]);
+    const q = [["speed", "Speed of service"], ["quality", "Quality of the solution"], ["courtesy", "Courtesy of ICTU personnel"]];
+    box.innerHTML = `<h3>Job order ${esc(o.jo)}</h3><div class="row" style="margin-bottom:12px">${joChip({ status: o.status, target: o.target })}</div>
+      <dl class="kv">${kv.map(r => `<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl>
+      <div id="rateBox" style="margin-top:18px"></div>`;
+    const rb = $("rateBox");
+    if (o.rated) rb.innerHTML = "<p><b>Thank you.</b> You already rated this job order.</p>";
+    else if (!o.canRate) rb.innerHTML = '<p class="hint">' + (o.status === "Cancelled" ? "This job order was cancelled." : "Once the job order is done, you can rate our service here. Please keep this link.") + "</p>";
+    else {
+      rb.innerHTML = `<h3 style="margin:0 0 4px">How did we do?</h3><p class="hint" style="margin:0 0 12px">Your answers help the ICT Unit improve. It takes less than a minute.</p>
+        <form class="rate" id="rateForm">${q.map(x => `<fieldset><legend>${esc(x[1])}</legend><div class="choice">${scale.map(c => `<label><input type="radio" name="${x[0]}" value="${esc(c)}"> ${esc(c)}</label>`).join("")}</div></fieldset>`).join("")}
+          <label class="f">Suggestions (optional)<textarea id="rateSugg" maxlength="600"></textarea></label>
+          <div class="row"><button class="btn" type="submit" id="rateSend">Send my rating</button></div><div class="msg" id="rateMsg" role="status"></div></form>`;
+      $("rateForm").onsubmit = async e => {
+        e.preventDefault();
+        const val = n => (document.querySelector('input[name="' + n + '"]:checked') || {}).value;
+        const ans = { speed: val("speed"), quality: val("quality"), courtesy: val("courtesy") };
+        if (!ans.speed || !ans.quality || !ans.courtesy) { msg("rateMsg", "Please answer all three questions.", "err"); return; }
+        $("rateSend").disabled = true; msg("rateMsg", "Sending…");
+        try {
+          const r = await api(Object.assign({ action: "rateJO", t, suggestions: $("rateSugg").value }, ans));
+          if (!r.ok) { msg("rateMsg", r.error, "err"); return; }
+          rb.innerHTML = "<p><b>Thank you for your feedback.</b> Please also fill in the ARTA Client Satisfaction Measurement (CSM) form if the ICT Unit gives you one.</p>";
+        } catch (err) { msg("rateMsg", errText(err), "err"); }
+        finally { if ($("rateSend")) $("rateSend").disabled = false; }
+      };
+    }
+  } catch (e) { box.innerHTML = "<p>" + esc(errText(e)) + "</p>"; }
+}
 $("pubIctu").onclick = e => { e.preventDefault(); history.replaceState(null, "", "#home"); showLock(); };
 $("reqForm").onsubmit = async e => {
   e.preventDefault();
@@ -1877,6 +2366,7 @@ $("reqForm").onsubmit = async e => {
     $("reqForm").classList.add("hidden");
     $("reqDone").innerHTML = `<h3>Received. Your JO No. is ${esc(j.jo)}</h3>
       <p>The ICT Unit has your request and will get back to you. Please print the form or save it as PDF, sign it${rec.types.some(t => /\*$/.test(t)) ? " (and have your Section / Unit Head sign it)" : ""}, and bring or send it to the ICT Unit.</p>
+      ${rec.token ? `<p>Keep this link to follow your request and to rate the service when it is done: <a href="${esc(trackLink(rec.token))}">${esc(trackLink(rec.token))}</a>. The same link is printed as a QR code on the form.</p>` : ""}
       <div class="row"><button class="btn" type="button" id="reqPrint">Print or save as PDF</button><a class="btn ghost" href="#request" id="reqAgain">File another request</a></div>`;
     $("reqDone").classList.remove("hidden"); window.scrollTo(0, 0);
     $("reqPrint").onclick = () => doPrint(joFormHtml(rec), false);
@@ -2093,7 +2583,8 @@ function printSm(it) {
     <table><tr><td class="k">Equipment ID:</td><td><b>${esc(it.id)}</b></td><td class="k">Property Tag No.:</td><td>${esc(it.tag)}</td></tr>
       <tr><td class="k">Type / Brand / Model:</td><td>${esc(it.type)}, ${esc(it.brand)}</td><td class="k">Serial No.:</td><td>${esc(it.serial)}</td></tr>
       <tr><td class="k">Section / Unit:</td><td>${esc(it.office)}</td><td class="k">End User:</td><td>${esc(it.endUser)}</td></tr>
-      <tr><td class="k">Date Acquired:</td><td>${esc(nice(it.acquired))}</td><td class="k">Condition:</td><td>${esc(it.condition)}</td></tr></table>
+      <tr><td class="k">Date Acquired:</td><td>${esc(nice(it.acquired))}</td><td class="k">Condition:</td><td>${esc(it.condition)}</td></tr>
+      <tr><td class="k">Unit Cost:</td><td>${esc(peso(it.cost))}</td><td class="k">Parts and Outside Repairs:</td><td>${(() => { const c = costOf(it); return esc(peso(c.spent)) + (c.pct != null && c.spent ? " (" + Math.round(c.pct * 100) + "% of the unit cost)" : ""); })()}</td></tr></table>
     <table><thead><tr><th>Date</th><th>Reference</th><th>Work Done / Problem</th><th>Findings / Action Taken</th><th>By</th><th>Status</th></tr></thead><tbody>
     ${h.length ? h.map(x => `<tr><td>${esc(nice(x.date))}</td><td>${esc(x.ref)}</td><td>${esc(x.what)}</td><td>${esc([x.detail, x.kind === "pm" ? x.action : ""].filter(Boolean).join(". "))}</td><td>${esc(x.by)}</td><td>${esc(x.status)}</td></tr>`).join("")
       : '<tr><td colspan="6" class="c">No PM or job order recorded yet.</td></tr>'}</tbody></table>
@@ -2153,6 +2644,7 @@ function joFormHtml(j) {
     <table><tr><th style="text-align:left">How satisfied are you with:</th>${CSM.map(c => "<th>" + c + "</th>").join("")}</tr>
       ${[["Speed of service", j.csmSpeed], ["Quality of the solution", j.csmQuality], ["Courtesy of ICTU personnel", j.csmCourtesy]].map(q => '<tr><td class="sm">' + q[0] + "</td>" + CSM.map(c => '<td class="c">' + (q[1] === c ? TICK : BOX) + "</td>").join("") + "</tr>").join("")}</table>
     <div class="sm">Suggestions: ${j.suggestions ? v(j.suggestions) : "_____________________________________________________________________________________________"}</div>
+    ${j.token ? `<div class="rateqr">${qrSvg(trackLink(j.token))}<div class="sm"><b>Rate our service on your phone.</b> Scan this code to follow this job order and, once it is done, tell us how we did.</div></div>` : ""}
     <div class="sm" style="font-weight:bold;margin-top:.6mm">Please also accomplish the ARTA Client Satisfaction Measurement (CSM) form for this transaction.</div>
     <div class="foot">Controlled QMS record: one (1) form per request; JO No. recorded in the ICTU Job Order Log; original filed with the ICT Unit (Ref.: ADM-HIMS-P-03 ICTU Service Procedure).</div>
     <div class="fbar">E-mail Address: salagfacility@gmail.com &nbsp; | &nbsp; Facebook: facebook.com/trcdulag &nbsp; | &nbsp; Mobile: +639060868020</div></div>`;
@@ -2206,6 +2698,572 @@ $("mrPrint").onclick = () => {
       : '<tr><td colspan="8" class="c">No job orders this month.</td></tr>'}</tbody></table>
     ${signs(by, noted)}</div>`, false);
 };
+// ---------- money and shared helpers for the registers ----------
+const peso = n => n === "" || n == null || isNaN(Number(n)) ? "" : "PHP " + Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const qty = n => Number(n || 0).toLocaleString("en-PH", { maximumFractionDigits: 2 });
+const hay = (arr, q) => !q || arr.join(" ").toLowerCase().includes(q);
+function sigTable(cols) {
+  return `<table style="margin-top:3mm"><tr>${cols.map(c => `<th>${esc(c[0])}</th>`).join("")}</tr>
+    <tr>${cols.map(c => `<td class="sig" style="height:13mm">${esc(String(c[1] || "").toUpperCase())}</td>`).join("")}</tr>
+    <tr>${cols.map(c => `<td class="c xs">${esc(c[2] || "Signature over Printed Name / Date")}</td>`).join("")}</tr></table>`;
+}
+const headOf = () => D.lists.staff.find(s => /head/i.test(s[1])) || ["", "Head, ICT Unit"];
+
+// ---------- cost per unit and replacement plan ----------
+function costOf(it) {
+  const parts = D.moves.filter(m => m.equipmentId === it.id && m.movement === "Issued").reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  const repairs = D.jos.filter(j => j.equipmentId === it.id && j.status !== "Cancelled").reduce((s, j) => s + (Number(j.repairCost) || 0), 0);
+  const unit = Number(it.cost) || 0;
+  return { unit, parts, repairs, spent: parts + repairs, total: unit + parts + repairs, pct: unit ? (parts + repairs) / unit : null };
+}
+function typeRow(type) { return D.lists.types.find(x => x[0] === type) || []; }
+function replOf(it) {
+  const a = parse(it.acquired), life = Number(typeRow(it.type)[2]) || 5;
+  return { life, year: a ? a.getFullYear() + life : null, age: a ? (parse(todayStr()) - a) / (365.25 * 864e5) : null,
+    cost: Number(typeRow(it.type)[3]) || Number(it.cost) || 0 };
+}
+// Units by the year they should be replaced. Unserviceable units and units past their useful life go to "now".
+function replPlan() {
+  const from = +$("rpFrom").value || new Date().getFullYear(), n = +$("rpYears").value || 5;
+  const groups = [{ key: "now", label: "Replace now (past its useful life, or unserviceable)", rows: [] }];
+  for (let y = from; y < from + n; y++) groups.push({ key: y, label: "CY " + y, rows: [] });
+  const noDate = [];
+  D.inventory.filter(it => active(it)).forEach(it => {
+    const r = Object.assign({ it }, replOf(it));
+    if (it.condition === "Unserviceable" || (r.year && r.year < from)) groups[0].rows.push(r);
+    else if (!r.year) noDate.push(r);
+    else { const g = groups.find(x => x.key === r.year); if (g) g.rows.push(r); }
+  });
+  groups.forEach(g => { g.rows.sort((a, b) => (a.it.type + a.it.id).localeCompare(b.it.type + b.it.id)); g.cost = g.rows.reduce((s, r) => s + r.cost, 0); });
+  return { groups, noDate, from, n };
+}
+function typeCounts(rows) { const c = {}; rows.forEach(r => c[r.it.type] = (c[r.it.type] || 0) + 1); return Object.keys(c).sort().map(k => c[k] + " " + k).join(", "); }
+function renderRepl() {
+  if (!$("rpFrom").value) return;
+  const P = replPlan();
+  $("rpView").innerHTML = `<div class="tablewrap"><table class="list"><thead><tr><th>When</th><th class="money">Units</th><th class="money">Estimated cost</th><th class="hide-m">What</th></tr></thead><tbody>
+    ${P.groups.map(g => `<tr><td>${esc(g.label)}</td><td class="money">${g.rows.length}</td><td class="money">${esc(peso(g.cost))}</td><td class="hide-m s">${esc(typeCounts(g.rows))}</td></tr>`).join("")}
+    </tbody></table></div>${P.noDate.length ? `<p class="hint">${P.noDate.length} unit(s) have no date acquired, so they cannot be planned yet. Add the date in the masterlist.</p>` : ""}`;
+}
+["rpFrom", "rpYears"].forEach(id => $(id).addEventListener("input", renderRepl));
+$("rpPrint").onclick = () => {
+  const P = replPlan(), total = P.groups.reduce((s, g) => s + g.cost, 0);
+  doPrint(`<div class="sheet land">${header()}<h3>ICT EQUIPMENT REPLACEMENT PLAN, CY ${P.from} TO ${P.from + P.n - 1}</h3>
+    <div class="sub">Based on the date acquired and the useful life of each type of equipment. As of ${esc(longDate(todayStr()))}. Estimated total: ${esc(peso(total))}.</div>
+    <table><thead><tr><th>ID</th><th>Type</th><th>Brand / Model</th><th>Serial No.</th><th>Section / End User</th><th>Acquired</th><th>Age (yrs)</th><th>Useful Life</th><th>Condition</th><th>Est. Cost</th></tr></thead><tbody>
+    ${P.groups.filter(g => g.rows.length).map(g => `<tr><td colspan="10" class="cg">${esc(g.label)}: ${g.rows.length} unit(s), ${esc(peso(g.cost))}</td></tr>` +
+      g.rows.map(r => `<tr><td>${esc(r.it.id)}</td><td>${esc(r.it.type)}</td><td>${esc(r.it.brand)}</td><td>${esc(r.it.serial)}</td><td>${esc(r.it.office)}${r.it.endUser ? ", " + esc(r.it.endUser) : ""}</td>
+        <td>${esc(nice(r.it.acquired))}</td><td class="c">${r.age != null ? r.age.toFixed(1) : ""}</td><td class="c">${r.life}</td><td>${esc(r.it.condition)}</td><td style="text-align:right">${esc(peso(r.cost))}</td></tr>`).join("")).join("")}
+    </tbody></table>${P.noDate.length ? `<p class="xs">${P.noDate.length} unit(s) without a date acquired are not included.</p>` : ""}${signs()}</div>`, true);
+};
+$("rpCsv").onclick = () => { const P = replPlan(); csv("ICT Replacement Plan " + todayStr() + ".csv", ["When", "Equipment ID", "Type", "Brand / Model", "Serial No.", "Section", "End User", "Date Acquired", "Age (years)", "Useful Life", "Condition", "Estimated Cost"],
+  P.groups.flatMap(g => g.rows.map(r => [g.label, r.it.id, r.it.type, r.it.brand, r.it.serial, r.it.office, r.it.endUser, r.it.acquired, r.age != null ? r.age.toFixed(1) : "", r.life, r.it.condition, r.cost]))); };
+function costRows() { return D.inventory.map(it => Object.assign({ it }, costOf(it))).filter(r => r.spent || r.unit).sort((a, b) => (b.pct || 0) - (a.pct || 0) || b.spent - a.spent); }
+function renderCost() {
+  const rows = costRows().filter(r => r.spent), flag = rows.filter(r => r.pct >= .5);
+  $("cuView").innerHTML = rows.length ? `<p style="margin:0 0 8px">${rows.length} unit(s) have parts or outside repair costs${flag.length ? ", and <b>" + flag.length + "</b> reached half of their cost" : ""}.</p>
+    <div class="tablewrap"><table class="list"><thead><tr><th>Equipment</th><th class="money">Unit cost</th><th class="money">Parts</th><th class="money">Repairs</th><th class="money">Share</th></tr></thead><tbody>
+    ${rows.slice(0, 8).map(r => `<tr data-id="${esc(r.it.id)}"><td><b>${esc(r.it.id)}</b> ${esc(r.it.brand)}<div class="s">${esc(r.it.office)}</div></td><td class="money">${esc(peso(r.unit))}</td><td class="money">${esc(peso(r.parts))}</td><td class="money">${esc(peso(r.repairs))}</td>
+      <td class="money">${r.pct != null ? (r.pct >= .5 ? '<span class="chip bad">' : "") + Math.round(r.pct * 100) + "%" + (r.pct >= .5 ? "</span>" : "") : ""}</td></tr>`).join("")}</tbody></table></div>`
+    : '<p class="hint" style="margin:0">No parts issued to a unit and no outside repair cost recorded yet.</p>';
+  $("cuView").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => openEq(tr.dataset.id));
+}
+$("cuPrint").onclick = () => {
+  const rows = costRows();
+  doPrint(`<div class="sheet land">${header()}<h3>COST PER UNIT OF ICT EQUIPMENT</h3><div class="sub">Unit cost, parts issued from ICTU stock, and outside repairs from job orders. As of ${esc(longDate(todayStr()))}.</div>
+    <table><thead><tr><th>ID</th><th>Type / Brand / Model</th><th>Section</th><th>Acquired</th><th>Unit Cost</th><th>Parts Issued</th><th>Outside Repairs</th><th>Total Cost</th><th>Parts and Repairs vs. Unit Cost</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${esc(r.it.id)}</td><td>${esc(r.it.type)}, ${esc(r.it.brand)}</td><td>${esc(r.it.office)}</td><td>${esc(nice(r.it.acquired))}</td><td style="text-align:right">${esc(peso(r.unit))}</td>
+      <td style="text-align:right">${esc(peso(r.parts))}</td><td style="text-align:right">${esc(peso(r.repairs))}</td><td style="text-align:right">${esc(peso(r.total))}</td><td class="c">${r.pct != null ? Math.round(r.pct * 100) + "%" + (r.pct >= .5 ? " (consider TIR / replacement)" : "") : ""}</td></tr>`).join("")}
+    </tbody></table>${signs()}</div>`, true);
+};
+$("cuCsv").onclick = () => csv("ICT Cost per Unit " + todayStr() + ".csv", ["Equipment ID", "Type", "Brand / Model", "Section", "Date Acquired", "Unit Cost", "Parts Issued", "Outside Repairs", "Total", "Share of Unit Cost"],
+  costRows().map(r => [r.it.id, r.it.type, r.it.brand, r.it.office, r.it.acquired, r.unit, r.parts, r.repairs, r.total, r.pct != null ? Math.round(r.pct * 100) + "%" : ""]));
+
+// ---------- Technical Inspection Report (printed from the job order) ----------
+function printTir(j) {
+  const it = byId(j.equipmentId) || {}, r = it.id ? replOf(it) : {}, c = it.id ? costOf(it) : {};
+  const recs = D.tirRecs.length ? D.tirRecs : [j.tirRec];
+  const jobs = it.id ? D.jos.filter(x => x.equipmentId === it.id && x.status !== "Cancelled").length : 0;
+  const pms = it.id ? pmsOf(it.id).length : 0;
+  doPrint(`<div class="sheet">${header()}<h3>TECHNICAL INSPECTION REPORT</h3>
+    <table><tr><td class="k">TIR No.:</td><td><b>${esc(j.tirNo || "")}</b></td><td class="k">Date:</td><td>${esc(longDate(todayStr()))}</td></tr>
+      <tr><td class="k">Reference JO No.:</td><td>${esc(j.jo)}</td><td class="k">Requesting Section:</td><td>${esc(j.unit)}</td></tr></table>
+    <div class="sec">A. EQUIPMENT</div>
+    <table><tr><td class="k">Equipment ID:</td><td>${esc(it.id || j.equipmentId || "")}</td><td class="k">Property Tag No.:</td><td>${esc(it.tag || "")}</td></tr>
+      <tr><td class="k">Type / Brand / Model:</td><td>${esc([it.type || j.equipment, it.brand || j.model].filter(Boolean).join(", "))}</td><td class="k">Serial No.:</td><td>${esc(it.serial || j.serial || "")}</td></tr>
+      <tr><td class="k">Description / Specs:</td><td colspan="3">${esc(it.desc || "")}</td></tr>
+      <tr><td class="k">End User / Section:</td><td>${esc([it.endUser, it.office].filter(Boolean).join(", "))}</td><td class="k">Accountable Officer:</td><td>${esc(it.accountable || "")}</td></tr>
+      <tr><td class="k">Date Acquired:</td><td>${esc(nice(it.acquired))}${r.age != null ? " (" + r.age.toFixed(1) + " years old)" : ""}</td><td class="k">Unit Cost:</td><td>${esc(peso(it.cost))}</td></tr>
+      <tr><td class="k">Useful Life:</td><td>${r.life ? r.life + " years" : ""}</td><td class="k">Service History:</td><td>${jobs} job order(s), ${pms} PM(s); parts and repairs so far ${esc(peso(c.spent || 0))}</td></tr></table>
+    <div class="sec">B. FINDINGS</div>
+    <table><tr><td class="k">Problem Reported:</td><td>${esc(joWhat(j))}</td></tr><tr><td class="k">Findings / Cause:</td><td style="height:12mm">${esc(j.findings)}</td></tr>
+      <tr><td class="k">Action Taken:</td><td style="height:8mm">${esc(j.action)}</td></tr><tr><td class="k">Parts Needed:</td><td>${esc(j.parts)}</td></tr></table>
+    <div class="sec">C. RECOMMENDATION</div>
+    <table><tr><td>${recs.map(x => box(j.tirRec === x) + esc(x)).join("<br>")}</td></tr>
+      <tr><td>Estimated Repair Cost: ${j.tirCost !== "" && j.tirCost != null ? "<b>" + esc(peso(j.tirCost)) + "</b>" : "____________"}${it.cost && j.tirCost ? " (" + Math.round(j.tirCost / it.cost * 100) + "% of the unit cost)" : ""}</td></tr></table>
+    ${sigTable([["INSPECTED BY (ICTU Personnel)", j.personnel || j.receivedBy], ["NOTED BY (Head, ICT Unit)", headOf()[0]], ["RECEIVED BY (MMU / Supply)", ""]])}
+    <div class="foot">For condemnation or replacement, attach this report to the request to the Materials Management Unit. Ref.: ${esc(j.jo)}.</div></div>`, false);
+}
+
+// ---------- transfers and turnovers (PAR / ICS) ----------
+function renderTr() {
+  const q = $("tQ").value.trim().toLowerCase(), k = $("tKind").value, y = $("tYear").value;
+  const list = D.transfers.filter(t => (!k || t.kind === k) && (!y || t.date.slice(0, 4) === y) &&
+    hay([t.no, t.equipmentId, t.kind, t.fromOffice, t.fromUser, t.fromOfficer, t.toOffice, t.toUser, t.toOfficer, t.doc, t.remarks, (byId(t.equipmentId) || {}).brand], q))
+    .sort((a, b) => a.no < b.no ? 1 : -1);
+  $("tCount").textContent = list.length + " of " + D.transfers.length + " transfers";
+  $("tTable").tBodies[0].innerHTML = list.length ? list.map(t => { const it = byId(t.equipmentId) || {};
+    return `<tr data-t="${esc(t.no)}"><td><b>${esc(t.no)}</b><div class="s">${esc(t.kind)}</div></td><td class="num">${esc(nice(t.date))}</td>
+      <td>${esc(t.equipmentId)}<div class="s">${esc(it.brand || "")}</div></td><td>${esc(t.fromOffice)}<div class="s">${esc([t.fromUser, t.fromOfficer].filter(Boolean).join(" / "))}</div></td>
+      <td>${esc(t.toOffice)}<div class="s">${esc([t.toUser, t.toOfficer].filter(Boolean).join(" / "))}</div></td><td class="hide-m">${esc(t.doc)}</td></tr>`; }).join("")
+    : '<tr><td colspan="6" class="empty">No transfers recorded yet.</td></tr>';
+  $("tTable").querySelectorAll("tbody tr[data-t]").forEach(tr => tr.onclick = () => openTr(tr.dataset.t));
+}
+["tQ", "tKind", "tYear"].forEach(id => $(id).addEventListener("input", renderTr));
+$("newTr").onclick = () => openTr(null);
+let trCur = null;
+function openTr(no, eqId) {
+  trCur = no ? D.transfers.find(t => t.no === no) : null;
+  if (no && !trCur) return;
+  const t = trCur || {};
+  $("trTitle").textContent = trCur ? trCur.no + "  " + trCur.kind : "Record a transfer or turnover";
+  $("trEq").value = t.equipmentId || eqId || ""; $("trKind").value = t.kind || (D.choices.transfer || [])[0] || "";
+  $("trDate").value = t.date || todayStr();
+  $("trUser").value = t.toUser || ""; $("trOffice").value = t.toOffice || ""; $("trOfficer").value = t.toOfficer || "";
+  $("trDoc").value = t.doc || ""; $("trRem").value = t.remarks || "";
+  trLock(!!trCur); trShowNow(); msg("trMsg", ""); $("trDlg").showModal();
+}
+function trLock(ro) {
+  $("trForm").querySelectorAll(".db input, .db select").forEach(i => i.disabled = ro);
+  $("trSave").classList.toggle("hidden", ro); $("trPrint").classList.toggle("hidden", !ro);
+}
+function trShowNow() {
+  const box = $("trNow"), t = trCur, it = byId(codeOf($("trEq").value));
+  if (t) box.innerHTML = `<div class="t"><b>Came from ${esc(t.fromOffice)}</b><span>End user: ${esc(t.fromUser || "none")}. Accountable officer: ${esc(t.fromOfficer || "none")}. Recorded by ${esc(t.recordedBy)} on ${esc(niceDt(t.recordedAt))}.</span></div>`;
+  else if (it) box.innerHTML = `<div class="t"><b>${esc(it.id)}  ${esc(eqName(it))}</b><span>Now with ${esc(it.office)}. End user: ${esc(it.endUser || "none")}. Accountable officer: ${esc(it.accountable || "none")}${it.source ? ". " + esc(it.source) : ""}.</span></div>`;
+  box.classList.toggle("hidden", !t && !it);
+}
+$("trEq").addEventListener("change", trShowNow);
+$("trForm").onsubmit = async e => {
+  e.preventDefault(); if (trCur) return;
+  const item = { equipmentId: codeOf($("trEq").value), kind: $("trKind").value, date: $("trDate").value, toUser: $("trUser").value.trim(),
+    toOffice: $("trOffice").value.trim(), toOfficer: $("trOfficer").value.trim(), doc: $("trDoc").value.trim(), remarks: $("trRem").value.trim() };
+  if (!byId(item.equipmentId)) { msg("trMsg", "Pick the equipment from the masterlist.", "err"); return; }
+  $("trSave").disabled = true; msg("trMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveTransfer", item });
+    if (!j.ok) { msg("trMsg", j.error, "err"); return; }
+    D.transfers.push(j.transfer); const k = D.inventory.findIndex(x => x.id === j.item.id); if (k >= 0) D.inventory[k] = j.item;
+    trCur = j.transfer; fillPickers(true); renderAll();
+    $("trTitle").textContent = trCur.no + "  " + trCur.kind; trLock(true); trShowNow();
+    msg("trMsg", "Saved as " + trCur.no + ". The masterlist now shows the new section and names. Print the slip for signing.", "ok");
+  } catch (err) { msg("trMsg", errText(err), "err"); }
+  finally { $("trSave").disabled = false; }
+};
+$("trPrint").onclick = () => { if (trCur) printTr(trCur); };
+function printTr(t) {
+  const it = byId(t.equipmentId) || {};
+  doPrint(`<div class="sheet">${header()}<h3>ICT EQUIPMENT TRANSFER / TURNOVER SLIP</h3>
+    <table><tr><td class="k">Transfer No.:</td><td><b>${esc(t.no)}</b></td><td class="k">Date:</td><td>${esc(longDate(t.date))}</td></tr>
+      <tr><td class="k">Kind:</td><td>${esc(t.kind)}</td><td class="k">PAR / ICS / PTR No.:</td><td>${esc(t.doc)}</td></tr></table>
+    <div class="sec">EQUIPMENT</div>
+    <table><tr><td class="k">Equipment ID:</td><td>${esc(t.equipmentId)}</td><td class="k">Property Tag No.:</td><td>${esc(it.tag || "")}</td></tr>
+      <tr><td class="k">Type / Brand / Model:</td><td>${esc([it.type, it.brand].filter(Boolean).join(", "))}</td><td class="k">Serial No.:</td><td>${esc(it.serial || "")}</td></tr>
+      <tr><td class="k">Description / Specs:</td><td colspan="3">${esc(it.desc || "")}</td></tr>
+      <tr><td class="k">Date Acquired:</td><td>${esc(nice(it.acquired))}</td><td class="k">Unit Cost:</td><td>${esc(peso(it.cost))}</td></tr>
+      <tr><td class="k">Condition:</td><td colspan="3">${esc(it.condition || "")}</td></tr></table>
+    <div class="sec">TRANSFER DETAILS</div>
+    <table><tr><th style="width:24%"></th><th>FROM</th><th>TO</th></tr>
+      <tr><td class="k">Section / Unit</td><td>${esc(t.fromOffice)}</td><td>${esc(t.toOffice)}</td></tr>
+      <tr><td class="k">End User</td><td>${esc(t.fromUser)}</td><td>${esc(t.toUser)}</td></tr>
+      <tr><td class="k">Accountable Officer</td><td>${esc(t.fromOfficer)}</td><td>${esc(t.toOfficer)}</td></tr>
+      <tr><td class="k">Reason / Remarks</td><td colspan="2">${esc(t.remarks)}</td></tr></table>
+    ${sigTable([["RELEASED BY (Accountable Officer)", t.fromOfficer], ["RECEIVED BY (New Accountable Officer)", t.toOfficer], ["NOTED BY (Head, ICT Unit)", headOf()[0]], ["SUPPLY / MMU", ""]])}
+    <div class="foot">ICTU record of the transfer of ICT equipment. It does not replace the PTR / ITR or the new PAR / ICS prepared by the Supply / Property Unit.</div>
+    <div class="meta">Recorded by ${esc(t.recordedBy)} on ${esc(niceDt(t.recordedAt))}.</div></div>`, false);
+}
+
+// ---------- spare parts and consumables ----------
+const OUT = m => m === "Issued" || m === "Adjustment (-)";
+function balances() { const b = {}; D.moves.forEach(m => { b[m.code] = (b[m.code] || 0) + (OUT(m.movement) ? -1 : 1) * (Number(m.qty) || 0); }); return b; }
+const isLow = (k, bal) => k.reorder !== "" && k.reorder != null && (bal[k.code] || 0) <= Number(k.reorder);
+function renderStock() {
+  const bal = balances(), q = $("kQ").value.trim().toLowerCase(), cat = $("kCat").value, low = $("kLow").checked;
+  const list = D.stock.filter(k => (!cat || k.category === cat) && (!low || isLow(k, bal)) && hay([k.code, k.item, k.category, k.remarks], q))
+    .sort((a, b) => a.item.localeCompare(b.item));
+  const value = D.stock.reduce((s, k) => s + (bal[k.code] || 0) * (Number(k.cost) || 0), 0);
+  const lows = D.stock.filter(k => isLow(k, bal)).length, mo = todayStr().slice(0, 7);
+  const issued = D.moves.filter(m => m.movement === "Issued" && m.date.slice(0, 7) === mo).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  $("kTiles").innerHTML = `<div class="tile"><div class="lb">Items on the list</div><div class="val">${D.stock.length}</div></div>
+    <div class="tile${lows ? " warn" : ""}"><div class="lb">Low stock</div><div class="val">${lows}</div><div class="sm">at or below the reorder level</div></div>
+    <div class="tile"><div class="lb">Value on hand</div><div class="val" style="font-size:24px">${esc(peso(value))}</div></div>
+    <div class="tile"><div class="lb">Issued this month</div><div class="val" style="font-size:24px">${esc(peso(issued))}</div></div>`;
+  $("kCount").textContent = list.length + " of " + D.stock.length + " items";
+  $("kTable").tBodies[0].innerHTML = list.length ? list.map(k => `<tr data-k="${esc(k.code)}"><td><b>${esc(k.code)}</b></td>
+    <td>${esc(k.item)}<div class="s">${esc([k.category, k.unit].filter(Boolean).join(", "))}</div></td>
+    <td class="money"><b>${qty(bal[k.code] || 0)}</b>${isLow(k, bal) ? ' <span class="chip warn">Low</span>' : ""}</td><td class="hide-m money">${k.reorder === "" ? "" : qty(k.reorder)}</td>
+    <td class="hide-m money">${esc(peso(k.cost))}</td><td class="hide-m money">${esc(peso((bal[k.code] || 0) * (Number(k.cost) || 0)))}</td>
+    <td style="white-space:nowrap"><button class="btn ghost small need2" type="button" data-mv="Received">Receive</button> <button class="btn ghost small need2" type="button" data-mv="Issued">Issue</button></td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">' + (D.stock.length ? "No item matches." : "No parts or supplies listed yet.") + "</td></tr>";
+  $("kTable").querySelectorAll("tbody tr[data-k]").forEach(tr => {
+    tr.onclick = () => openStock(tr.dataset.k);
+    tr.querySelectorAll("[data-mv]").forEach(b => b.onclick = e => { e.stopPropagation(); openMove(tr.dataset.k, b.dataset.mv); });
+  });
+  const name = c => (D.stock.find(k => k.code === c) || {}).item || c;
+  const mv = D.moves.slice().sort((a, b) => a.ref < b.ref ? 1 : -1).slice(0, 60);
+  $("mTable").tBodies[0].innerHTML = mv.length ? mv.map(m => `<tr><td><b>${esc(m.ref)}</b></td><td class="num">${esc(nice(m.date))}</td><td>${esc(name(m.code))}</td>
+    <td><span class="chip ${m.movement === "Received" ? "ok" : OUT(m.movement) ? "" : "mute"}">${esc(m.movement)}</span></td><td class="money">${OUT(m.movement) ? "-" : "+"}${qty(m.qty)}</td>
+    <td class="hide-m">${esc([m.equipmentId, m.unit, m.reference].filter(Boolean).join(", "))}<div class="s">${esc(m.remarks)}</div></td><td class="hide-m">${esc(m.recordedBy)}</td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">No movements yet.</td></tr>';
+}
+["kQ", "kCat", "kLow"].forEach(id => $(id).addEventListener("input", renderStock));
+let kCur = null;
+function openStock(code) {
+  kCur = code ? D.stock.find(k => k.code === code) : null;
+  const k = kCur || {};
+  $("kTitle").textContent = kCur ? kCur.code + "  " + kCur.item : "Add a part or supply";
+  $("kItem").value = k.item || ""; $("kCatIn").value = k.category || ""; $("kUnit").value = k.unit || "";
+  $("kReorder").value = k.reorder == null ? "" : k.reorder; $("kCost").value = k.cost == null ? "" : k.cost; $("kRem").value = k.remarks || "";
+  $("kCard").classList.toggle("hidden", !kCur); msg("kMsg", ""); $("kDlg").showModal();
+}
+$("addStock").onclick = () => openStock(null);
+$("kForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = { code: kCur ? kCur.code : "", item: $("kItem").value, category: $("kCatIn").value, unit: $("kUnit").value, reorder: $("kReorder").value, cost: $("kCost").value, remarks: $("kRem").value };
+  if (!item.item.trim() || !item.unit.trim()) { msg("kMsg", "The item and its unit are needed.", "err"); return; }
+  $("kSave").disabled = true; msg("kMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveStockItem", item });
+    if (!j.ok) { msg("kMsg", j.error, "err"); return; }
+    const i = D.stock.findIndex(x => x.code === j.item.code); if (i >= 0) D.stock[i] = j.item; else D.stock.push(j.item);
+    fillPickers(true); renderStock(); kCur = j.item; $("kTitle").textContent = j.item.code + "  " + j.item.item; $("kCard").classList.remove("hidden");
+    msg("kMsg", j.unchanged ? "Nothing was changed." : i >= 0 ? "Saved." : "Added as " + j.item.code + ". Use Receive to put in what you have on hand.", "ok");
+  } catch (err) { msg("kMsg", errText(err), "err"); }
+  finally { $("kSave").disabled = false; }
+};
+let mCode = "";
+function openMove(code, kind) {
+  const k = D.stock.find(x => x.code === code); if (!k) return;
+  mCode = code;
+  $("mTitle").textContent = kind === "Issued" ? "Issue " + k.item : kind === "Received" ? "Receive " + k.item : "Stock movement";
+  $("mItem").innerHTML = `<div class="t"><b>${esc(k.code)}  ${esc(k.item)}</b><span>On hand: ${qty(balances()[code] || 0)} ${esc(k.unit)}. Unit cost ${esc(peso(k.cost) || "not set")}.</span></div>`;
+  $("mKind").value = kind; $("mQty").value = ""; $("mDate").value = todayStr(); $("mCost").value = ""; $("mCost").placeholder = k.cost ? String(k.cost) : "";
+  ["mEq", "mUnit", "mRef", "mRem"].forEach(id => $(id).value = "");
+  mFields(); msg("mMsg", ""); $("mDlg").showModal(); $("mQty").focus();
+}
+function mFields() {
+  const v = $("mKind").value;
+  $("mCostWrap").classList.toggle("hidden", v === "Issued" || v === "Adjustment (-)");
+  $("mEqWrap").classList.toggle("hidden", v !== "Issued"); $("mUnitWrap").classList.toggle("hidden", v !== "Issued");
+}
+$("mKind").addEventListener("input", mFields);
+$("mEq").addEventListener("change", () => { const it = byId(codeOf($("mEq").value)); if (it && !$("mUnit").value) $("mUnit").value = it.office; });
+$("mForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = { code: mCode, movement: $("mKind").value, qty: $("mQty").value, date: $("mDate").value, cost: $("mCost").value, equipmentId: codeOf($("mEq").value),
+    unit: $("mUnit").value.trim(), reference: $("mRef").value.trim(), remarks: $("mRem").value.trim() };
+  $("mSave").disabled = true; msg("mMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveMove", item });
+    if (!j.ok) { msg("mMsg", j.error, "err"); return; }
+    D.moves.push(j.move); const i = D.stock.findIndex(x => x.code === j.stockItem.code); if (i >= 0) D.stock[i] = j.stockItem;
+    renderAll(); $("mDlg").close();
+  } catch (err) { msg("mMsg", errText(err), "err"); }
+  finally { $("mSave").disabled = false; }
+};
+$("kCard").onclick = () => {
+  const k = kCur; if (!k) return;
+  let bal = 0;
+  const rows = D.moves.filter(m => m.code === k.code).sort((a, b) => a.ref < b.ref ? -1 : 1).map(m => { const q = Number(m.qty) || 0; bal += OUT(m.movement) ? -q : q;
+    return `<tr><td>${esc(nice(m.date))}</td><td>${esc(m.ref)}</td><td>${esc(m.movement)}</td><td class="c">${OUT(m.movement) ? "" : qty(q)}</td><td class="c">${OUT(m.movement) ? qty(q) : ""}</td><td class="c"><b>${qty(bal)}</b></td>
+      <td>${esc([m.equipmentId, m.unit, m.reference].filter(Boolean).join(", "))}${m.remarks ? ". " + esc(m.remarks) : ""}</td><td>${esc(m.recordedBy)}</td></tr>`; }).join("");
+  doPrint(`<div class="sheet">${header()}<h3>STOCK CARD</h3>
+    <table><tr><td class="k">Item:</td><td><b>${esc(k.item)}</b></td><td class="k">Item Code:</td><td>${esc(k.code)}</td></tr>
+      <tr><td class="k">Category:</td><td>${esc(k.category)}</td><td class="k">Unit:</td><td>${esc(k.unit)}</td></tr>
+      <tr><td class="k">Reorder Level:</td><td>${esc(k.reorder)}</td><td class="k">Unit Cost:</td><td>${esc(peso(k.cost))}</td></tr></table>
+    <table><thead><tr><th>Date</th><th>Ref. No.</th><th>Movement</th><th>In</th><th>Out</th><th>Balance</th><th>For / Reference</th><th>By</th></tr></thead><tbody>${rows || '<tr><td colspan="8" class="c">No movements yet.</td></tr>'}</tbody></table>
+    ${signs()}</div>`, false);
+};
+$("kPrint").onclick = () => {
+  const bal = balances();
+  doPrint(`<div class="sheet">${header()}<h3>ICTU SPARE PARTS AND CONSUMABLES ON HAND</h3><div class="sub">As of ${esc(longDate(todayStr()))}.</div>
+    <table><thead><tr><th>Code</th><th>Item</th><th>Category</th><th>Unit</th><th>On Hand</th><th>Reorder Level</th><th>Unit Cost</th><th>Value</th></tr></thead><tbody>
+    ${D.stock.slice().sort((a, b) => a.item.localeCompare(b.item)).map(k => `<tr><td>${esc(k.code)}</td><td>${esc(k.item)}${isLow(k, bal) ? " <b>(low)</b>" : ""}</td><td>${esc(k.category)}</td><td>${esc(k.unit)}</td>
+      <td class="c">${qty(bal[k.code] || 0)}</td><td class="c">${esc(k.reorder)}</td><td style="text-align:right">${esc(peso(k.cost))}</td><td style="text-align:right">${esc(peso((bal[k.code] || 0) * (Number(k.cost) || 0)))}</td></tr>`).join("")}
+    </tbody></table>${signs()}</div>`, false);
+};
+
+// ---------- network and IP inventory ----------
+function contractChip(n) {
+  const d = parse(n.contractEnd); if (!d || n.status === "Retired") return "";
+  const left = Math.round((d - parse(todayStr())) / 864e5);
+  return left < 0 ? '<span class="chip bad">Contract ended ' + esc(nice(n.contractEnd)) + "</span>" : left <= 60 ? '<span class="chip warn">Contract ends ' + esc(nice(n.contractEnd)) + "</span>" : "";
+}
+function netFiltered() {
+  const q = $("nQ").value.trim().toLowerCase(), k = $("nKind").value, st = $("nStatus").value;
+  return D.network.filter(n => (!k || n.kind === k) && (st === "*" ? true : st ? n.status === st : n.status !== "Retired") &&
+    hay([n.id, n.kind, n.name, n.ip, n.mac, n.vlan, n.location, n.model, n.provider, n.account, n.equipmentId, n.remarks], q))
+    .sort((a, b) => { const ip = x => (x.ip || "999").split(/[./]/).map(p => p.padStart(3, "0")).join("."); return ip(a).localeCompare(ip(b)) || a.id.localeCompare(b.id); });
+}
+function renderNet() {
+  const list = netFiltered();
+  $("nCount").textContent = list.length + " of " + D.network.length + " items";
+  $("nTable").tBodies[0].innerHTML = list.length ? list.map(n => `<tr data-n="${esc(n.id)}"><td><b>${esc(n.id)}</b></td><td>${esc(n.name)}<div class="s">${esc(n.kind)}${n.provider ? ", " + esc(n.provider) : ""}${n.bandwidth ? ", " + esc(n.bandwidth) : ""}</div></td>
+    <td class="num">${esc(n.ip)}<div class="s">${esc(n.vlan)}</div></td><td class="hide-m num">${esc(n.mac)}</td><td class="hide-m">${esc(n.location)}</td>
+    <td><span class="chip ${n.status === "Active" ? "ok" : "mute"}">${esc(n.status)}</span> ${contractChip(n)}</td></tr>`).join("")
+    : '<tr><td colspan="6" class="empty">' + (D.network.length ? "Nothing matches." : "No network items listed yet.") + "</td></tr>";
+  $("nTable").querySelectorAll("tbody tr[data-n]").forEach(tr => tr.onclick = () => openNet(tr.dataset.n));
+}
+["nQ", "nKind", "nStatus"].forEach(id => $(id).addEventListener("input", renderNet));
+let nCur = null;
+const NET_FIELDS = { nKindIn: "kind", nName: "name", nIp: "ip", nMac: "mac", nVlan: "vlan", nLoc: "location", nModel: "model", nEq: "equipmentId", nProv: "provider",
+  nAcct: "account", nBw: "bandwidth", nEnd: "contractEnd", nCost: "monthly", nStat: "status", nRem: "remarks" };
+function openNet(id) {
+  nCur = id ? D.network.find(n => n.id === id) : null;
+  const n = nCur || { status: "Active", kind: (D.choices.netKind || [])[0] };
+  Object.keys(NET_FIELDS).forEach(k => $(k).value = n[NET_FIELDS[k]] == null ? "" : n[NET_FIELDS[k]]);
+  $("nTitle").textContent = nCur ? nCur.id + "  " + nCur.name : "Add a network item";
+  msg("nMsg", nCur && nCur.updatedAt ? "Last updated " + niceDt(nCur.updatedAt) + " by " + nCur.updatedBy + "." : ""); $("nDlg").showModal();
+}
+$("addNet").onclick = () => openNet(null);
+$("nForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = {}; Object.keys(NET_FIELDS).forEach(k => item[NET_FIELDS[k]] = $(k).value.trim());
+  item.equipmentId = codeOf(item.equipmentId) || ""; if (nCur) item.id = nCur.id;
+  if (!item.name) { msg("nMsg", "Give it a name or label.", "err"); return; }
+  $("nSave").disabled = true; msg("nMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveNetwork", item });
+    if (!j.ok) { msg("nMsg", j.error, "err"); return; }
+    const i = D.network.findIndex(x => x.id === j.item.id); if (i >= 0) D.network[i] = j.item; else D.network.push(j.item);
+    nCur = j.item; renderNet(); $("nTitle").textContent = nCur.id + "  " + nCur.name;
+    msg("nMsg", j.unchanged ? "Nothing was changed." : i >= 0 ? "Saved." : "Added as " + nCur.id + ".", "ok");
+  } catch (err) { msg("nMsg", errText(err), "err"); }
+  finally { $("nSave").disabled = false; }
+};
+$("nPrint").onclick = () => {
+  const list = netFiltered();
+  doPrint(`<div class="sheet land">${header()}<h3>NETWORK AND IP INVENTORY</h3><div class="sub">Information and Communications Technology Unit (ICTU). As of ${esc(longDate(todayStr()))}. Confidential: for ICTU use only.</div>
+    <table><thead><tr><th>ID</th><th>Kind</th><th>Name / Label</th><th>IP Address</th><th>MAC Address</th><th>VLAN / Subnet</th><th>Location</th><th>Brand / Model</th><th>Provider / Account</th><th>Contract End</th><th>Status</th></tr></thead><tbody>
+    ${list.map(n => `<tr><td>${esc(n.id)}</td><td>${esc(n.kind)}</td><td>${esc(n.name)}</td><td>${esc(n.ip)}</td><td>${esc(n.mac)}</td><td>${esc(n.vlan)}</td><td>${esc(n.location)}</td><td>${esc(n.model)}${n.equipmentId ? " (" + esc(n.equipmentId) + ")" : ""}</td>
+      <td>${esc([n.provider, n.account, n.bandwidth].filter(Boolean).join(", "))}</td><td>${esc(nice(n.contractEnd))}</td><td>${esc(n.status)}</td></tr>`).join("")}</tbody></table>${signs()}</div>`, true);
+};
+
+// ---------- incident and data breach log ----------
+function npcClock(x) {
+  if (x.npcOn || x.npcNeeded === "No" || x.status === "Closed" || !(x.personal === "Yes" || x.npcNeeded === "Yes")) return null;
+  const d = dtOf(x.discovered); if (!d) return null;
+  const due = new Date(d.getTime() + 72 * 3600e3), left = (due - new Date()) / 3600e3;
+  const t = due.getFullYear() + "-" + String(due.getMonth() + 1).padStart(2, "0") + "-" + String(due.getDate()).padStart(2, "0") + " " + String(due.getHours()).padStart(2, "0") + ":" + String(due.getMinutes()).padStart(2, "0");
+  return left > 0 ? { cls: left <= 24 ? "bad" : "warn", text: "NPC 72-hour mark: " + niceDt(t) + " (" + Math.ceil(left) + " hours left)" }
+    : { cls: "bad", text: "Past the NPC 72-hour mark (" + niceDt(t) + ")" };
+}
+const sevChip = s => '<span class="chip ' + ({ Low: "mute", Medium: "", High: "warn", Critical: "bad" }[s] || "") + '">' + esc(s) + "</span>";
+const incChip = s => '<span class="chip ' + ({ Open: "bad", Contained: "warn", Resolved: "ok", Closed: "mute" }[s] || "") + '">' + esc(s) + "</span>";
+function incFiltered() {
+  const q = $("xQ").value.trim().toLowerCase(), sh = $("xShow").value;
+  return D.incidents.filter(x => (sh !== "open" || x.status !== "Closed") && hay([x.no, x.type, x.systems, x.equipmentId, x.description, x.actions, x.jo], q)).sort((a, b) => a.no < b.no ? 1 : -1);
+}
+function renderInc() {
+  const list = incFiltered();
+  $("xCount").textContent = list.length + " of " + D.incidents.length + " incidents";
+  $("xTable").tBodies[0].innerHTML = list.length ? list.map(x => { const c = npcClock(x);
+    return `<tr data-x="${esc(x.no)}"><td><b>${esc(x.no)}</b></td><td class="num">${esc(niceDt(x.discovered))}</td><td>${esc(x.type)}<div class="s">${esc(x.description.slice(0, 110))}</div>${c ? '<span class="chip ' + c.cls + '">' + esc(c.text) + "</span>" : ""}</td>
+      <td>${sevChip(x.severity)}</td><td>${incChip(x.status)}</td><td class="hide-m">${esc(x.personal)}${x.npcNeeded ? "<div class=\"s\">NPC: " + esc(x.npcNeeded) + "</div>" : ""}</td></tr>`; }).join("")
+    : '<tr><td colspan="6" class="empty">' + (D.incidents.length ? "Nothing matches." : "No incidents recorded.") + "</td></tr>";
+  $("xTable").querySelectorAll("tbody tr[data-x]").forEach(tr => tr.onclick = () => openInc(tr.dataset.x));
+}
+["xQ", "xShow"].forEach(id => $(id).addEventListener("input", renderInc));
+$("newInc").onclick = () => openInc(null);
+let xCur = null;
+const INC_FIELDS = { xType: "type", xSev: "severity", xPd: "personal", xSys: "systems", xEq: "equipmentId", xDesc: "description", xAct: "actions", xNpc: "npcNeeded", xStat: "status", xJo: "jo" };
+function openInc(no) {
+  xCur = no ? D.incidents.find(x => x.no === no) : null;
+  const x = xCur || { severity: "Medium", personal: "Not sure yet", status: "Open", type: (D.choices.incType || [])[0] };
+  Object.keys(INC_FIELDS).forEach(k => $(k).value = x[INC_FIELDS[k]] == null ? "" : x[INC_FIELDS[k]]);
+  $("xAt").value = toLocalInput(x.discovered) || (xCur ? "" : isoDate(new Date()) + "T" + nowTime()); $("xDpo").value = toLocalInput(x.dpoOn); $("xNpcOn").value = toLocalInput(x.npcOn);
+  $("xTitle").textContent = xCur ? xCur.no + "  " + xCur.type : "Record an incident";
+  incExtras(); msg("xMsg", ""); $("xDlg").showModal();
+}
+function incExtras() {
+  const c = xCur && npcClock(xCur);
+  $("xClock").innerHTML = c ? '<div class="issues" style="background:' + (c.cls === "bad" ? "var(--bad-soft)" : "var(--warn-soft)") + ';color:var(--ink)"><b>' + esc(c.text) + ".</b> Tell the DPO, and decide with the DPO whether the NPC and the affected persons must be notified.</div>" : "";
+  $("xHistWrap").classList.toggle("hidden", !xCur); $("xHist").textContent = xCur ? xCur.history : "";
+  $("xPrintOne").classList.toggle("hidden", !xCur);
+}
+$("xForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = {}; Object.keys(INC_FIELDS).forEach(k => item[INC_FIELDS[k]] = $(k).value.trim());
+  Object.assign(item, { discovered: $("xAt").value, dpoOn: $("xDpo").value, npcOn: $("xNpcOn").value, equipmentId: codeOf(item.equipmentId) || "" });
+  if (xCur) item.no = xCur.no;
+  if (!item.discovered || !item.description) { msg("xMsg", "When it was discovered and what happened are needed.", "err"); return; }
+  $("xSave").disabled = true; msg("xMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveIncident", item });
+    if (!j.ok) { msg("xMsg", j.error, "err"); return; }
+    const i = D.incidents.findIndex(x => x.no === j.item.no); if (i >= 0) D.incidents[i] = j.item; else D.incidents.push(j.item);
+    xCur = j.item; renderInc(); renderHome(); $("xTitle").textContent = xCur.no + "  " + xCur.type; incExtras();
+    msg("xMsg", j.unchanged ? "Nothing was changed." : i >= 0 ? "Saved." : "Recorded as " + xCur.no + ".", "ok");
+  } catch (err) { msg("xMsg", errText(err), "err"); }
+  finally { $("xSave").disabled = false; }
+};
+$("xPrintOne").onclick = () => {
+  const x = xCur; if (!x) return;
+  const kv = [["Incident No.", x.no], ["Discovered On", niceDt(x.discovered)], ["Type", x.type], ["Severity", x.severity], ["Personal Data Involved?", x.personal],
+    ["Systems / Equipment Affected", [x.systems, x.equipmentId].filter(Boolean).join(", ")], ["Related JO No.", x.jo], ["Reported to the DPO On", niceDt(x.dpoOn)],
+    ["NPC Notification Needed?", x.npcNeeded], ["NPC Notified On", niceDt(x.npcOn)], ["Status", x.status], ["Recorded By", x.recordedBy + ", " + niceDt(x.recordedAt)]];
+  doPrint(`<div class="sheet">${header()}<h3>ICT SECURITY INCIDENT REPORT</h3><div class="sub">Confidential. For the Data Protection Officer and the Head of ICTU.</div>
+    <table>${kv.map(r => `<tr><td class="k">${esc(r[0])}:</td><td>${esc(r[1] || "")}</td></tr>`).join("")}</table>
+    <table><tr><td class="k">What Happened:</td></tr><tr><td style="height:24mm">${esc(x.description)}</td></tr><tr><td class="k">Actions Taken:</td></tr><tr><td style="height:24mm">${esc(x.actions)}</td></tr>
+      <tr><td class="k">History:</td></tr><tr><td class="xs" style="white-space:pre-line">${esc(x.history)}</td></tr></table>
+    ${sigTable([["PREPARED BY (ICTU)", x.recordedBy], ["NOTED BY (Head, ICT Unit)", headOf()[0]], ["RECEIVED BY (Data Protection Officer)", ""]])}</div>`, false);
+};
+$("xPrint").onclick = () => {
+  const list = incFiltered();
+  doPrint(`<div class="sheet land">${header()}<h3>ICT INCIDENT AND DATA BREACH LOG</h3><div class="sub">As of ${esc(longDate(todayStr()))}. Confidential.</div>
+    <table><thead><tr><th>Incident No.</th><th>Discovered</th><th>Type</th><th>Severity</th><th>Personal Data</th><th>Description</th><th>Actions Taken</th><th>DPO</th><th>NPC</th><th>Status</th></tr></thead><tbody>
+    ${list.map(x => `<tr><td>${esc(x.no)}</td><td>${esc(niceDt(x.discovered))}</td><td>${esc(x.type)}</td><td>${esc(x.severity)}</td><td>${esc(x.personal)}</td><td>${esc(x.description)}</td><td>${esc(x.actions)}</td>
+      <td>${esc(niceDt(x.dpoOn))}</td><td>${esc([x.npcNeeded, niceDt(x.npcOn)].filter(Boolean).join(", "))}</td><td>${esc(x.status)}</td></tr>`).join("") || '<tr><td colspan="10" class="c">No incidents recorded.</td></tr>'}
+    </tbody></table>${signs()}</div>`, true);
+};
+
+// ---------- accounts and backup (Head only) ----------
+let USERS = [];
+async function loadUsers() {
+  if (!can("Head")) return;
+  msg("uMsg", "Loading the accounts…");
+  try { const j = await api({ action: "listUsers" }); if (!j.ok) { msg("uMsg", j.error, "err"); return; } USERS = j.users; renderUsers(); msg("uMsg", ""); }
+  catch (e) { msg("uMsg", errText(e), "err"); }
+}
+function renderUsers() {
+  $("uTable").tBodies[0].innerHTML = USERS.map(u => `<tr data-u="${esc(u.username)}"><td><b>${esc(u.fullName)}</b><div class="s">${esc(u.position)}</div></td><td>${esc(u.username)}</td>
+    <td>${esc(u.role)}</td><td><span class="chip ${u.status === "Active" ? "ok" : "mute"}">${esc(u.status)}</span>${u.mustChange ? ' <span class="chip warn">Temporary password</span>' : ""}</td>
+    <td class="hide-m">${esc(niceDt(u.lastSignIn)) || "Not yet"}</td></tr>`).join("");
+  $("uTable").querySelectorAll("tbody tr[data-u]").forEach(tr => tr.onclick = () => openUser(tr.dataset.u));
+}
+let uCur = null;
+function openUser(name) {
+  uCur = name ? USERS.find(u => u.username === name) : null;
+  const u = uCur || { role: "Technician", status: "Active" };
+  $("uTitle").textContent = uCur ? uCur.fullName : "Add an ICTU staff account";
+  $("uName").value = u.fullName || ""; $("uPos").value = u.position || ""; $("uUser").value = u.username || ""; $("uUser").disabled = !!uCur;
+  $("uRole").value = u.role; $("uStat").value = u.status; $("uReset").checked = false;
+  $("uStatWrap").classList.toggle("hidden", !uCur); $("uResetWrap").classList.toggle("hidden", !uCur);
+  $("uSave").textContent = uCur ? "Save" : "Add account";
+  $("uTemp").classList.add("hidden"); msg("uDlgMsg", ""); $("uDlg").showModal();
+}
+$("addUser").onclick = () => openUser(null);
+// Suggest a username from the name: first letter of the first name plus the surname.
+$("uName").addEventListener("change", () => {
+  if (uCur || $("uUser").value) return;
+  const w = $("uName").value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/).filter(x => !/^[a-z]\.?$/.test(x) && !/^(jr|sr|ii|iii|iv)\.?$/.test(x));
+  if (w.length > 1) $("uUser").value = (w[0][0] + w[w.length - 1]).replace(/[^a-z0-9]/g, "");
+});
+$("uForm").onsubmit = async e => {
+  e.preventDefault();
+  const user = { isNew: !uCur, username: uCur ? uCur.username : $("uUser").value.trim(), fullName: $("uName").value, position: $("uPos").value, role: $("uRole").value };
+  if (uCur) Object.assign(user, { status: $("uStat").value, resetPassword: $("uReset").checked });
+  $("uSave").disabled = true; msg("uDlgMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveUser", user });
+    if (!j.ok) { msg("uDlgMsg", j.error, "err"); return; }
+    if (j.users) { USERS = j.users; renderUsers(); }
+    uCur = USERS.find(u => u.username === (j.username || user.username)) || uCur;
+    if (uCur) { $("uTitle").textContent = uCur.fullName; $("uUser").disabled = true; $("uStatWrap").classList.remove("hidden"); $("uResetWrap").classList.remove("hidden"); $("uSave").textContent = "Save"; $("uReset").checked = false; }
+    if (j.tempPassword) {
+      $("uTemp").innerHTML = `<p style="margin:0 0 6px">Temporary password for <b>${esc(j.username)}</b>:</p><span class="temp">${esc(j.tempPassword)}</span>
+        <p class="hint">Give it to them in person. It is shown only now. They will choose their own password the first time they sign in.</p>`;
+      $("uTemp").classList.remove("hidden");
+    }
+    msg("uDlgMsg", j.unchanged ? "Nothing was changed." : "Saved.", "ok");
+  } catch (err) { msg("uDlgMsg", errText(err), "err"); }
+  finally { $("uSave").disabled = false; }
+};
+function renderBackup() {
+  const b = D.backup || {};
+  $("bkInfo").innerHTML = b.last ? "Last backup: <b>" + esc(niceDt(b.last)) + "</b>. " + (b.url ? '<a href="' + esc(b.url) + '" target="_blank" rel="noopener">Open that copy</a>' : "")
+    : "No backup has been made yet. The first automatic one runs on the 1st of next month.";
+}
+$("bkNow").onclick = async () => {
+  $("bkNow").disabled = true; msg("bkMsg", "Making a copy of the Sheet. This takes a few seconds…");
+  try {
+    const j = await api({ action: "backupNow" });
+    if (!j.ok) { msg("bkMsg", j.error, "err"); return; }
+    D.backup = j.backup; renderBackup(); msg("bkMsg", "Done. The copy is in the Drive folder.", "ok");
+  } catch (e) { msg("bkMsg", errText(e), "err"); }
+  finally { $("bkNow").disabled = false; }
+};
+
+// ---------- dashboard (hand-drawn SVG bar charts, one hue) ----------
+const tipEl = document.createElement("div"); tipEl.className = "tip hidden"; tipEl.setAttribute("role", "status"); document.body.appendChild(tipEl);
+function tipAt(t, x, y) { tipEl.textContent = t; tipEl.classList.remove("hidden"); const w = tipEl.offsetWidth; tipEl.style.left = Math.min(innerWidth - w - 8, Math.max(8, x - w / 2)) + "px"; tipEl.style.top = (y - 40) + "px"; }
+document.addEventListener("pointerover", e => { const g = e.target.closest && e.target.closest(".chart [data-tip]"); if (g) tipAt(g.dataset.tip, e.clientX, e.clientY); else tipEl.classList.add("hidden"); });
+document.addEventListener("pointermove", e => { const g = e.target.closest && e.target.closest(".chart [data-tip]"); if (g) tipAt(g.dataset.tip, e.clientX, e.clientY); });
+function niceMax(v) { if (v <= 4) return 4; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p; return (f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+// Rounded top corners only, anchored to the baseline.
+function barPath(x, y, w, h, r) { r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+const units = (n, u) => n + " " + (n === 1 ? u[0] : u[1]);
+function vbars(el, data, unit) {
+  const W = 560, H = 220, L = 30, R = 8, T = 20, B = 30, max = niceMax(Math.max(1, ...data.map(d => d.v)));
+  const band = (W - L - R) / data.length, bw = Math.min(28, band * .62), y = v => T + (H - T - B) * (1 - v / max);
+  const ticks = [0, max / 4, max / 2, max * 3 / 4, max].filter(t => Number.isInteger(t));
+  const last = data.length - 1, top = data.reduce((m, d, i) => d.v > data[m].v ? i : m, 0);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(data.map(d => d.label + " " + d.v).join(", "))}">
+    <g class="grid">${ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("")}</g>
+    ${data.map((d, i) => { const x = L + band * i + (band - bw) / 2, h = (H - T - B) - (y(d.v) - T);
+      return `<g class="bh" data-tip="${esc(d.full || d.label)}: ${esc(units(d.v, unit))}"><rect x="${L + band * i}" y="${T}" width="${band}" height="${H - T - B}" fill="transparent"/>
+        ${d.v ? `<path class="bar" d="${barPath(x, y(d.v), bw, h, 4)}"/>` : ""}${(i === last || i === top) && d.v ? `<text class="v" x="${x + bw / 2}" y="${y(d.v) - 5}" text-anchor="middle">${d.v}</text>` : ""}
+        <text x="${x + bw / 2}" y="${H - 7}" text-anchor="middle">${esc(d.label)}</text></g>`; }).join("")}
+    <line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/></svg>`;
+}
+function hbars(el, data, unit) {
+  if (!data.length) { el.innerHTML = '<p class="hint">No data yet.</p>'; return; }
+  const W = 560, row = 32, L = 190, R = 44, H = data.length * row + 6, max = Math.max(1, ...data.map(d => d.v));
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(data.map(d => d.label + " " + d.v).join(", "))}">
+    ${data.map((d, i) => { const y = i * row + 6, w = (W - L - R) * d.v / max;
+      return `<g class="bh" data-tip="${esc(d.label)}: ${esc(units(d.v, unit))}"><rect x="0" y="${y - 3}" width="${W}" height="${row}" fill="transparent"/>
+        <text x="${L - 10}" y="${y + 17}" text-anchor="end">${esc(d.label.length > 22 ? d.label.slice(0, 21) + "…" : d.label)}</text>
+        ${d.v ? `<path class="bar" d="M${L},${y + 4}H${L + w - 4}Q${L + w},${y + 4} ${L + w},${y + 8}V${y + 16}Q${L + w},${y + 20} ${L + w - 4},${y + 20}H${L}Z"/>` : ""}
+        <text class="v" x="${L + w + 6}" y="${y + 17}">${d.v}</text></g>`; }).join("")}
+    <line class="axis" x1="${L}" x2="${L}" y1="0" y2="${H}"/></svg>`;
+}
+function last12() {
+  const t = parse(todayStr()), out = [];
+  for (let i = 11; i >= 0; i--) { const d = new Date(t.getFullYear(), t.getMonth() - i, 1); out.push({ key: d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"), label: MONTHS[d.getMonth()], full: MONTHS_LONG[d.getMonth()] + " " + d.getFullYear() }); }
+  return out;
+}
+function renderDash() {
+  const months = last12(), since = months[0].key;
+  const live = D.jos.filter(j => j.status !== "Cancelled");
+  vbars($("cJo"), months.map(m => ({ label: m.label, full: m.full, v: live.filter(j => j.logged.slice(0, 7) === m.key).length })), ["job order", "job orders"]);
+  const pm = D.pms.filter(p => p.recordStatus !== "Voided");
+  vbars($("cPm"), months.map(m => ({ label: m.label, full: m.full, v: pm.filter(p => p.date.slice(0, 7) === m.key).length })), ["PM", "PMs"]);
+  const groups = {}; JO_TYPES.forEach(g => g[1].forEach(t => groups[t] = g[0]));
+  const byType = {}; live.filter(j => j.logged.slice(0, 7) >= since).forEach(j => { const gs = new Set((j.types || []).map(t => groups[t] || "OTHERS")); if (j.others || !gs.size) gs.add("OTHERS"); gs.forEach(g => byType[g] = (byType[g] || 0) + 1); });
+  hbars($("cType"), JO_TYPES.map(g => g[0]).concat(["OTHERS"]).map(g => ({ label: { "HARDWARE": "Hardware", "SOFTWARE & SYSTEMS": "Software and systems", "NETWORK": "Network", "ICTU SERVICES": "ICTU services", "OTHERS": "Others" }[g] || g, v: byType[g] || 0 })), ["job order", "job orders"]);
+  const act = D.inventory.filter(active);
+  hbars($("cCond"), D.lists.conditions.filter(c => c !== "Disposed").map(c => ({ label: c, v: act.filter(i => i.condition === c).length })), ["unit", "units"]);
+  const bands = [["Under 3 years", 0, 3], ["3 to 4 years", 3, 5], ["5 to 6 years", 5, 7], ["7 years or more", 7, 99]];
+  const ages = act.map(i => replOf(i).age);
+  hbars($("cAge"), bands.map(b => ({ label: b[0], v: ages.filter(a => a != null && a >= b[1] && a < b[2]).length })).concat([{ label: "No date acquired", v: ages.filter(a => a == null).length }]), ["unit", "units"]);
+  const off = {}; act.forEach(i => off[i.office] = (off[i.office] || 0) + 1);
+  hbars($("cOff"), Object.keys(off).sort((a, b) => off[b] - off[a]).slice(0, 10).map(o => ({ label: o, v: off[o] })), ["unit", "units"]);
+  // headline numbers
+  const sch = act.filter(i => i.condition !== "Unserviceable" && freqM(i)), onTime = sch.filter(i => pmState(i) !== "late").length;
+  const closed90 = live.filter(j => !joOpen(j) && j.withinTarget && (new Date() - dtOf(j.finishedAt)) / 864e5 <= 90), met = closed90.filter(j => j.withinTarget === "Yes").length;
+  const rated = []; live.filter(j => j.logged.slice(0, 7) >= since).forEach(j => [j.csmSpeed, j.csmQuality, j.csmCourtesy].forEach(c => c && rated.push(c)));
+  const happy = rated.filter(c => /^(Very Satisfied|Satisfied)$/.test(c)).length;
+  const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "n/a";
+  const openInc = D.incidents.filter(x => x.status !== "Closed" && x.status !== "Resolved").length;
+  const P = replPlan(), now = P.groups[0];
+  $("dTiles").innerHTML = `<div class="tile"><div class="lb">PM up to date</div><div class="val">${pct(onTime, sch.length)}</div><div class="sm">${onTime} of ${sch.length} scheduled units</div></div>
+    <div class="tile"><div class="lb">JOs within target</div><div class="val">${pct(met, closed90.length)}</div><div class="sm">${met} of ${closed90.length} closed in 90 days. Target 90%</div></div>
+    <div class="tile"><div class="lb">Client satisfaction</div><div class="val">${pct(happy, rated.length)}</div><div class="sm">${rated.length} ratings in 12 months</div></div>
+    <button class="tile${openInc ? " bad" : ""}" data-go="inc"><div class="lb">Open incidents</div><div class="val">${openInc}</div><div class="sm">not yet resolved</div></button>
+    <button class="tile${now.rows.length ? " warn" : ""}" data-go="reports"><div class="lb">Due for replacement</div><div class="val">${now.rows.length}</div><div class="sm">${esc(peso(now.cost) || "")}</div></button>`;
+  $("dTiles").querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+}
+
 // ---------- CSV ----------
 function csv(name, head, rows) {
   const q = v => { v = String(v == null ? "" : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };

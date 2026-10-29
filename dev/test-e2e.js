@@ -18,14 +18,23 @@ const shots = path.join(__dirname, 'screenshots');
 
   await page.goto('http://localhost:8799/');
   ok(await page.isVisible('#urlIn'), 'asks for the Sheet link when there is none');
-  ok(await page.isVisible('#lockReq') && await page.isVisible('.privacy'), 'lock screen offers the request page and shows the privacy notice');
+  ok(await page.isVisible('#lockReq') && await page.isHidden('#lock .privacy') && await page.isVisible('#privLink'), 'sign-in card offers the request page; privacy notice is a link, not laid out');
   await page.screenshot({ path: path.join(shots, '00-lock.png') });
-  await page.fill('#urlIn', 'http://localhost:8799/api');
-  await page.fill('#pinIn', '0000'); await page.click('#lockBtn');
-  await page.waitForFunction(() => /Wrong/.test(document.getElementById('lockMsg').textContent));
-  ok(true, 'wrong passcode shown');
-  await page.fill('#pinIn', '1234'); await page.click('#lockBtn');
+  await page.click('#privLink');
+  ok(await page.isVisible('#privDlg') && /RA 10173/.test(await page.textContent('#privDlg')), 'privacy notice opens as a pop-up');
+  await page.click('#privDlg .df [data-close]');
+  // no accounts yet: entering the Sheet link brings up the first-account setup
+  await page.fill('#urlIn', 'http://localhost:8799/api'); await page.press('#urlIn', 'Tab');
+  await page.waitForSelector('#setupForm:not(.hidden)');
+  ok(true, 'first-time setup shown');
+  await page.fill('#suPin', '0000'); await page.fill('#suName', 'James Adrian M. Elona'); await page.fill('#suUser', 'jelona'); await page.fill('#suPw', 'ictu2026x');
+  await page.screenshot({ path: path.join(shots, '00b-setup.png') });
+  await page.click('#suBtn');
+  await page.waitForFunction(() => /passcode/i.test(document.getElementById('suMsg').textContent));
+  ok(true, 'wrong setup passcode shown');
+  await page.fill('#suPin', '1234'); await page.click('#suBtn');
   await page.waitForSelector('#app:not(.hidden)');
+  ok(await page.textContent('#meName2') === 'James Adrian M. Elona' && await page.isVisible('nav.tabs button[data-v="acc"]'), 'signed in as the Head, Accounts shown');
   ok(await page.textContent('#tInv') === '29', 'home count');
   const late = +await page.textContent('#tLate');
   ok(late === 12, 'overdue / never done = 12 scheduled units without PM, got ' + late);
@@ -158,7 +167,7 @@ const shots = path.join(__dirname, 'screenshots');
 
   // header menu
   await page.click('#menuBtn');
-  ok(await page.isVisible('#menuPanel') && await page.isVisible('#lockOut'), 'menu shows Refresh and Lock');
+  ok(await page.isVisible('#menuPanel') && /Sign out/.test(await page.textContent('#lockOut')) && /Head/.test(await page.textContent('#meRole')), 'menu shows the person, Refresh and Sign out');
   await page.screenshot({ path: path.join(shots, '11-menu.png') });
   await page.click('#reloadBtn');
   ok(await page.isHidden('#menuPanel'), 'menu closes');
@@ -233,6 +242,140 @@ const shots = path.join(__dirname, 'screenshots');
   await page.click('nav.tabs button[data-v="jo"]'); await page.click('#jPoster');
   ok(/Need ICT help/.test(await page.innerHTML('#printArea')), 'request poster');
 
+
+  // ---------- 1.3.0: TIR, CSM link, transfers, stock, network, incidents, accounts, dashboard ----------
+  await page.click('nav.tabs button[data-v="jo"]');
+  await page.click('#jShow'); await page.selectOption('#jShow', '');
+  await page.click('#jTable tbody tr >> nth=0');
+  await page.waitForSelector('#joDlg[open]');
+  await page.selectOption('#jTirRec', 'Repair with parts to be procured'); await page.fill('#jTirCost', '2500');
+  await page.selectOption('#jStatus', 'Resolved'); await page.fill('#jAction', 'Reseated the RAM.');
+  await page.click('#joSave');
+  await page.waitForFunction(() => /TIR No\. TIR-\d{4}-001/.test(document.getElementById('jTirNo').textContent));
+  ok(await page.isVisible('#joCsm .csmlink svg') && /Ask the requestor to rate/.test(await page.textContent('#joCsm')), 'closed JO shows the rating QR and link');
+  await page.screenshot({ path: path.join(shots, '17-jo-tir-csm.png') });
+  const csmLink = await page.getAttribute('#joCsm a', 'href');
+  await page.click('#joTir');
+  const tir = await page.innerHTML('#printArea');
+  ok(/TECHNICAL INSPECTION REPORT/.test(tir) && /TIR-\d{4}-001/.test(tir) && /PHP 2,500\.00/.test(tir), 'TIR prints');
+  await page.evaluate(() => document.body.classList.add('printing')); await page.emulateMedia({ media: 'print' });
+  await page.pdf({ path: path.join(shots, 'sample-tir.pdf'), format: 'A4', preferCSSPageSize: true, printBackground: true });
+  await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
+  await page.click('#joPrint');
+  ok(await page.locator('#printArea .rateqr svg').count() === 1, 'JO form carries the rating QR');
+  await page.click('#joDlg [data-close]');
+
+  // the requestor rates on a phone
+  const rater = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  rater.on('pageerror', e => errors.push(e.message));
+  await rater.addInitScript(() => localStorage.setItem('pms.gsUrl', 'http://localhost:8799/api'));
+  await rater.goto(csmLink.replace('https://trcdulag.github.io/ict-inventory-pms/', 'http://localhost:8799/'));
+  await rater.waitForSelector('#rateForm');
+  ok(!/Elona|Lopez/.test(await rater.textContent('#pubTrack')), 'track page shows no staff names');
+  await rater.click('input[name="speed"][value="Very Satisfied"]'); await rater.click('input[name="quality"][value="Satisfied"]'); await rater.click('input[name="courtesy"][value="Very Satisfied"]');
+  await rater.screenshot({ path: path.join(shots, '18-rate-phone.png'), fullPage: true });
+  await rater.click('#rateSend');
+  await rater.waitForFunction(() => /Thank you for your feedback/.test(document.getElementById('rateBox').textContent));
+  ok(true, 'requestor rated the service');
+  await rater.close();
+
+  // transfer from the equipment window
+  await page.click('nav.tabs button[data-v="inv"]');
+  await page.click('#iTable tbody tr[data-id="ICT-0002"]');
+  await page.waitForSelector('#eqDlg[open]');
+  await page.click('#eqTrBtn');
+  await page.waitForSelector('#trDlg[open]');
+  ok(/Now with/.test(await page.textContent('#trNow')), 'transfer shows where the unit is now');
+  await page.selectOption('#trKind', 'Transfer to another section');
+  await page.fill('#trUser', 'maria clara'); await page.press('#trUser', 'Enter');
+  ok(await page.inputValue('#trOffice') === 'Budget Section', 'new end user sets the new section');
+  await page.fill('#trOfficer', 'Maria Clara R. Santos'); await page.press('#trOfficer', 'Escape'); await page.fill('#trDoc', 'ICS 2026-10-015');
+  await page.screenshot({ path: path.join(shots, '19-transfer.png') });
+  await page.click('#trSave');
+  await page.waitForFunction(() => /Saved as TR-\d{4}-001/.test(document.getElementById('trMsg').textContent));
+  await page.click('#trPrint');
+  ok(/TRANSFER \/ TURNOVER SLIP/.test(await page.innerHTML('#printArea')) && /ICS 2026-10-015/.test(await page.innerHTML('#printArea')), 'transfer slip prints');
+  await page.click('#trDlg [data-close]');
+  await page.click('#iTable tbody tr[data-id="ICT-0002"]');
+  ok(/Budget Section/.test(await page.textContent('#eqView')) && /TR-\d{4}-001/.test(await page.textContent('#eqView')), 'masterlist and history follow the transfer');
+  await page.click('#eqDlg .x');
+
+  // spare parts
+  await page.click('nav.tabs button[data-v="stock"]');
+  await page.click('#addStock'); await page.waitForSelector('#kDlg[open]');
+  await page.fill('#kItem', 'DDR4 8GB RAM'); await page.fill('#kCatIn', 'Computer parts'); await page.fill('#kUnit', 'piece'); await page.fill('#kReorder', '2'); await page.fill('#kCost', '1500');
+  await page.click('#kSave');
+  await page.waitForFunction(() => /Added as SP-001/.test(document.getElementById('kMsg').textContent));
+  await page.click('#kDlg .x');
+  await page.click('#kTable tbody tr[data-k="SP-001"] [data-mv="Received"]');
+  await page.fill('#mQty', '3'); await page.click('#mSave');
+  await page.waitForFunction(() => !document.getElementById('mDlg').open);
+  await page.click('#kTable tbody tr[data-k="SP-001"] [data-mv="Issued"]');
+  await page.fill('#mQty', '2'); await page.fill('#mEq', 'ICT-0001'); await page.press('#mEq', 'Escape'); await page.fill('#mRef', 'ICTU-2026-0001');
+  await page.click('#mSave');
+  await page.waitForFunction(() => !document.getElementById('mDlg').open);
+  ok(/1/.test(await page.textContent('#kTable tbody tr[data-k="SP-001"] td:nth-child(3)')) && /Low/.test(await page.textContent('#kTable tbody tr[data-k="SP-001"]')), 'balance 1 and flagged low');
+  await page.screenshot({ path: path.join(shots, '20-stock.png'), fullPage: true });
+  await page.click('nav.tabs button[data-v="inv"]'); await page.click('#iTable tbody tr[data-id="ICT-0001"]');
+  ok(/PHP 3,000\.00/.test(await page.textContent('#eqView')), 'parts issued count toward the unit cost');
+  await page.click('#eqDlg .x');
+
+  // network
+  await page.click('nav.tabs button[data-v="net"]');
+  await page.click('#addNet'); await page.waitForSelector('#nDlg[open]');
+  await page.selectOption('#nKindIn', 'Router'); await page.fill('#nName', 'Main router'); await page.fill('#nIp', '192.168.1.1'); await page.fill('#nMac', '001a2b3c4d5e');
+  await page.click('#nSave');
+  await page.waitForFunction(() => /Added as NET-001/.test(document.getElementById('nMsg').textContent));
+  await page.click('#nDlg .x');
+  await page.click('#addNet'); await page.selectOption('#nKindIn', 'Switch'); await page.fill('#nName', 'Second switch'); await page.fill('#nIp', '192.168.1.1');
+  await page.click('#nSave');
+  await page.waitForFunction(() => /already used by NET-001/.test(document.getElementById('nMsg').textContent));
+  ok(true, 'duplicate IP refused');
+  await page.click('#nDlg .x');
+  ok(/00:1A:2B:3C:4D:5E/.test(await page.textContent('#nTable')), 'network list shows the item');
+  await page.screenshot({ path: path.join(shots, '21-network.png') });
+
+  // incident with personal data: 72-hour clock
+  await page.click('nav.tabs button[data-v="inc"]');
+  await page.click('#newInc'); await page.waitForSelector('#xDlg[open]');
+  await page.selectOption('#xType', 'Lost or stolen device'); await page.selectOption('#xPd', 'Yes'); await page.selectOption('#xSev', 'High');
+  await page.fill('#xDesc', 'Office laptop left in a tricycle.');
+  await page.click('#xSave');
+  await page.waitForFunction(() => /Recorded as INC-\d{4}-001/.test(document.getElementById('xMsg').textContent));
+  ok(/72-hour/.test(await page.textContent('#xClock')), 'NPC 72-hour clock shown');
+  await page.screenshot({ path: path.join(shots, '22-incident.png') });
+  await page.click('#xDlg .x');
+
+  // reports: replacement plan and cost per unit
+  await page.click('nav.tabs button[data-v="reports"]');
+  ok(/Replace now/.test(await page.textContent('#rpView')), 'replacement plan summary');
+  await page.click('#rpPrint');
+  ok(/REPLACEMENT PLAN/.test(await page.innerHTML('#printArea')), 'replacement plan prints');
+  ok(/ICT-0001/.test(await page.textContent('#cuView')), 'cost per unit lists the unit with parts');
+
+  // dashboard
+  await page.click('nav.tabs button[data-v="dash"]');
+  ok(await page.locator('#v-dash .chart svg').count() === 6, 'six charts drawn');
+  await page.hover('#cJo g.bh >> nth=11');
+  ok(await page.isVisible('.tip') && /job order/.test(await page.textContent('.tip')), 'chart hover shows the number');
+  await page.screenshot({ path: path.join(shots, '23-dashboard.png'), fullPage: true });
+
+  // accounts: the Head adds a technician
+  await page.click('nav.tabs button[data-v="acc"]');
+  await page.waitForFunction(() => document.querySelectorAll('#uTable tbody tr').length === 1);
+  await page.click('#addUser'); await page.waitForSelector('#uDlg[open]');
+  await page.fill('#uName', 'Argie R. Lopez'); await page.press('#uName', 'Escape'); await page.press('#uName', 'Tab');
+  ok(await page.inputValue('#uUser') === 'alopez', 'username suggested from the name');
+  await page.click('#uSave');
+  await page.waitForSelector('#uTemp:not(.hidden)');
+  const temp = (await page.textContent('#uTemp .temp')).trim();
+  ok(/^[a-z]{5}\d{4}$/.test(temp), 'temporary password shown once');
+  await page.screenshot({ path: path.join(shots, '24-accounts.png') });
+  await page.click('#uDlg .df [data-close]');
+  await page.click('#bkNow');
+  await page.waitForFunction(() => /Done/.test(document.getElementById('bkMsg').textContent));
+  ok(/Last backup/.test(await page.textContent('#bkInfo')), 'backup now');
+
   // public pages: a phone scans the QR label (no passcode)
   const pub = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   pub.on('pageerror', e => errors.push(e.message));
@@ -241,8 +384,8 @@ const shots = path.join(__dirname, 'screenshots');
   await pub.goto('http://localhost:8799/#eq=ICT-0001');
   await pub.waitForFunction(() => /Open job orders/.test(document.getElementById('pubEq').textContent));
   const pubText = await pub.textContent('#pubEq');
-  ok(/ICT-0001/.test(pubText) && /ICTU-\d{4}-0001/.test(pubText) && !/Santos/i.test(pubText), 'QR page shows status and open JO, no names');
-  ok(await pub.isHidden('#app') && await pub.isHidden('#lock'), 'no passcode needed for the QR page');
+  ok(/ICT-0001/.test(pubText) && !/Santos/i.test(pubText), 'QR page shows status, no names');
+  ok(await pub.isHidden('#app') && await pub.isHidden('#lock'), 'no sign-in needed for the QR page');
   await pub.screenshot({ path: path.join(shots, '15-qr-status-phone.png'), fullPage: true });
   await pub.click('text=Report a problem with this unit');
   await pub.waitForSelector('#reqForm:not(.hidden)');
@@ -263,8 +406,14 @@ const shots = path.join(__dirname, 'screenshots');
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   phone.on('pageerror', e => errors.push(e.message));
   await phone.goto('http://localhost:8799/');
-  await phone.fill('#urlIn', 'http://localhost:8799/api'); await phone.fill('#pinIn', '1234'); await phone.click('#lockBtn');
+  await phone.fill('#urlIn', 'http://localhost:8799/api'); await phone.fill('#uIn', 'alopez'); await phone.fill('#pwIn', temp);
+  await phone.screenshot({ path: path.join(shots, '00c-lock-phone.png'), fullPage: true });
+  await phone.click('#lockBtn');
+  await phone.waitForSelector('#chgForm:not(.hidden)');
+  ok(true, 'temporary password asks for a new one');
+  await phone.fill('#chgPw', 'lopez2026x'); await phone.fill('#chgPw2', 'lopez2026x'); await phone.click('#chgBtn');
   await phone.waitForSelector('#app:not(.hidden)');
+  ok(await phone.isHidden('nav.tabs button[data-v="acc"]') && await phone.isVisible('nav.tabs button[data-v="pm"]'), 'technician sees Do PM but not Accounts');
   await phone.screenshot({ path: path.join(shots, '07-phone-home.png'), fullPage: true });
   await phone.click('#homeDue [data-pm]');
   await phone.waitForSelector('#pmBody:not(.hidden)');

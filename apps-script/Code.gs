@@ -11,10 +11,13 @@
  *      there and paste the whole of index.html. Save.
  *   3. Pick "setup" in the function list at the top and click Run. Allow the
  *      permissions. It makes any missing tab, protects the tabs, sets the Manila
- *      time zone, makes the signature folder in Drive and sets the ICTU passcode
- *      to 1234. CHANGE THE PASSCODE: Project Settings (gear) > Script properties >
- *      edit ICTU_PASSCODE.
- *   4. Deploy > New deployment > type: Web app.
+ *      time zone, makes the signature and backup folders in Drive, turns on the
+ *      monthly backup and sets the setup passcode (ICTU_PASSCODE) to 1234.
+ *   4. Open the app. The first time, it asks for the setup passcode and makes the
+ *      Head of ICTU's own account. The Head then adds each ICTU staff member under
+ *      Users with a role: Head, Technician or Viewer. Everyone signs in with their own
+ *      username and password; the passcode is not used again.
+ *   5. Deploy > New deployment > type: Web app.
  *        Execute as: Me      Who has access: Anyone
  *      Click Deploy and copy the Web app URL (ends in /exec). That is the app link.
  *
@@ -30,7 +33,7 @@
  * Equipment ID blank). The next time the app loads, each new row gets its ID and
  * its Next PM Due, and the Audit Trail notes it.
  *
- * JOB ORDERS: staff file requests on the app's public "Request ICT help" page (no passcode) or by
+ * JOB ORDERS: staff file requests on the app's public "Request ICT help" page (no account needed) or by
  * scanning the QR label on the equipment. ICTU logs walk-in and phone requests in the app.
  * Each one gets the next JO No. (ICTU-YYYY-NNNN) in the JO Log tab. To continue the numbers of the
  * old JO Log, either paste its rows into the JO Log tab (same column order), or add a Script
@@ -39,7 +42,10 @@
  *
  * RECORD CONTROL (ISO 9001:2015 cl. 7.5.3):
  *   - Every tab is protected so only the Sheet owner can edit it by hand; the
- *     page writes through this script, and only with the ICTU passcode.
+ *     page writes through this script, and only for a signed-in ICTU user whose
+ *     role allows it. The Audit Trail names the person.
+ *   - BACKUP: on the 1st of every month at about 6 AM a copy of this Sheet goes to the
+ *     Drive folder "ICT Inventory and PMS Backups". The Head can also back up from the app.
  *   - Nothing is deleted. A wrong PM record is Voided (with a reason) and kept.
  *     Equipment that leaves service is marked Disposed, not removed.
  *   - Each PM record carries a Record Hash (SHA-256 of the record, its checklist
@@ -49,13 +55,15 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
 
 const INV = 'Inventory', PM = 'PM Log', CHK = 'Checklist Results', AUDIT = 'Audit Trail', LISTS = 'Lists';
 const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log';
+const USERS = 'Users', TRANSFERS = 'Transfers', STOCK = 'Stock Items', MOVES = 'Stock Movements', INCIDENTS = 'Incidents', NETWORK = 'Network';
+const BACKUP_FOLDER = 'ICT Inventory and PMS Backups';
 
 const INV_HEADERS = ['Equipment ID', 'Property Tag No.', 'Equipment Type', 'Brand / Model', 'Description / Specs',
   'Serial No.', 'Office / Section', 'End User', 'Accountable Officer', 'Source Document (RIS / PAR / ICS)',
@@ -88,7 +96,34 @@ const JO_HEADERS = ['Date/Time Logged', 'JO No.', 'Status', 'Priority', 'Date/Ti
   'Equipment ID', 'Received By', 'Date/Time Received', 'Date/Time Started', 'Classification', 'Mode of Service',
   'Pulled Out On', 'Returned On', 'Findings / Cause', 'Action Taken', 'Parts Used / Needed', 'Status Note',
   'Target Date/Time', 'Within Target?', 'CSM Speed', 'CSM Quality', 'CSM Courtesy', 'Suggestions',
-  'Updated At', 'Updated By'];
+  'Updated At', 'Updated By',
+  'CSM Token', 'CSM Given At', 'TIR No.', 'TIR Recommendation', 'Estimated Repair Cost', 'Outside Repair Cost'];
+
+const USER_HEADERS = ['Username', 'Full Name', 'Position', 'Role', 'Status', 'Password', 'Must Change Password',
+  'Created At', 'Created By', 'Last Sign-in', 'Updated At'];
+const TRANSFER_HEADERS = ['Transfer No.', 'Date', 'Equipment ID', 'Kind', 'From Section / Unit', 'From End User',
+  'From Accountable Officer', 'To Section / Unit', 'To End User', 'To Accountable Officer', 'PAR / ICS / PTR No.',
+  'Reason / Remarks', 'Recorded By', 'Recorded At'];
+const STOCK_HEADERS = ['Item Code', 'Item', 'Category', 'Unit', 'Reorder Level', 'Unit Cost', 'Remarks', 'Updated At', 'Updated By'];
+const MOVE_HEADERS = ['Ref No.', 'Date', 'Item Code', 'Movement', 'Quantity', 'Unit Cost', 'Amount',
+  'Reference (JO / PM / PR / IAR)', 'Equipment ID', 'Section / Unit', 'Remarks', 'Recorded By', 'Recorded At'];
+const INCIDENT_HEADERS = ['Incident No.', 'Discovered At', 'Type', 'Personal Data Involved?', 'Severity',
+  'Systems / Equipment Affected', 'Equipment ID', 'Description', 'Actions Taken', 'Reported to DPO On',
+  'NPC Notification Needed?', 'NPC Notified On', 'Status', 'Related JO No.', 'Recorded By', 'Recorded At',
+  'Updated At', 'Updated By', 'Action History'];
+const NET_HEADERS = ['Net ID', 'Kind', 'Name / Label', 'Location', 'IP Address', 'MAC Address', 'VLAN / Subnet',
+  'Brand / Model', 'Equipment ID', 'Provider / ISP', 'Account / Circuit No.', 'Bandwidth', 'Contract End',
+  'Monthly Cost', 'Status', 'Remarks', 'Updated At', 'Updated By'];
+
+const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
+// The lowest role that may do each action. Anything not listed is refused.
+const NEED = { load: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
+  saveEquipment: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
+  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
+  voidPM: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head' };
+const SESSION_SECONDS = 6 * 3600;
+const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
+  'Beyond economical repair: for condemnation', 'For replacement'];
 
 const JO_STATUS = ['Received', 'In Progress', 'On Hold', 'Referred', 'Resolved', 'Resolved - temporary fix', 'Beyond Economical Repair', 'Cancelled'];
 const JO_CLOSED = ['Resolved', 'Resolved - temporary fix', 'Beyond Economical Repair', 'Cancelled'];
@@ -97,7 +132,7 @@ const JO_PRIORITY = ['P1 - Critical', 'P2 - High', 'P3 - Normal', 'P4 - Planned'
 const JO_TARGET = { 'P1': [4, 0], 'P2': [0, 1], 'P3': [0, 3], 'P4': [0, 7] };
 const LEGACY_JO_KEY = 'trcd-ictu-jo';   // the key the old online request form sends
 
-const I = idx_(INV_HEADERS), P = idx_(PM_HEADERS), J = idx_(JO_HEADERS);
+const I = idx_(INV_HEADERS), P = idx_(PM_HEADERS), J = idx_(JO_HEADERS), U = idx_(USER_HEADERS);
 
 const FREQ_MONTHS = { 'Monthly': 1, 'Quarterly': 3, 'Semi-Annual': 6, 'Annual': 12 };
 const NOT_SCHEDULED = 'Not scheduled (checked with its PC)';
@@ -108,10 +143,11 @@ const STATUS_MAP = { 'Functional': 'Resolved', 'Functional, for monitoring': 'Fo
 
 // Used only when the Lists tab is missing or a column is empty.
 const DEFAULT_LISTS = {
-  types: [['Desktop Computer', 'Quarterly'], ['Laptop', 'Quarterly'], ['Printer', 'Quarterly'], ['Scanner', 'Quarterly'],
-    ['Monitor', NOT_SCHEDULED], ['Keyboard / Mouse', NOT_SCHEDULED], ['UPS / AVR', 'Semi-Annual'],
-    ['Network Device', 'Semi-Annual'], ['Projector', 'Annual'], ['Peripheral (USB hub, Wi-Fi dongle, etc.)', NOT_SCHEDULED],
-    ['Others', 'Annual']],
+  // [type, default PM frequency, useful life in years, replacement cost in PHP (0 = use the unit cost)]
+  types: [['Desktop Computer', 'Quarterly', 5, 0], ['Laptop', 'Quarterly', 5, 0], ['Printer', 'Quarterly', 5, 0], ['Scanner', 'Quarterly', 5, 0],
+    ['Monitor', NOT_SCHEDULED, 7, 0], ['Keyboard / Mouse', NOT_SCHEDULED, 3, 0], ['UPS / AVR', 'Semi-Annual', 5, 0],
+    ['Network Device', 'Semi-Annual', 5, 0], ['Projector', 'Annual', 5, 0], ['Peripheral (USB hub, Wi-Fi dongle, etc.)', NOT_SCHEDULED, 3, 0],
+    ['Others', 'Annual', 5, 0]],
   offices: ['ABTC', 'Accounting Section', 'Billing Section', 'Budget Section', 'Cash Unit', 'HRMO', 'ICTU',
     'Materials Management Unit (MMU)', 'Office of the TRC Chief', 'Procurement'],
   staff: [['James Adrian M. Elona', 'Head, ICT Unit'], ['Argie R. Lopez', 'Computer Operator II']],
@@ -148,10 +184,30 @@ function handle_(req) {
     if (req.action === 'publicInit') return publicInit_();
     if (req.action === 'eqInfo')     return eqInfo_(req.id);
     if (req.action === 'submitJO')   return submitJO_(req);
-    checkPin_(req.pin);   // everything else is for ICTU only
+    if (req.action === 'trackJO')    return trackJO_(req.t);
+    if (req.action === 'rateJO')     return rateJO_(req);
+    if (req.action === 'signIn')     return signIn_(req);
+    if (req.action === 'firstHead')  return firstHead_(req);
+    // Everything else is for a signed-in ICTU user whose role allows it.
+    const me = session_(req.token);
+    if (!NEED[req.action]) return { ok: false, error: 'Unknown action.' };
+    if (me.mustChange && req.action !== 'changePassword' && req.action !== 'signOut') throw new Error('Please change your temporary password first.');
+    if (ROLES[me.role] < ROLES[NEED[req.action]]) throw new Error('Your role (' + me.role + ') cannot do this. Please ask the Head of ICTU.');
+    req.by = me.name;   // the Audit Trail always names the signed-in person
+    req.me = me;
     switch (req.action) {
-      case 'checkPin':      return { ok: true };
-      case 'load':          return load_();
+      case 'me':            return { ok: true, me: publicMe_(me) };
+      case 'signOut':       return signOut_(req.token);
+      case 'changePassword': return changePassword_(req);
+      case 'listUsers':     return listUsers_();
+      case 'saveUser':      return saveUser_(req);
+      case 'backupNow':     return withLock_(() => backupNow_(me.name));
+      case 'saveTransfer':  return saveTransfer_(req);
+      case 'saveStockItem': return saveReg_(REG.stock, req.item, req);
+      case 'saveMove':      return saveMove_(req);
+      case 'saveIncident':  return saveReg_(REG.incident, req.item, req);
+      case 'saveNetwork':   return saveReg_(REG.network, req.item, req);
+      case 'load':          return Object.assign(load_(), { me: publicMe_(me) });
       case 'saveEquipment': return saveEquipment_(req);
       case 'savePM':        return savePM_(req);
       case 'getPM':         return getPM_(req.ref);
@@ -162,7 +218,7 @@ function handle_(req) {
       default:              return { ok: false, error: 'Unknown action.' };
     }
   } catch (err) {
-    return { ok: false, error: String(err.message || err) };
+    return err.signIn ? { ok: false, error: String(err.message), signIn: true } : { ok: false, error: String(err.message || err) };
   }
 }
 
@@ -174,8 +230,15 @@ function load_() {
   const pms = readRows_(PM, PM_HEADERS).map(toPM_);
   const emp = employees_();
   const jos = jobSheet_() ? readRows_(JO, JO_HEADERS).map(toJO_) : [];
+  const tab = (name, h) => SpreadsheetApp.getActive().getSheetByName(name) ? readRows_(name, h) : [];
+  const props = PropertiesService.getScriptProperties();
   return { ok: true, version: VERSION, form: FORM, joForm: JO_FORM, lists: lists_(), inventory: inv, pms: pms, jos: jos, employees: emp.list,
-           masterlist: { found: emp.found, count: emp.count, added: emp.added }, today: fmtDate_(new Date()), appUrl: appUrl_() };
+           masterlist: { found: emp.found, count: emp.count, added: emp.added }, today: fmtDate_(new Date()), appUrl: appUrl_(),
+           transfers: tab(TRANSFERS, TRANSFER_HEADERS).map(r => toObj_(REG.transfer, r)),
+           stock: tab(STOCK, STOCK_HEADERS).map(r => toObj_(REG.stock, r)), moves: tab(MOVES, MOVE_HEADERS).map(r => toObj_(REG.move, r)),
+           incidents: tab(INCIDENTS, INCIDENT_HEADERS).map(r => toObj_(REG.incident, r)), network: tab(NETWORK, NET_HEADERS).map(r => toObj_(REG.network, r)),
+           backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '' }, tirRecs: TIR_RECS,
+           choices: { transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS } };
 }
 
 function saveEquipment_(req) {
@@ -485,7 +548,9 @@ function jobSheet_() { return SpreadsheetApp.getActive().getSheetByName(JO); }
 
 // What the public "Request ICT help" page needs. Sections only, never staff names.
 function publicInit_() {
-  return { ok: true, version: VERSION, joForm: JO_FORM, offices: allOffices_().sort(), today: fmtDate_(new Date()) };
+  const us = SpreadsheetApp.getActive().getSheetByName(USERS);
+  return { ok: true, version: VERSION, joForm: JO_FORM, offices: allOffices_().sort(), today: fmtDate_(new Date()),
+           needsSetup: !us || lastRow_(us) < 2 };
 }
 
 // What a phone shows after scanning an equipment QR label. No names, serials or costs.
@@ -547,13 +612,16 @@ function finishSave_(row, r, j, by, req, isNew) {
     // Part II and III
     'Received By': 'receivedBy', 'Classification': 'classification', 'Mode of Service': 'service', 'Findings / Cause': 'findings',
     'Action Taken': 'action', 'Parts Used / Needed': 'parts', 'Status Note': 'statusNote', 'Remarks': 'remarks',
-    'ICTU Personnel': 'personnel', 'CSM Speed': 'csmSpeed', 'CSM Quality': 'csmQuality', 'CSM Courtesy': 'csmCourtesy', 'Suggestions': 'suggestions' };
+    'ICTU Personnel': 'personnel', 'CSM Speed': 'csmSpeed', 'CSM Quality': 'csmQuality', 'CSM Courtesy': 'csmCourtesy', 'Suggestions': 'suggestions',
+    'TIR Recommendation': 'tirRec' };
   Object.keys(partI).forEach(h => { if (j[partI[h]] !== undefined) set[h] = clean_(j[partI[h]]); });
   ['Date/Time Received', 'Date/Time Started', 'Date/Time Finished'].forEach((h, i) => {
     const k = ['receivedAt', 'startedAt', 'finishedAt'][i];
     if (j[k] !== undefined) set[h] = dt_(j[k]);
   });
   ['Pulled Out On', 'Returned On'].forEach((h, i) => { const k = ['pulledOut', 'returnedOn'][i]; if (j[k] !== undefined) set[h] = dt_(j[k]); });
+  ['Estimated Repair Cost', 'Outside Repair Cost'].forEach((h, i) => { const k = ['tirCost', 'repairCost'][i]; if (j[k] !== undefined) set[h] = toNum_(j[k]); });
+  if (set['TIR Recommendation'] && TIR_RECS.indexOf(set['TIR Recommendation']) < 0) throw new Error('Pick a recommendation from the list.');
   if (j.urgent !== undefined) set['Urgent?'] = j.urgent === 'Yes' ? 'Yes' : 'No';
   if (j.types !== undefined) set['Type(s) of Request'] = (j.types || []).map(clean_).filter(Boolean).join('; ');
   if (j.consent !== undefined) set['Data Privacy Consent'] = j.consent ? 'Yes' : 'No';
@@ -583,10 +651,12 @@ function finishSave_(row, r, j, by, req, isNew) {
   row[J['Within Target?']] = closed && status !== 'Cancelled' && row[J['Target Date/Time']]
     ? (parseDt_(row[J['Date/Time Finished']]) <= parseDt_(row[J['Target Date/Time']]) ? 'Yes' : 'No') : '';
   row[J['Findings / Action Taken']] = [row[J['Findings / Cause']], row[J['Action Taken']]].filter(Boolean).join(' / ');
+  if (!row[J['CSM Token']]) row[J['CSM Token']] = token_();
+  if (row[J['TIR Recommendation']] && !row[J['TIR No.']]) row[J['TIR No.']] = nextNo_(sh, J['TIR No.'] + 1, 'TIR-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3);
 
   const changes = [];
   JO_HEADERS.forEach((h, i) => {
-    if (['Updated At', 'Updated By', 'Action History', 'Last Action', 'Last Action At', 'Findings / Action Taken', 'Target Date/Time', 'Within Target?'].indexOf(h) >= 0) return;
+    if (['Updated At', 'Updated By', 'Action History', 'Last Action', 'Last Action At', 'Findings / Action Taken', 'Target Date/Time', 'Within Target?', 'CSM Token', 'TIR No.'].indexOf(h) >= 0) return;
     if (show_(old[i]) !== show_(row[i]) && !isNew) changes.push(h + ': "' + show_(old[i]).slice(0, 60) + '" to "' + show_(row[i]).slice(0, 60) + '"');
   });
   if (!isNew && !changes.length) return { ok: true, unchanged: true, jo: toJO_(row) };
@@ -649,7 +719,8 @@ function createJO_(j, how, by, device) {
     'Brief Description': clean_(j.description).slice(0, 600), 'Section / Unit Head': clean_(j.unitHead),
     'Data Privacy Consent': j.consent ? 'Yes' : 'No', 'Last Action': how, 'Last Action At': stamp,
     'Print / Share Count': 0, 'Action History': stamp + ' - ' + how, 'Request ID': clean_(j.requestId) || Utilities.getUuid(),
-    'Device': String(device || '').slice(0, 180), 'Equipment ID': it ? it.id : '', 'Updated At': stamp, 'Updated By': by
+    'Device': String(device || '').slice(0, 180), 'Equipment ID': it ? it.id : '', 'Updated At': stamp, 'Updated By': by,
+    'CSM Token': token_()
   };
   Object.keys(set).forEach(h => row[J[h]] = set[h]);
   row[J['Target Date/Time']] = target_(stamp, row[J['Priority']]);
@@ -733,7 +804,7 @@ function makeJoTab_() {
 
 function formatJoRow_(sh, r) {
   sh.getRange(r, 1, 1, JO_HEADERS.length).setNumberFormat('@');
-  sh.getRange(r, J['Print / Share Count'] + 1).setNumberFormat('0');
+  ['Print / Share Count', 'Estimated Repair Cost', 'Outside Repair Cost'].forEach(h => sh.getRange(r, J[h] + 1).setNumberFormat('#,##0.00'));
 }
 
 function toJO_(r) {
@@ -752,7 +823,10 @@ function toJO_(r) {
     findings: g('Findings / Cause') || (g('Action Taken') ? '' : g('Findings / Action Taken')), action: g('Action Taken'),
     parts: g('Parts Used / Needed'), statusNote: g('Status Note'), target: dtText_(r[J['Target Date/Time']]), withinTarget: g('Within Target?'),
     csmSpeed: g('CSM Speed'), csmQuality: g('CSM Quality'), csmCourtesy: g('CSM Courtesy'), suggestions: g('Suggestions'),
-    updatedAt: dtText_(r[J['Updated At']]), updatedBy: g('Updated By')
+    updatedAt: dtText_(r[J['Updated At']]), updatedBy: g('Updated By'),
+    token: g('CSM Token'), csmAt: dtText_(r[J['CSM Given At']]), tirNo: g('TIR No.'), tirRec: g('TIR Recommendation'),
+    tirCost: r[J['Estimated Repair Cost']] === '' ? '' : Number(r[J['Estimated Repair Cost']]) || 0,
+    repairCost: r[J['Outside Repair Cost']] === '' ? '' : Number(r[J['Outside Repair Cost']]) || 0
   };
 }
 
@@ -785,12 +859,524 @@ function findCol_(sh, col, key) {
   return 0;
 }
 
+// ---------- CSM link for the requestor (public, by the token on the printed JO and its QR) ----------
+
+const CSM_SCALE = ['Very Satisfied', 'Satisfied', 'Neutral', 'Dissatisfied', 'Very Dissatisfied'];
+
+// What the requestor sees from the link on their job order. No staff names, serials or costs.
+function trackJO_(t) {
+  t = String(t || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{16,64}$/.test(t)) return { ok: false, error: 'This link is not complete. Please scan the QR code on your job order again.' };
+  const sh = jobSheet_();
+  const r = sh ? findCol_(sh, J['CSM Token'] + 1, t) : 0;
+  if (!r) return { ok: false, error: 'No job order matches this link.' };
+  const j = toJO_(sh.getRange(r, 1, 1, JO_HEADERS.length).getValues()[0]);
+  const closed = JO_CLOSED.indexOf(j.status) >= 0;
+  return { ok: true, jo: { jo: j.jo, status: j.status, logged: j.logged, unit: j.unit, equipment: j.equipment, description: j.description,
+    target: j.target, finishedAt: j.finishedAt, action: closed ? j.action || j.findings : '',
+    rated: !!j.csmAt, canRate: closed && j.status !== 'Cancelled' && !j.csmAt,
+    csm: j.csmAt ? { speed: j.csmSpeed, quality: j.csmQuality, courtesy: j.csmCourtesy } : null }, scale: CSM_SCALE };
+}
+
+// The requestor's rating. Once only, and only after the job order is closed.
+function rateJO_(req) {
+  const t = String(req.t || '').trim().toLowerCase();
+  if (!/^[a-f0-9]{16,64}$/.test(t)) throw new Error('This link is not complete.');
+  const ans = { 'CSM Speed': req.speed, 'CSM Quality': req.quality, 'CSM Courtesy': req.courtesy };
+  Object.keys(ans).forEach(h => { if (CSM_SCALE.indexOf(ans[h]) < 0) throw new Error('Please answer all three questions.'); });
+  throttle_();
+  return withLock_(() => {
+    const sh = jobSheet_();
+    const r = sh ? findCol_(sh, J['CSM Token'] + 1, t) : 0;
+    if (!r) throw new Error('No job order matches this link.');
+    const row = sh.getRange(r, 1, 1, JO_HEADERS.length).getValues()[0];
+    const status = String(row[J['Status']]);
+    if (JO_CLOSED.indexOf(status) < 0 || status === 'Cancelled') throw new Error('You can rate the service once the job order is done.');
+    if (row[J['CSM Given At']]) throw new Error('Thank you, this job order was already rated.');
+    const stamp = dt_(new Date());
+    Object.keys(ans).forEach(h => row[J[h]] = ans[h]);
+    row[J['Suggestions']] = clean_(req.suggestions).slice(0, 600);
+    row[J['CSM Given At']] = stamp;
+    row[J['Action History']] = (String(row[J['Action History']] || '') + '\n' + stamp + ' - Rated by the requestor').replace(/^\n/, '').slice(-3000);
+    formatJoRow_(sh, r);
+    sh.getRange(r, 1, 1, JO_HEADERS.length).setValues([row.map(v => v == null ? '' : v)]);
+    audit_(row[J['JO No.']], 'CSM RATING', 'Requestor', [req.speed, req.quality, req.courtesy].join(' / '), req.device);
+    return { ok: true };
+  });
+}
+
+// ---------- ICTU accounts and roles ----------
+
+function usersSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(USERS);
+  if (!sh) {
+    sh = ss.insertSheet(USERS);
+    sh.getRange(1, 1, 1, USER_HEADERS.length).setValues([USER_HEADERS]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    protect_(sh);
+  }
+  return sh;
+}
+
+function userRows_() { return readRows_(USERS, USER_HEADERS); }
+
+function findUser_(username) {
+  const u = String(username || '').trim().toLowerCase();
+  const sh = usersSheet_();
+  const r = u ? findCol_(sh, 1, u) : 0;
+  return r ? { r: r, row: sh.getRange(r, 1, 1, USER_HEADERS.length).getValues()[0] } : null;
+}
+
+function toMe_(row) {
+  return { username: String(row[U['Username']]), name: String(row[U['Full Name']]), position: String(row[U['Position']]),
+    role: ROLES[row[U['Role']]] ? String(row[U['Role']]) : 'Viewer', mustChange: row[U['Must Change Password']] === 'Yes' };
+}
+function publicMe_(me) { return { username: me.username, name: me.name, position: me.position, role: me.role, mustChange: me.mustChange }; }
+
+// Looks up the person behind a sign-in token. The Users row is read every time, so a disabled
+// account or a new role takes effect at once.
+function session_(token) {
+  const fail = msg => { const e = new Error(msg || 'Please sign in again.'); e.signIn = true; throw e; };
+  token = String(token || '');
+  if (!/^[a-f0-9]{64}$/.test(token)) fail('Please sign in.');
+  const c = CacheService.getScriptCache();
+  const u = c.get('s_' + token);
+  if (!u) fail('Your sign-in has expired. Please sign in again.');
+  const f = findUser_(u);
+  if (!f || f.row[U['Status']] !== 'Active') { c.remove('s_' + token); fail('Your account is not active. Please ask the Head of ICTU.'); }
+  c.put('s_' + token, u, SESSION_SECONDS);   // six hours from the last use
+  return toMe_(f.row);
+}
+
+function startSession_(row) {
+  const token = token_() + token_();
+  CacheService.getScriptCache().put('s_' + token, String(row[U['Username']]), SESSION_SECONDS);
+  return token;
+}
+
+function signIn_(req) {
+  const u = String(req.username || '').trim().toLowerCase();
+  const c = CacheService.getScriptCache();
+  if (!u || !req.password) throw new Error('Type your username and password.');
+  if (c.get('lock_' + u)) throw new Error('Too many wrong tries. Please wait 15 minutes, or ask the Head of ICTU to reset your password.');
+  return withLock_(() => {
+    const f = findUser_(u);
+    if (!f || f.row[U['Status']] !== 'Active' || !pwCheck_(req.password, f.row[U['Password']])) {
+      const n = Number(c.get('fail_' + u) || 0) + 1;
+      c.put('fail_' + u, String(n), 900);
+      if (n >= 5) { c.put('lock_' + u, '1', 900); c.remove('fail_' + u); }
+      audit_(u, 'SIGN-IN FAILED', u, n >= 5 ? 'Locked for 15 minutes after 5 wrong tries.' : 'Wrong username or password (' + n + ').', req.device);
+      throw new Error(f && f.row[U['Status']] !== 'Active' && pwCheck_(req.password, f.row[U['Password']])
+        ? 'Your account is disabled. Please ask the Head of ICTU.' : 'Wrong username or password.');
+    }
+    c.remove('fail_' + u);
+    f.row[U['Last Sign-in']] = dt_(new Date());
+    usersSheet_().getRange(f.r, 1, 1, USER_HEADERS.length).setValues([f.row]);
+    audit_(u, 'SIGNED IN', f.row[U['Full Name']], '', req.device);
+    return { ok: true, token: startSession_(f.row), me: publicMe_(toMe_(f.row)) };
+  });
+}
+
+// The very first account: the Head of ICTU, made with the setup passcode (ICTU_PASSCODE).
+function firstHead_(req) {
+  const u = req.user || {};
+  return withLock_(() => {
+    if (lastRow_(usersSheet_()) >= 2) throw new Error('The first account is already made. Please sign in.');
+    checkPin_(req.pin);
+    const row = newUserRow_(u, 'Head', 'Setup');
+    checkNewPassword_(u.password, row[U['Username']]);
+    row[U['Password']] = pwHash_(u.password);
+    row[U['Must Change Password']] = 'No';
+    const sh = usersSheet_();
+    sh.getRange(2, 1, 1, USER_HEADERS.length).setNumberFormat('@');
+    sh.getRange(2, 1, 1, USER_HEADERS.length).setValues([row]);
+    audit_(row[U['Username']], 'USER ADDED', row[U['Full Name']], 'First account (Head) made with the setup passcode.', req.device);
+    return { ok: true, token: startSession_(row), me: publicMe_(toMe_(row)) };
+  });
+}
+
+function newUserRow_(u, role, by) {
+  const username = String(u.username || '').trim().toLowerCase();
+  if (!/^[a-z0-9._-]{3,30}$/.test(username)) throw new Error('Username: 3 to 30 letters, numbers, dots, dashes or underscores, no spaces.');
+  if (!clean_(u.fullName)) throw new Error('Full name is required.');
+  if (!ROLES[role]) throw new Error('Pick a role: Head, Technician or Viewer.');
+  const row = new Array(USER_HEADERS.length).fill('');
+  const stamp = dt_(new Date());
+  row[U['Username']] = username; row[U['Full Name']] = clean_(u.fullName); row[U['Position']] = clean_(u.position);
+  row[U['Role']] = role; row[U['Status']] = 'Active'; row[U['Must Change Password']] = 'Yes';
+  row[U['Created At']] = stamp; row[U['Created By']] = by; row[U['Updated At']] = stamp;
+  return row;
+}
+
+function checkNewPassword_(pw, username) {
+  pw = String(pw || '');
+  if (pw.length < 8) throw new Error('The password needs at least 8 characters.');
+  if (!/[a-zA-Z]/.test(pw) || !/\d/.test(pw)) throw new Error('Use both letters and numbers in the password.');
+  if (pw.toLowerCase().indexOf(String(username).toLowerCase()) >= 0) throw new Error('The password must not contain the username.');
+}
+
+function signOut_(token) {
+  CacheService.getScriptCache().remove('s_' + String(token || ''));
+  return { ok: true };
+}
+
+function changePassword_(req) {
+  return withLock_(() => {
+    const f = findUser_(req.me.username);
+    if (!pwCheck_(req.old, f.row[U['Password']])) throw new Error('Your current password is wrong.');
+    if (req.old === req.password) throw new Error('Choose a password different from the current one.');
+    checkNewPassword_(req.password, f.row[U['Username']]);
+    f.row[U['Password']] = pwHash_(req.password);
+    f.row[U['Must Change Password']] = 'No';
+    f.row[U['Updated At']] = dt_(new Date());
+    usersSheet_().getRange(f.r, 1, 1, USER_HEADERS.length).setValues([f.row]);
+    audit_(f.row[U['Username']], 'PASSWORD CHANGED', req.by, '', req.device);
+    return { ok: true, me: publicMe_(toMe_(f.row)) };
+  });
+}
+
+function listUsers_() {
+  return { ok: true, users: userRows_().map(r => ({ username: String(r[U['Username']]), fullName: String(r[U['Full Name']]),
+    position: String(r[U['Position']]), role: String(r[U['Role']]), status: String(r[U['Status']]),
+    mustChange: r[U['Must Change Password']] === 'Yes', lastSignIn: dtText_(r[U['Last Sign-in']]),
+    createdAt: dtText_(r[U['Created At']]), createdBy: String(r[U['Created By']]) })) };
+}
+
+// Head only: add an ICTU account, or change its name, position, role or status, or reset its password.
+// New accounts and resets get a temporary password, shown once, that must be changed at the next sign-in.
+function saveUser_(req) {
+  const u = req.user || {};
+  return withLock_(() => {
+    const sh = usersSheet_();
+    const stamp = dt_(new Date());
+    let f = u.isNew ? null : findUser_(u.username), temp = '';
+    let row, r, what;
+    if (u.isNew) {
+      if (findUser_(u.username)) throw new Error('The username ' + String(u.username).trim().toLowerCase() + ' is already taken.');
+      row = newUserRow_(u, u.role, req.by);
+      temp = tempPassword_();
+      row[U['Password']] = pwHash_(temp);
+      r = lastRow_(sh) + 1;
+      what = 'Added as ' + row[U['Role']];
+    } else {
+      if (!f) throw new Error('No account has the username ' + u.username + '.');
+      row = f.row; r = f.r;
+      const before = [row[U['Full Name']], row[U['Position']], row[U['Role']], row[U['Status']]].join(' / ');
+      if (u.fullName !== undefined) { if (!clean_(u.fullName)) throw new Error('Full name is required.'); row[U['Full Name']] = clean_(u.fullName); }
+      if (u.position !== undefined) row[U['Position']] = clean_(u.position);
+      if (u.role !== undefined) { if (!ROLES[u.role]) throw new Error('Pick a role: Head, Technician or Viewer.'); row[U['Role']] = u.role; }
+      if (u.status !== undefined) { if (['Active', 'Disabled'].indexOf(u.status) < 0) throw new Error('Pick Active or Disabled.'); row[U['Status']] = u.status; }
+      if (u.resetPassword) { temp = tempPassword_(); row[U['Password']] = pwHash_(temp); row[U['Must Change Password']] = 'Yes'; }
+      const after = [row[U['Full Name']], row[U['Position']], row[U['Role']], row[U['Status']]].join(' / ');
+      what = (before !== after ? before + ' to ' + after : '') + (u.resetPassword ? (before !== after ? '; ' : '') + 'password reset' : '');
+      if (!what) return { ok: true, unchanged: true };
+      // Someone must always be able to manage the accounts.
+      const heads = userRows_().filter(x => String(x[U['Username']]) !== row[U['Username']] && x[U['Role']] === 'Head' && x[U['Status']] === 'Active').length;
+      if (!heads && (row[U['Role']] !== 'Head' || row[U['Status']] !== 'Active')) throw new Error('There must always be at least one active Head account.');
+    }
+    row[U['Updated At']] = stamp;
+    sh.getRange(r, 1, 1, USER_HEADERS.length).setNumberFormat('@');
+    sh.getRange(r, 1, 1, USER_HEADERS.length).setValues([row]);
+    audit_(row[U['Username']], u.isNew ? 'USER ADDED' : 'USER UPDATED', req.by, what, req.device);
+    return Object.assign(listUsers_(), { tempPassword: temp, username: row[U['Username']] });
+  });
+}
+
+// Salted SHA-256, repeated, so the Users tab never holds a password that can be read back.
+function pwHash_(pw, salt) {
+  salt = salt || token_();
+  let h = salt;
+  for (let i = 0; i < 400; i++) h = hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, h + '|' + pw, Utilities.Charset.UTF_8));
+  return 'v1$' + salt + '$' + h;
+}
+function pwCheck_(pw, stored) {
+  const p = String(stored || '').split('$');
+  return p.length === 3 && p[0] === 'v1' && !!pw && pwHash_(String(pw), p[1]) === String(stored);
+}
+function hex_(bytes) { return bytes.map(b => ('0' + (b & 255).toString(16)).slice(-2)).join(''); }
+function token_() { return Utilities.getUuid().replace(/-/g, '').toLowerCase(); }
+function tempPassword_() {
+  const a = 'abcdefghjkmnpqrstuvwxyz', d = '23456789', hex = token_();
+  let s = '';
+  for (let i = 0; i < 5; i++) s += a.charAt(parseInt(hex.substr(i * 2, 2), 16) % a.length);
+  for (let i = 5; i < 9; i++) s += d.charAt(parseInt(hex.substr(i * 2, 2), 16) % d.length);
+  return s;
+}
+
+// ---------- monthly backup of this Sheet to Drive ----------
+
+function backupFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('BACKUP_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (err) {} }
+  const f = DriveApp.createFolder(BACKUP_FOLDER);
+  props.setProperty('BACKUP_FOLDER_ID', f.getId());
+  return f;
+}
+
+function backupNow_(by) {
+  const ss = SpreadsheetApp.getActive();
+  const now = new Date();
+  const copy = DriveApp.getFileById(ss.getId()).makeCopy(ss.getName() + ' - backup ' + Utilities.formatDate(now, TZ, 'yyyy-MM-dd HHmm'), backupFolder_());
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('LAST_BACKUP', dt_(now));
+  props.setProperty('LAST_BACKUP_URL', copy.getUrl());
+  audit_('', 'BACKUP', by, 'Copy of the Sheet saved to Drive folder "' + BACKUP_FOLDER + '".', '');
+  return { ok: true, backup: { last: dt_(now), url: copy.getUrl() } };
+}
+
+// Runs by itself on the 1st of every month (the trigger is made by setup).
+function monthlyBackup() { withLock_(() => backupNow_('Automatic monthly backup')); }
+
+function installBackupTrigger_() {
+  if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'monthlyBackup')) return;
+  ScriptApp.newTrigger('monthlyBackup').timeBased().onMonthDay(1).atHour(6).create();
+}
+
+// ---------- registers: transfers (PAR / ICS), spare parts stock, incidents, network ----------
+
+const TRANSFER_KINDS = ['Transfer to another section', 'Change of end user', 'Turnover to new accountable officer', 'Returned to MMU'];
+const MOVE_KINDS = ['Received', 'Issued', 'Adjustment (+)', 'Adjustment (-)'];
+const INC_TYPES = ['Malware / virus', 'Phishing / suspicious email', 'Unauthorized access', 'Lost or stolen device',
+  'Data sent to the wrong person / leak', 'System or network outage', 'Hardware failure', 'Fire, flood or power problem', 'Others'];
+const NET_KINDS = ['Router', 'Switch', 'Access Point', 'Firewall', 'Server', 'Network Printer', 'CCTV / NVR', 'IP Phone',
+  'Workstation (fixed IP)', 'Internet Line', 'Others'];
+
+// Each register: its tab, its columns, and the field name used by the page for each column.
+const REG = {
+  transfer: { tab: TRANSFERS, h: TRANSFER_HEADERS, label: 'TRANSFER',
+    map: { no: 'Transfer No.', date: 'Date', equipmentId: 'Equipment ID', kind: 'Kind', fromOffice: 'From Section / Unit',
+      fromUser: 'From End User', fromOfficer: 'From Accountable Officer', toOffice: 'To Section / Unit', toUser: 'To End User',
+      toOfficer: 'To Accountable Officer', doc: 'PAR / ICS / PTR No.', remarks: 'Reason / Remarks', recordedBy: 'Recorded By', recordedAt: 'Recorded At' },
+    days: ['date'] },
+  stock: { tab: STOCK, h: STOCK_HEADERS, label: 'STOCK ITEM',
+    map: { code: 'Item Code', item: 'Item', category: 'Category', unit: 'Unit', reorder: 'Reorder Level', cost: 'Unit Cost',
+      remarks: 'Remarks', updatedAt: 'Updated At', updatedBy: 'Updated By' },
+    nums: ['reorder', 'cost'], required: ['item', 'unit'],
+    next: sh => nextNo_(sh, 1, 'SP-', 3),
+    check: (row, H, sh, r) => {
+      const name = String(row[H['Item']]).toLowerCase();
+      readRows_(STOCK, STOCK_HEADERS).forEach(x => {
+        if (x[0] !== row[0] && String(x[H['Item']]).toLowerCase() === name) throw new Error(row[H['Item']] + ' is already in the list as ' + x[0] + '.');
+      });
+    } },
+  move: { tab: MOVES, h: MOVE_HEADERS, label: 'STOCK',
+    map: { ref: 'Ref No.', date: 'Date', code: 'Item Code', movement: 'Movement', qty: 'Quantity', cost: 'Unit Cost', amount: 'Amount',
+      reference: 'Reference (JO / PM / PR / IAR)', equipmentId: 'Equipment ID', unit: 'Section / Unit', remarks: 'Remarks',
+      recordedBy: 'Recorded By', recordedAt: 'Recorded At' },
+    nums: ['qty', 'cost', 'amount'], days: ['date'] },
+  incident: { tab: INCIDENTS, h: INCIDENT_HEADERS, label: 'INCIDENT',
+    map: { no: 'Incident No.', discovered: 'Discovered At', type: 'Type', personal: 'Personal Data Involved?', severity: 'Severity',
+      systems: 'Systems / Equipment Affected', equipmentId: 'Equipment ID', description: 'Description', actions: 'Actions Taken',
+      dpoOn: 'Reported to DPO On', npcNeeded: 'NPC Notification Needed?', npcOn: 'NPC Notified On', status: 'Status', jo: 'Related JO No.',
+      recordedBy: 'Recorded By', recordedAt: 'Recorded At', updatedAt: 'Updated At', updatedBy: 'Updated By', history: 'Action History' },
+    dts: ['discovered', 'dpoOn', 'npcOn'], required: ['discovered', 'type', 'description'],
+    choices: { type: INC_TYPES, personal: ['Yes', 'No', 'Not sure yet'], severity: ['Low', 'Medium', 'High', 'Critical'],
+      npcNeeded: ['Yes', 'No', 'To be assessed'], status: ['Open', 'Contained', 'Resolved', 'Closed'] },
+    defaults: { status: 'Open', personal: 'Not sure yet', severity: 'Medium' },
+    next: (sh, now) => nextNo_(sh, 1, 'INC-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
+    check: (row, H) => {
+      if (row[H['Personal Data Involved?']] === 'Yes' && !row[H['NPC Notification Needed?']]) row[H['NPC Notification Needed?']] = 'To be assessed';
+      checkEq_(row[H['Equipment ID']]);
+    } },
+  network: { tab: NETWORK, h: NET_HEADERS, label: 'NETWORK ITEM',
+    map: { id: 'Net ID', kind: 'Kind', name: 'Name / Label', location: 'Location', ip: 'IP Address', mac: 'MAC Address', vlan: 'VLAN / Subnet',
+      model: 'Brand / Model', equipmentId: 'Equipment ID', provider: 'Provider / ISP', account: 'Account / Circuit No.', bandwidth: 'Bandwidth',
+      contractEnd: 'Contract End', monthly: 'Monthly Cost', status: 'Status', remarks: 'Remarks', updatedAt: 'Updated At', updatedBy: 'Updated By' },
+    nums: ['monthly'], days: ['contractEnd'], required: ['kind', 'name'],
+    choices: { kind: NET_KINDS, status: ['Active', 'Spare', 'Retired'] }, defaults: { status: 'Active' },
+    next: sh => nextNo_(sh, 1, 'NET-', 3),
+    check: (row, H) => {
+      const ip = String(row[H['IP Address']]);
+      if (ip && !/^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}(\/\d{1,2})?$/.test(ip)) throw new Error('IP address should look like 192.168.1.10.');
+      const mac = String(row[H['MAC Address']]).replace(/[^0-9a-f]/gi, '');
+      if (row[H['MAC Address']] && mac.length !== 12) throw new Error('MAC address should have 12 letters or numbers, like 00:1A:2B:3C:4D:5E.');
+      if (mac) row[H['MAC Address']] = mac.toUpperCase().match(/../g).join(':');
+      if (ip && row[H['Status']] !== 'Retired') readRows_(NETWORK, NET_HEADERS).forEach(x => {
+        if (x[0] !== row[0] && String(x[H['IP Address']]) === ip && x[H['Status']] !== 'Retired')
+          throw new Error('IP ' + ip + ' is already used by ' + x[0] + ' (' + x[H['Name / Label']] + ').');
+      });
+      checkEq_(row[H['Equipment ID']]);
+    } }
+};
+
+function checkEq_(id) { if (id && !findRow_(sheet_(INV), String(id))) throw new Error('Equipment ' + id + ' is not in the masterlist.'); }
+
+function day_(v) {
+  if (v instanceof Date) return fmtDate_(v);
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new Error('Dates should look like 2026-10-29.');
+  return s;
+}
+
+function toObj_(spec, r) {
+  const o = {};
+  Object.keys(spec.map).forEach(k => {
+    const v = r[spec.h.indexOf(spec.map[k])];
+    if ((spec.nums || []).indexOf(k) >= 0) o[k] = v === '' ? '' : Number(v) || 0;
+    else if ((spec.days || []).indexOf(k) >= 0) o[k] = v instanceof Date ? fmtDate_(v) : String(v);
+    else o[k] = dtText_(v);
+  });
+  return o;
+}
+
+// Adds a row to a register, or updates one, with the Audit Trail entry. Used for stock items, incidents and the network list.
+function saveReg_(spec, it, req) {
+  it = it || {};
+  const by = req.by;
+  const H = idx_(spec.h), key = Object.keys(spec.map)[0];
+  return withLock_(() => {
+    const sh = sheet_(spec.tab);
+    const now = new Date(), stamp = dt_(now);
+    const r0 = it[key] ? findCol_(sh, 1, it[key]) : 0;
+    if (it[key] && !r0) throw new Error(it[key] + ' was not found.');
+    const row = r0 ? sh.getRange(r0, 1, 1, spec.h.length).getValues()[0] : new Array(spec.h.length).fill('');
+    const old = row.slice();
+    const auto = [key, 'recordedBy', 'recordedAt', 'updatedAt', 'updatedBy', 'history'];
+    Object.keys(spec.map).forEach(k => {
+      if (auto.indexOf(k) >= 0) return;
+      let v = it[k];
+      if (v === undefined) { if (r0 || !(spec.defaults || {})[k]) return; v = spec.defaults[k]; }
+      if ((spec.nums || []).indexOf(k) >= 0) v = toNum_(v);
+      else if ((spec.days || []).indexOf(k) >= 0) v = day_(v);
+      else if ((spec.dts || []).indexOf(k) >= 0) v = dt_(v);
+      else v = k === 'equipmentId' ? clean_(v).toUpperCase() : clean_(v);
+      if (v === '' && !r0 && (spec.defaults || {})[k]) v = spec.defaults[k];
+      row[H[spec.map[k]]] = v;
+    });
+    (spec.required || []).forEach(k => { if (row[H[spec.map[k]]] === '') throw new Error(spec.map[k] + ' is required.'); });
+    Object.keys(spec.choices || {}).forEach(k => {
+      const v = row[H[spec.map[k]]];
+      if (v !== '' && spec.choices[k].indexOf(v) < 0) throw new Error('Pick a ' + spec.map[k].replace(/\?$/, '') + ' from the list.');
+    });
+    if (spec.check) spec.check(row, H, sh, r0);
+    const changes = [];
+    spec.h.forEach((h, i) => { if (r0 && show_(old[i]) !== show_(row[i])) changes.push(h + ': "' + show_(old[i]).slice(0, 60) + '" to "' + show_(row[i]).slice(0, 60) + '"'); });
+    if (r0 && !changes.length) return { ok: true, unchanged: true, item: toObj_(spec, row) };
+    if (!r0) row[0] = spec.next(sh, now);
+    if (H['Recorded By'] !== undefined && !r0) { row[H['Recorded By']] = by; row[H['Recorded At']] = stamp; }
+    if (H['Updated At'] !== undefined) { row[H['Updated At']] = stamp; row[H['Updated By']] = by; }
+    if (H['Action History'] !== undefined) {
+      const what = (r0 ? 'Updated' : 'Recorded') + (H['Status'] !== undefined ? ' (' + row[H['Status']] + ')' : '') + ' by ' + by;
+      row[H['Action History']] = (String(row[H['Action History']] || '') + '\n' + stamp + ' - ' + what).replace(/^\n/, '').slice(-3000);
+    }
+    const r = r0 || lastRow_(sh) + 1;
+    writeRegRow_(spec, sh, r, row);
+    audit_(row[0], spec.label + (r0 ? ' UPDATED' : ' ADDED'), by, r0 ? changes.join('; ') : row.slice(1, 5).map(show_).filter(Boolean).join(', '), req.device);
+    return { ok: true, item: toObj_(spec, row) };
+  });
+}
+
+function writeRegRow_(spec, sh, r, row) {
+  sh.getRange(r, 1, 1, spec.h.length).setNumberFormat('@');
+  (spec.nums || []).forEach(k => sh.getRange(r, spec.h.indexOf(spec.map[k]) + 1).setNumberFormat('#,##0.00'));
+  sh.getRange(r, 1, 1, spec.h.length).setValues([row.map(v => v == null ? '' : v)]);
+}
+
+// A transfer or turnover. Kept as a log (never edited) and the masterlist row is updated to match.
+function saveTransfer_(req) {
+  const it = req.item || {};
+  const spec = REG.transfer, H = idx_(spec.h);
+  if (TRANSFER_KINDS.indexOf(it.kind) < 0) throw new Error('Pick what kind of transfer this is.');
+  return withLock_(() => {
+    const inv = sheet_(INV);
+    const id = clean_(it.equipmentId).toUpperCase();
+    const ir = findRow_(inv, id);
+    if (!ir) throw new Error('Pick the equipment from the masterlist.');
+    const eq = inv.getRange(ir, 1, 1, INV_HEADERS.length).getValues()[0];
+    const now = new Date(), stamp = dt_(now);
+    const from = [eq[I['Office / Section']], eq[I['End User']], eq[I['Accountable Officer']]].map(show_);
+    const to = [clean_(it.toOffice), clean_(it.toUser), clean_(it.toOfficer)];
+    if (it.kind === 'Returned to MMU') { to[0] = to[0] || 'Materials Management Unit (MMU)'; to[1] = to[1] || ''; }
+    for (let i = 0; i < 3; i++) if (!to[i] && !(it.kind === 'Returned to MMU' && i === 1)) to[i] = from[i];
+    if (to.every((v, i) => v === from[i])) throw new Error('Nothing changes. Type the new section, end user or accountable officer.');
+    const row = new Array(spec.h.length).fill('');
+    row[H['Transfer No.']] = nextNo_(sheet_(TRANSFERS), 1, 'TR-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3);
+    row[H['Date']] = day_(it.date) || fmtDate_(now);
+    row[H['Equipment ID']] = id; row[H['Kind']] = it.kind;
+    [row[H['From Section / Unit']], row[H['From End User']], row[H['From Accountable Officer']]] = from;
+    [row[H['To Section / Unit']], row[H['To End User']], row[H['To Accountable Officer']]] = to;
+    row[H['PAR / ICS / PTR No.']] = clean_(it.doc); row[H['Reason / Remarks']] = clean_(it.remarks);
+    row[H['Recorded By']] = req.by; row[H['Recorded At']] = stamp;
+    const sh = sheet_(TRANSFERS);
+    writeRegRow_(spec, sh, lastRow_(sh) + 1, row);
+    // Update the masterlist.
+    eq[I['Office / Section']] = to[0]; eq[I['End User']] = to[1]; eq[I['Accountable Officer']] = to[2];
+    if (row[H['PAR / ICS / PTR No.']]) eq[I['Source Document (RIS / PAR / ICS)']] = row[H['PAR / ICS / PTR No.']];
+    eq[I['Updated At']] = now; eq[I['Updated By']] = req.by;
+    formatInvRow_(inv, ir);
+    inv.getRange(ir, 1, 1, INV_HEADERS.length).setValues([eq]);
+    const what = ['Section', 'End user', 'Accountable officer'].map((k, i) => to[i] !== from[i] ? k + ': "' + from[i] + '" to "' + to[i] + '"' : '').filter(Boolean).join('; ');
+    audit_(row[0], 'TRANSFER', req.by, id + ', ' + it.kind + '. ' + what + (row[H['PAR / ICS / PTR No.']] ? '. ' + row[H['PAR / ICS / PTR No.']] : ''), req.device);
+    return { ok: true, transfer: toObj_(spec, row), item: toItem_(eq) };
+  });
+}
+
+// A stock movement: received, issued or adjusted. Issuing more than what is on hand is refused.
+function saveMove_(req) {
+  const it = req.item || {};
+  const spec = REG.move, H = idx_(spec.h);
+  if (MOVE_KINDS.indexOf(it.movement) < 0) throw new Error('Pick Received, Issued or an adjustment.');
+  const qty = toNum_(it.qty);
+  if (!qty || qty <= 0) throw new Error('Quantity should be more than zero.');
+  return withLock_(() => {
+    const st = sheet_(STOCK), sr = findCol_(st, 1, clean_(it.code));
+    if (!sr) throw new Error('Pick the item from the stock list.');
+    const item = st.getRange(sr, 1, 1, STOCK_HEADERS.length).getValues()[0];
+    const out = it.movement === 'Issued' || it.movement === 'Adjustment (-)';
+    const bal = stockBalance_(item[0]);
+    if (out && qty > bal) throw new Error('Only ' + bal + ' ' + item[3] + ' of ' + item[1] + ' on hand.');
+    if (it.movement === 'Issued' && !clean_(it.equipmentId) && !clean_(it.unit) && !clean_(it.reference)) throw new Error('Say where it went: the equipment, the section or the JO No.');
+    if (it.movement.indexOf('Adjustment') === 0 && !clean_(it.remarks)) throw new Error('Give the reason for the adjustment in Remarks.');
+    const now = new Date(), stamp = dt_(now);
+    const cost = toNum_(it.cost) === '' ? (Number(item[5]) || 0) : toNum_(it.cost);
+    const row = new Array(spec.h.length).fill('');
+    row[H['Ref No.']] = nextNo_(sheet_(MOVES), 1, 'SM-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 4);
+    row[H['Date']] = day_(it.date) || fmtDate_(now);
+    row[H['Item Code']] = item[0]; row[H['Movement']] = it.movement; row[H['Quantity']] = qty;
+    row[H['Unit Cost']] = cost; row[H['Amount']] = Math.round(qty * cost * 100) / 100;
+    row[H['Reference (JO / PM / PR / IAR)']] = clean_(it.reference);
+    row[H['Equipment ID']] = clean_(it.equipmentId).toUpperCase(); checkEq_(row[H['Equipment ID']]);
+    row[H['Section / Unit']] = clean_(it.unit); row[H['Remarks']] = clean_(it.remarks);
+    row[H['Recorded By']] = req.by; row[H['Recorded At']] = stamp;
+    const sh = sheet_(MOVES);
+    writeRegRow_(spec, sh, lastRow_(sh) + 1, row);
+    // The latest purchase price becomes the item's unit cost.
+    if (it.movement === 'Received' && toNum_(it.cost) !== '') {
+      item[5] = cost; item[7] = stamp; item[8] = req.by;
+      writeRegRow_(REG.stock, st, sr, item);
+    }
+    audit_(row[0], 'STOCK ' + it.movement.toUpperCase(), req.by, qty + ' ' + item[3] + ' ' + item[1] + ' (' + item[0] + ')' +
+      (row[H['Equipment ID']] ? ' for ' + row[H['Equipment ID']] : '') + (row[H['Reference (JO / PM / PR / IAR)']] ? ', ' + row[H['Reference (JO / PM / PR / IAR)']] : ''), req.device);
+    return { ok: true, move: toObj_(spec, row), stockItem: toObj_(REG.stock, item), balance: bal + (out ? -qty : qty) };
+  });
+}
+
+function stockBalance_(code) {
+  return readRows_(MOVES, MOVE_HEADERS).filter(m => m[2] === code)
+    .reduce((s, m) => s + (m[3] === 'Issued' || m[3] === 'Adjustment (-)' ? -1 : 1) * (Number(m[4]) || 0), 0);
+}
+
+// Next number in a series such as TR-2026-001: the highest one in the column plus one.
+function nextNo_(sh, col, prefix, pad) {
+  let max = 0;
+  const n = lastRow_(sh);
+  if (n >= 2) sh.getRange(2, col, n - 1, 1).getValues().forEach(v => {
+    const s = String(v[0]);
+    if (s.indexOf(prefix) === 0) max = Math.max(max, parseInt(s.slice(prefix.length), 10) || 0);
+  });
+  return prefix + String(max + 1).padStart(pad, '0');
+}
+
 // ---------- one-time setup and checks (run from the editor) ----------
 
 function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(TZ);
-  [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS]].forEach(([name, h]) => {
+  [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS], [USERS, USER_HEADERS],
+   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS]].forEach(([name, h]) => {
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
     // Writes the header row when it is missing, and adds new columns to an older tab (such as a pasted JO Log).
     const have = sh.getRange(1, 1, 1, h.length).getValues()[0];
@@ -802,14 +1388,29 @@ function setup() {
   if (!ss.getSheetByName(LISTS)) {
     const sh = ss.insertSheet(LISTS);
     const L = DEFAULT_LISTS, n = Math.max(L.types.length, L.offices.length, L.staff.length, L.activities.length, L.conditions.length);
-    const rows = [['Equipment Type', 'Default PM Frequency', 'Office / Section', 'ICT Personnel', 'Position', 'Maintenance Type', 'Condition']];
+    const rows = [LIST_HEADERS];
     for (let i = 0; i < n; i++) rows.push([(L.types[i] || [])[0] || '', (L.types[i] || [])[1] || '', L.offices[i] || '',
-      (L.staff[i] || [])[0] || '', (L.staff[i] || [])[1] || '', L.activities[i] || '', L.conditions[i] || '']);
+      (L.staff[i] || [])[0] || '', (L.staff[i] || [])[1] || '', L.activities[i] || '', L.conditions[i] || '',
+      (L.types[i] || [])[2] || '', L.types[i] ? 0 : '']);
     sh.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+  } else {
+    // Lists tab from version 1.2 or older: add the useful life and replacement cost columns.
+    const sh = ss.getSheetByName(LISTS);
+    if (sh.getRange(1, 8).getValue() !== LIST_HEADERS[7]) {
+      sh.getRange(1, 8, 1, 2).setValues([[LIST_HEADERS[7], LIST_HEADERS[8]]]).setFontWeight('bold');
+      const n = lastFilledRow_(sh, 1);
+      for (let r = 2; r <= n; r++) {
+        const t = String(sh.getRange(r, 1).getValue()).trim();
+        const d = DEFAULT_LISTS.types.filter(x => x[0] === t)[0];
+        if (t) sh.getRange(r, 8, 1, 2).setValues([[d ? d[2] : 5, 0]]);
+      }
+    }
   }
   if (!ss.getSheetByName(ADDED)) makeAddedTab_();
   ss.getSheets().forEach(protect_);
   sigFolder_();
+  backupFolder_();
+  installBackupTrigger_();
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('ICTU_PASSCODE')) props.setProperty('ICTU_PASSCODE', '1234');
   normalizeInventory_();
@@ -871,15 +1472,19 @@ function normalizeInventory_() {
   });
 }
 
+const LIST_HEADERS = ['Equipment Type', 'Default PM Frequency', 'Office / Section', 'ICT Personnel', 'Position', 'Maintenance Type', 'Condition',
+  'Useful Life (years)', 'Replacement Cost (PHP)'];
+
 function lists_() {
   const out = JSON.parse(JSON.stringify(DEFAULT_LISTS));
   const sh = SpreadsheetApp.getActive().getSheetByName(LISTS);
   if (!sh) return out;
   const n = lastFilledRow_(sh, 7);
   if (n < 2) return out;
-  const v = sh.getRange(2, 1, n - 1, 7).getValues();
+  const v = sh.getRange(2, 1, n - 1, 9).getValues();
   const col = c => v.map(r => String(r[c]).trim()).filter(Boolean);
-  const types = v.filter(r => String(r[0]).trim()).map(r => [String(r[0]).trim(), String(r[1]).trim() || 'Annual']);
+  const types = v.filter(r => String(r[0]).trim()).map(r => [String(r[0]).trim(), String(r[1]).trim() || 'Annual',
+    Number(r[7]) || 5, Number(String(r[8]).replace(/[^\d.]/g, '')) || 0]);
   const staff = v.filter(r => String(r[3]).trim()).map(r => [String(r[3]).trim(), String(r[4]).trim()]);
   if (types.length) out.types = types;
   if (col(2).length) out.offices = col(2);
@@ -977,8 +1582,8 @@ function toPM_(r) {
 
 function checkPin_(pin) {
   const want = PropertiesService.getScriptProperties().getProperty('ICTU_PASSCODE');
-  if (!want) throw new Error('ICTU passcode is not set. Run setup in Apps Script.');
-  if (String(pin || '') !== want) throw new Error('Wrong ICTU passcode.');
+  if (!want) throw new Error('The setup passcode is not set. Run setup in Apps Script.');
+  if (String(pin || '') !== want) throw new Error('Wrong setup passcode.');
 }
 
 function withLock_(fn) {
