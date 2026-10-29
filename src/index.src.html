@@ -350,6 +350,15 @@
   .sheet thead { display: table-header-group; }
   .sheet tr { break-inside: avoid; }
   .pagebreak { break-after: page; }
+  .sheet.cal .calg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.6mm; margin-bottom: 2mm; }
+  .sheet.cal .cm { box-sizing: border-box; min-width: 0; border: .6pt solid #000; min-height: 36mm; padding: 0 0 .8mm; break-inside: avoid; }
+  .sheet.cal .cm.now { outline: 1.2pt solid #000; }
+  .sheet.cal .cmh { background: #e8e8e8; font-weight: bold; font-size: 9pt; text-align: center; padding: .6mm 0; border-bottom: .6pt solid #000; margin-bottom: .6mm; }
+  .sheet.cal .ci { display: flex; gap: 1mm; font-size: 7pt; line-height: 1.2; padding: .3mm 1mm; }
+  .sheet.cal .ci i { font-style: normal; color: #333; }
+  .sheet.cal .mk2 { flex: none; width: 3.4mm; height: 3.4mm; border: .6pt solid #000; border-radius: .6mm; text-align: center; font-weight: bold; font-size: 6.5pt; line-height: 3.2mm; }
+  .sheet.cal .ci.done .mk2 { background: #000; color: #fff; }
+  .sheet.cal .none { font-size: 7pt; color: #777; text-align: center; padding-top: 3mm; }
   .labels { display: grid; grid-template-columns: repeat(3, 66mm); grid-auto-rows: 35mm; gap: 2mm 3mm; font-family: Arial, Helvetica, sans-serif; color: #000; }
   .lbl-card { border: .4pt dashed #999; border-radius: 2mm; padding: 2mm; display: flex; gap: 2mm; align-items: center; overflow: hidden; break-inside: avoid; }
   .lbl-card svg { width: 28mm; height: 28mm; flex: none; }
@@ -592,12 +601,14 @@
         <label class="f">Section / unit<select id="sOffice"></select></label>
         <label class="f">Equipment type<select id="sType"></select></label>
         <label class="f">Show<select id="sShow"><option value="">All scheduled units</option><option value="late">Overdue only</option><option value="month">Due this month</option></select></label>
+        <label class="f">Sort by<select id="sSort"><option value="office">Section, then ID</option><option value="id">Equipment ID</option><option value="brand">Equipment name</option><option value="type">Equipment type</option><option value="next">Next PM date</option><option value="freq">PM frequency</option></select></label>
       </div>
       <div class="legend">
         <span><i class="mk done">✓</i> PM done</span><span><i class="mk plan">P</i> Planned</span><span><i class="mk late">!</i> Planned but not done (overdue)</span>
       </div>
       <div class="row"><span class="hint" id="sCount" style="margin:0"></span><span class="spacer"></span>
-        <button class="btn ghost small" id="sPrint" type="button">Print schedule (A4)</button></div>
+        <button class="btn ghost small" id="sPrint" type="button">Print schedule (A4)</button>
+        <button class="btn small" id="sPrintSec" type="button">Print calendar by section</button></div>
     </div>
     <div class="tablewrap"><table class="sched" id="sTable"></table></div>
     <p class="hint">Units set to "Not scheduled" (monitors, keyboards, hubs and the like) are checked during the PM of the PC they belong to, so they are not listed here.</p>
@@ -1191,7 +1202,7 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.7";
+const APP_VERSION = "1.3.8";
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -2052,7 +2063,14 @@ function schedRows() {
   return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && (freqM(it) || Object.keys(doneMonths(it, y)).length) &&
     (!o || it.office === o) && (!t || it.type === t) &&
     (!sh || (sh === "late" ? pmState(it) === "late" : pmState(it) === "due")))
-    .sort((a, b) => (a.office + a.id).localeCompare(b.office + b.id));
+    .sort(schedSorter());
+}
+// The order picked in "Sort by". IDs break ties so the order never jumps around.
+function schedSorter() {
+  const k = $("sSort").value || "office", nat = (x, y) => String(x).localeCompare(String(y), undefined, { numeric: true });
+  const key = it => k === "office" ? it.office : k === "id" ? it.id : k === "brand" ? it.brand + " " + it.type : k === "type" ? it.type + " " + it.brand
+    : k === "next" ? PM_RANK[pmState(it)] + (it.nextDue || "0000") : String(freqM(it) || 99).padStart(2, "0");
+  return (a, b) => nat(key(a).toLowerCase(), key(b).toLowerCase()) || nat(a.id, b.id);
 }
 function schedCell(it, y, mo, plan, done) {
   const t = parse(todayStr()), past = y < t.getFullYear() || (y === t.getFullYear() && mo < t.getMonth());
@@ -2075,7 +2093,7 @@ function renderSched() {
     }).join("") + "</tbody>";
   bindRowButtons($("sTable"));
 }
-["sYear", "sOffice", "sType", "sShow"].forEach(id => $(id).addEventListener("input", renderSched));
+["sYear", "sOffice", "sType", "sShow", "sSort"].forEach(id => $(id).addEventListener("input", renderSched));
 
 // ---------- do PM ----------
 let pmItem = null, ck = {}, nextTouched = false, lastSaved = null;
@@ -2716,6 +2734,33 @@ function schedPrint() {
     </tbody></table>${signs()}</div>`, true);
 }
 $("sPrint").onclick = schedPrint;
+// One calendar page per section, to hand to each section / unit. Uses the filters and the sort order on screen.
+function schedPrintBySection() {
+  const y = +$("sYear").value, rows = schedRows();
+  if (!rows.length) { alert("No scheduled units match the filters."); return; }
+  const secs = [...new Set(rows.map(it => it.office || "No section"))].sort((a, b) => a.localeCompare(b));
+  const t = parse(todayStr());
+  const page = sec => {
+    const units = rows.filter(it => (it.office || "No section") === sec);
+    const months = MONTHS_LONG.map((name, mo) => {
+      const items = units.map(it => {
+        const c = schedCell(it, y, mo, plannedMonths(it, y), doneMonths(it, y)); if (!c) return "";
+        const d = parse(it.nextDue), day = d && c.cls !== "done" ? MONTHS[mo] + " " + d.getDate() + ": " : "";
+        return `<div class="ci ${c.cls}"><span class="mk2">${c.t}</span><span>${esc(day)}<b>${esc(it.id)}</b> ${esc(it.brand)} <i>(${esc(it.type)}${it.endUser ? ", " + esc(it.endUser) : ""})</i></span></div>`;
+      }).join("");
+      const now = y === t.getFullYear() && mo === t.getMonth();
+      return `<div class="cm${now ? " now" : ""}"><div class="cmh">${name}</div>${items || '<div class="none">No PM this month</div>'}</div>`;
+    }).join("");
+    return `<div class="sheet land cal">${header()}<h3>PREVENTIVE MAINTENANCE SCHEDULE OF ICT EQUIPMENT, CY ${y}</h3>
+      <div class="sub"><b>${esc(sec)}</b>. ${units.length} unit${units.length === 1 ? "" : "s"}. P = planned, ✓ = done, ! = planned but not yet done.
+        Please keep the unit available during its scheduled month. The ICT Unit will confirm the exact day.</div>
+      <div class="calg">${months}</div>
+      <div class="signs"><div>Prepared by:<div class="line">${esc((D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0] || "")}</div>ICT Unit</div>
+        <div>Received by:<div class="line"></div>Section / Unit Head, ${esc(sec)} (signature over printed name and date)</div></div></div>`;
+  };
+  doPrint(secs.map(page).join('<div class="pagebreak"></div>'), true);
+}
+$("sPrintSec").onclick = schedPrintBySection;
 $("rPrintSched").onclick = () => { $("sYear").value = String(new Date().getFullYear()); $("sOffice").value = ""; $("sType").value = ""; $("sShow").value = ""; renderSched(); schedPrint(); };
 
 function quarterPMs() {

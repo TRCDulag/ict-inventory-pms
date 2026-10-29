@@ -148,6 +148,17 @@ const shots = path.join(__dirname, 'screenshots');
   await page.emulateMedia({ media: 'print' });
   await page.pdf({ path: path.join(shots, 'sample-schedule.pdf'), format: 'A4', landscape: true, preferCSSPageSize: true, printBackground: true });
   await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
+  // sort, then a calendar page for each section
+  await page.selectOption('#sSort', 'next');
+  ok(await page.$eval('#sTable tbody tr td b', b => b.textContent) !== 'ICT-0029', 'sort by next PM puts the done unit last');
+  await page.selectOption('#sSort', 'office');
+  await page.click('#sPrintSec');
+  const secs = await page.evaluate(() => [...new Set(schedRows().map(i => i.office))].length);
+  ok(await page.locator('#printArea .sheet.cal').count() === secs && await page.locator('#printArea .sheet.cal').first().locator('.cm').count() === 12, 'one 12-month calendar page per section: ' + secs);
+  await page.evaluate(() => document.body.classList.add('printing'));
+  await page.emulateMedia({ media: 'print' });
+  await page.pdf({ path: path.join(shots, 'sample-schedule-by-section.pdf'), format: 'A4', landscape: true, preferCSSPageSize: true, printBackground: true });
+  await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
 
   // reports
   await page.click('nav.tabs button[data-v="reports"]');
