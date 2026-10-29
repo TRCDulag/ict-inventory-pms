@@ -233,6 +233,10 @@ const shots = path.join(__dirname, 'screenshots');
   await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
   await page.selectOption('#iOffice', '');
   ok(await page.evaluate(() => { const b = document.getElementById('addEq').getBoundingClientRect(), t = document.querySelector('#iTable thead').getBoundingClientRect(); return b.height > 0 && b.bottom <= t.top + 1; }), 'add equipment sits at the top of the list');
+  // what's new
+  await page.click('#menuBtn'); await page.click('#mNew');
+  ok(await page.isVisible('#newDlg') && (await page.textContent('#newBody h4')).includes(await page.evaluate(() => APP_VERSION)), "What's new lists this version first");
+  await page.click('#newDlg .df [data-close]');
   // column sorting
   const firstId = () => page.$eval('#iTable tbody tr', tr => tr.dataset.id);
   await page.click('.sortb[data-s="id"]');

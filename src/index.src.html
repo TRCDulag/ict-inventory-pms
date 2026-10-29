@@ -350,6 +350,9 @@
   .sheet thead { display: table-header-group; }
   .sheet tr { break-inside: avoid; }
   .pagebreak { break-after: page; }
+  #newBody h4 { margin: 14px 0 4px; font-size: 16px; } #newBody h4:first-child { margin-top: 0; }
+  #newBody h4 small { font-weight: 400; color: var(--muted); margin-left: 6px; }
+  #newBody ul { margin: 0 0 6px; padding-left: 20px; line-height: 1.5; }
   .sheet.cal .calg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.6mm; margin-bottom: 2mm; }
   .sheet.cal .cm { box-sizing: border-box; min-width: 0; border: .6pt solid #000; min-height: 36mm; padding: 0 0 .8mm; break-inside: avoid; }
   .sheet.cal .cm.now { outline: 1.2pt solid #000; }
@@ -434,7 +437,7 @@
       <form class="row hidden" id="lockCodeForm" style="margin-top:8px;flex-wrap:nowrap"><input id="lockCode" placeholder="Code on the sticker, e.g. ICT-0001" style="margin:0" autocomplete="off"><button class="btn small" type="submit">View</button></form>
     </div>
     <div class="cf"><button type="button" class="linkbtn" id="privLink"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Data privacy notice</button>
-      <span class="spacer"></span><a href="#" id="urlToggle">Sheet link</a><span id="lockVer"></span></div>
+      <span class="spacer"></span><a href="#" id="urlToggle">Sheet link</a><button type="button" class="linkbtn" id="lockVer" title="What's new"></button></div>
   </div>
 </div>
 <dialog id="privDlg" class="small">
@@ -442,6 +445,12 @@
   <div class="db privtext"><p>The records in this app, including the names, positions and sections of our employees, are kept and controlled by the ICT Unit of DOH TRC Dulag. We use them only for ICT equipment accountability, preventive maintenance and job order requests, in line with the Data Privacy Act of 2012 (RA 10173).</p>
     <p>Only ICTU personnel can open or change the records, each with their own account, and every change is logged. Please do not copy or share the data for any other purpose. Other offices may ask the ICT Unit for reports through a job order (data request).</p>
     <p>For corrections or concerns, please reach the ICT Unit.</p></div>
+  <div class="df"><button class="btn" type="button" data-close>Close</button></div>
+</dialog>
+
+<dialog id="newDlg">
+  <div class="dh"><h3>What's new</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db" id="newBody"></div>
   <div class="df"><button class="btn" type="button" data-close>Close</button></div>
 </dialog>
 
@@ -513,6 +522,7 @@
       <button role="menuitem" id="reloadBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Refresh data</button>
       <button role="menuitem" id="mScan" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/></svg>Scan or type an equipment code</button>
       <button role="menuitem" id="mReq" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg>Open the staff request page</button>
+      <button role="menuitem" id="mNew" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>What's new</button>
       <button role="menuitem" id="mPw" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg>Change my password</button>
       <hr>
       <button role="menuitem" id="lockOut" class="danger" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>Sign out</button>
@@ -1202,7 +1212,27 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.8";
+const APP_VERSION = "1.3.9";
+// The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
+const CHANGES = [
+  ["1.3.9", "Oct 29, 2026", ["A What's new list (this one), in the menu and on the sign-in card."]],
+  ["1.3.8", "Oct 29, 2026", ["PMS Schedule: Print calendar by section, one 12-month calendar page per section to hand to the section head, with Prepared by and Received by.", "PMS Schedule: Sort by section, equipment ID, name, type, next PM date or frequency."]],
+  ["1.3.7", "Oct 29, 2026", ["Inventory: click a column name to sort by it; click again to reverse.", "Inventory: the list scrolls inside its own box, and the column names stay in view.", "The Home notice now tells an old page (press Ctrl+F5) apart from an old Apps Script."]],
+  ["1.3.6", "Oct 29, 2026", ["Add equipment: Read property sticker. A photo of the yellow DOH TRC DULAG PROPERTY sticker fills in the type, brand, property no., ICS/PAR no., accountable officer and cost (needs a free Gemini key)."]],
+  ["1.3.5", "Oct 29, 2026", ["Inventory: Add equipment is now at the top of the list.", "Fixed: an employee pick list could close by itself when you clicked back into the box quickly."]],
+  ["1.3.4", "Oct 29, 2026", ["Inventory: Import from Excel (Head only). Brings in Inventory and PM Log rows from an .xlsx or .csv and skips what is already there.", "A unit whose ID is taken by a different unit gets the next free ID, and its PM records follow it."]],
+  ["1.3.3", "Oct 29, 2026", ["Home: a notice when the Apps Script is behind the page, and help when there is no equipment yet.", "Failed sign-ins with made-up usernames no longer fill the Audit Trail.", "Small layout fixes (Condition filter, Start PM button)."]],
+  ["1.3.2", "Oct 29, 2026", ["Job Orders: the request QR poster prints on half an A4 (A5) with the official header."]],
+  ["1.3.1", "Oct 29, 2026", ["New app icon: the server stack with the TRC Dulag seal."]],
+  ["1.3.0", "Oct 29, 2026", ["Personal sign-in for each ICTU staff, with roles: Head, Technician and Viewer.", "Monthly backup of the Sheet to Google Drive, plus Back up now.", "Requestors rate the service (CSM) from a link or QR code once the job order is closed.", "New: Transfers (PAR/ICS), Spare Parts stock, Technical Inspection Report, replacement plan, cost per unit, Dashboard, Incidents and Network and IP."]],
+  ["1.2.0", "Oct 28, 2026", ["Job orders (COH-IDN-F-01), the public request page, and QR labels on each unit.", "New header, better pick lists and the data privacy notice."]],
+  ["1.1.0", "Oct 28, 2026", ["Document Tracking look, employee lists from the HR masterlist, Add office and Add employee."]],
+  ["1.0.0", "Oct 28, 2026", ["First version: inventory masterlist, PM form COH-IDN-F-02, PM log and PMS schedule."]]
+];
+function showNew() {
+  $("newBody").innerHTML = CHANGES.map(c => `<h4>Version ${esc(c[0])}<small>${esc(c[1])}</small></h4><ul>${c[2].map(x => `<li>${esc(x)}</li>`).join("")}</ul>`).join("");
+  $("newDlg").showModal();
+}
 
 const $ = id => document.getElementById(id);
 const GAS = typeof google !== "undefined" && google.script && google.script.run;   // opened through the /exec link
@@ -1468,6 +1498,7 @@ function initLock() {
   document.querySelectorAll(".pwShow").forEach(b => b.onclick = () => {
     const i = b.previousElementSibling, on = i.type === "password"; i.type = on ? "text" : "password"; b.textContent = on ? "Hide" : "Show"; });
   $("privLink").onclick = () => $("privDlg").showModal();
+  $("lockVer").onclick = showNew;
   $("lockCodeBtn").onclick = () => { $("lockCodeForm").classList.toggle("hidden"); if (!$("lockCodeForm").classList.contains("hidden")) $("lockCode").focus(); };
   const saveUrl = () => { if (!GAS && !$("urlWrap").classList.contains("hidden")) store.set("gsUrl", $("urlIn").value.trim()); };
   $("urlIn").addEventListener("change", () => { saveUrl(); checkSetup(); });
@@ -1611,6 +1642,7 @@ $("lockOut").onclick = async () => {
   store.set("token", ""); TOKEN = ""; location.hash = ""; location.reload();
 };
 $("mPw").onclick = () => { menuOpen(false); ["pwOld", "pwNew", "pwNew2"].forEach(id => $(id).value = ""); msg("pwMsg", ""); $("pwDlg").showModal(); $("pwOld").focus(); };
+$("mNew").onclick = () => { menuOpen(false); showNew(); };
 $("pwForm").onsubmit = async e => {
   e.preventDefault();
   if ($("pwNew").value !== $("pwNew2").value) { msg("pwMsg", "The two new passwords are not the same.", "err"); return; }

@@ -26,6 +26,7 @@ Only ICT Unit staff have accounts, each with their own username and password and
 | `Register/ICT Inventory and PMS Register (ICTU).xlsx` | An empty Sheet template, with the tabs Inventory, PM Log, Checklist Results, JO Log, Users, Transfers, Stock Items, Stock Movements, Incidents, Network, Audit Trail, Lists and About. The filled copy (the RIS units and PM-2026-001) is kept outside this repo, because the repo is public. |
 | `src/index.src.html` | The page source without the logos (`npm run build` makes `index.html`). |
 | `icons/`, `manifest.json` | The app icon (server stack with the TRC Dulag seal). The page and the /exec link load it from GitHub Pages, so it also shows when the app is added to a phone's home screen. |
+| `CHANGELOG.md` | What changed in each version. The app shows the same list under *What's new* (menu at the top right, or the version number on the sign-in card). |
 | `dev/vendor/qrcode.min.js` | QR Code Generator by Kazuhiko Arase (MIT license), built into the page for the labels. |
 | `dev/` | Tests, the local test server and the template builder. |
 
