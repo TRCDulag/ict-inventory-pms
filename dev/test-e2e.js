@@ -58,7 +58,7 @@ const shots = path.join(__dirname, 'screenshots');
   ok(await page.isVisible('#eEndUserList'), 'employee list opens while typing');
   await page.screenshot({ path: path.join(shots, '10-employee-list.png') });
   await page.press('#eEndUser', 'Enter');
-  ok(await page.inputValue('#eEndUser') === 'Maria Clara R. Santos' && await page.inputValue('#eOffice') === 'Budget Section', 'changing the employee changes the section');
+  { const eu = await page.inputValue('#eEndUser'), eo = await page.inputValue('#eOffice'); ok(eu === 'Maria Clara R. Santos' && eo === 'Budget Section', 'changing the employee changes the section: ' + eu + ' / ' + eo); }
   await page.fill('#eAcc', 'Kimberly Cajano');
   ok(/Add "Kimberly Cajano" as a new employee/.test(await page.textContent('#eAccList .opt.add')), 'unknown name offers add at the bottom of the list');
   await page.click('#eAccList .opt.add');
@@ -221,7 +221,7 @@ const shots = path.join(__dirname, 'screenshots');
   await page.pdf({ path: path.join(shots, 'sample-qr-labels.pdf'), format: 'A4', preferCSSPageSize: true, printBackground: true });
   await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
   await page.selectOption('#iOffice', '');
-  ok(await page.isVisible('#iTable tfoot #addEq'), 'add equipment sits at the bottom of the list');
+  ok(await page.evaluate(() => { const b = document.getElementById('addEq').getBoundingClientRect(), t = document.querySelector('#iTable thead').getBoundingClientRect(); return b.height > 0 && b.bottom <= t.top + 1; }), 'add equipment sits at the top of the list');
 
   // scan or type a code
   await page.click('#scanBtn');
