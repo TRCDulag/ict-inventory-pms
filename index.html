@@ -1694,8 +1694,11 @@ function renderHome() {
   const q = quarterOf(todayStr());
   const done = D.pms.filter(p => p.quarter === q && p.recordStatus !== "Voided");
   const notes = [];
-  if (D.version && D.version !== APP_VERSION && can("Head"))
+  const older = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }) < 0;
+  if (D.version && older(D.version, APP_VERSION) && can("Head"))
     notes.push(`<b>The Apps Script is still on version ${esc(D.version)}</b>, while this page is ${esc(APP_VERSION)}. Paste the new Code.gs and Index into Apps Script, then Deploy, Manage deployments, Edit, New version.`);
+  if (D.version && older(APP_VERSION, D.version) && can("Head"))
+    notes.push(`<b>This page is an older copy (${esc(APP_VERSION)})</b> than the Apps Script (${esc(D.version)}). Press Ctrl+F5 to load the new one. If you opened the /exec link and it stays old, paste the new index.html over the Index file in Apps Script and deploy a New version.`);
   if (!D.inventory.length)
     notes.push(`<b>No equipment yet.</b> Add units on the Inventory tab, or paste your equipment list into the Inventory tab of the Google Sheet (leave the Equipment ID blank) and press Refresh data.`);
   $("homeNote").innerHTML = notes.map(n => `<div class="hnote">${n}</div>`).join("");
