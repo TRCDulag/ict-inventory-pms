@@ -85,7 +85,7 @@ function createGas() {
       newTrigger: h => { const t = { timeBased: () => t, onMonthDay: () => t, atHour: () => t, create: () => { triggers.push(h); return t; } }; return t; } },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     Logger: { log: () => {} },
-    HtmlService: { createHtmlOutputFromFile: () => { const o = { setTitle: () => o, addMetaTag: () => o, setXFrameOptionsMode: () => o }; return o; }, XFrameOptionsMode: { ALLOWALL: 1 } },
+    HtmlService: { createHtmlOutputFromFile: () => { const o = { setTitle: () => o, setFaviconUrl: () => o, addMetaTag: () => o, setXFrameOptionsMode: () => o }; return o; }, XFrameOptionsMode: { ALLOWALL: 1 } },
     ContentService: { createTextOutput: t => ({ text: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
     DriveApp: {
       createFolder: name => ({ getId: () => 'folder' + name, createFile: blob => {

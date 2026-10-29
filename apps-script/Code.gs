@@ -55,7 +55,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.3.0';
+const VERSION = '1.3.1';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -162,6 +162,7 @@ function doGet(e) {
   if (e && e.parameter && e.parameter.ping) return json_({ ok: true, message: 'ICT Inventory and PMS script is running.', version: VERSION });
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('ICT Inventory and PMS')
+    .setFaviconUrl('https://trcdulag.github.io/ict-inventory-pms/icons/icon-192.png')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
