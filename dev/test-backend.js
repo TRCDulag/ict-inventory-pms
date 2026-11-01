@@ -300,9 +300,36 @@ const fx = be.gas._fetches[be.gas._fetches.length - 1];
 ok(/gemini-flash-latest:generateContent$/.test(fx.url) && !/key=/.test(fx.url) && fx.body.contents[0].parts[1].inline_data.data.length === 200, 'photo sent to Gemini with the key in a header, not the link');
 ok(!call({ action: 'readSticker', image: 'not a photo' }).ok, 'bad image refused');
 
+// new job order alerts: the 2-minute check and the emails
+r = asTech({ action: 'joPeek' });
+ok(r.ok && r.jos.length > 0 && r.jos.length <= 20 && r.jos[r.jos.length - 1].jo, 'the app can check the latest job orders');
+ok(/role \(Technician\)/.test(asTech({ action: 'saveAlerts', emails: 'a@b.com' }).error), 'only the Head sets the alert emails');
+ok(!call({ action: 'saveAlerts', emails: 'not-an-email' }).ok, 'a bad email address is refused');
+let mails0 = be.gas._mails.length;
+pub({ action: 'submitJO', jo: { lastName: 'Reyes', firstName: 'Lito', unit: 'Cash Unit', description: 'No email setup yet', types: ['Wi-Fi access'] } });
+ok(be.gas._mails.length === mails0, 'no email while no address is set');
+r = call({ action: 'saveAlerts', emails: 'ictu.head@example.com; Tech@Example.com' });
+ok(r.ok && r.alerts.emails === 'ictu.head@example.com, tech@example.com', 'alert emails saved: ' + JSON.stringify(r));
+ok(call({ action: 'listUsers' }).alerts.emails === 'ictu.head@example.com, tech@example.com', 'Accounts shows the alert emails');
+r = pub({ action: 'submitJO', jo: { lastName: 'Reyes', firstName: 'Lito', unit: 'Cash Unit', description: 'Printer <b>jams</b>', types: ['Printer / scanner problem'], urgent: 'Yes', urgentReason: 'Payroll today' } });
+const mail = be.gas._mails[be.gas._mails.length - 1];
+ok(r.ok && be.gas._mails.length === mails0 + 1 && mail.to === 'ictu.head@example.com,tech@example.com' && /^\[URGENT\] New job order ICTU-/.test(mail.subject), 'an urgent request sends one email: ' + (mail && mail.subject));
+ok(/#jo=ICTU-/.test(mail.htmlBody) && /Printer &lt;b&gt;jams/.test(mail.htmlBody) && !/<b>jams/.test(mail.htmlBody), 'the email links to the job order and escapes what the requestor typed');
+ok(asTech({ action: 'joPeek' }).jos.some(j => j.jo === r.jo), 'the check sees the new request');
+mails0 = be.gas._mails.length;
+call({ action: 'saveJO', jo: { lastName: 'Walk', unit: 'ICTU', description: 'Logged by ICTU itself' } });
+ok(be.gas._mails.length === mails0, 'job orders ICTU logs itself send no email');
+ok(call({ action: 'testAlert' }).ok && /^\[TEST\]/.test(be.gas._mails[be.gas._mails.length - 1].subject), 'the Head can send a test email');
+const sendWas = be.gas.MailApp.sendEmail; be.gas.MailApp.sendEmail = () => { throw new Error('Authorization is required'); };
+r = pub({ action: 'submitJO', jo: { lastName: 'Reyes', firstName: 'Lito', unit: 'Cash Unit', description: 'Mail fails', types: ['Wi-Fi access'] } });
+be.gas.MailApp.sendEmail = sendWas;
+ok(r.ok && r.jo, 'a failed email never stops the request');
+ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'ALERT EMAIL NOT SENT'), 'a failed email is noted in the Audit Trail');
+ok(call({ action: 'saveAlerts', emails: '' }).ok && !call({ action: 'listUsers' }).alerts.emails, 'blank turns the emails off');
+
 const aud4 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['USER ADDED', 'USER UPDATED', 'SIGNED IN', 'SIGN-IN FAILED', 'PASSWORD CHANGED', 'CSM RATING', 'TRANSFER', 'STOCK ITEM ADDED', 'STOCK RECEIVED', 'STOCK ISSUED',
- 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
+ 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED', 'ALERT EMAILS CHANGED', 'ALERT EMAIL TEST'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
 const byCol = be.gas._ss.getSheetByName('Audit Trail')._data.filter(r => r[2] === 'TRANSFER').map(r => r[3]);
 ok(byCol[0] === 'Argie R. Lopez', 'audit names the signed-in person, not what the page sends');
 console.log('backend: ' + n + ' checks passed');

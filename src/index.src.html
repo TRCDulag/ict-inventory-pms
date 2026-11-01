@@ -146,6 +146,9 @@
   table.list tfoot td { padding: 0; border-top: 1px solid var(--line); }
   .addrow { display: flex; align-items: center; gap: 10px; width: 100%; background: #F6FBF9; border: 0; padding: 14px 16px; font: inherit; font-size: 15.5px; font-weight: 600; color: var(--brand); cursor: pointer; text-align: left; border-radius: 0 0 var(--r) var(--r); }
   .sortb { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  /* the whole column heading is the button, so it is easy to tap */
+  table.list th:has(> .sortb) { padding: 0; }
+  table.list th > .sortb { display: flex; width: 100%; min-height: 44px; padding: 10px 12px; }
   .sortb:hover { color: var(--brand); }
   .sortb::after { content: "↕"; font-size: 11px; opacity: .45; }
   th[aria-sort="ascending"] .sortb, th[aria-sort="descending"] .sortb { color: var(--navy); }
@@ -198,6 +201,21 @@
   .due-item .t { flex: 1; min-width: 0; }
   .due-item .t b { display: block; color: var(--head); font-weight: 600; }
   .due-item .t span { color: var(--muted); font-size: 14px; }
+  table.list tbody tr[tabindex]:focus-visible { outline: 3px solid rgba(11,75,170,.45); outline-offset: -3px; }
+  /* phones: each unit of the masterlist is a small card; the column headings stay as sort buttons */
+  @media (max-width: 640px) {
+    #iTable, #iTable thead, #iTable tbody { display: block; }
+    #iTable thead tr { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); background: #F6FBF9; }
+    #iTable thead th { display: block; flex: 1 1 auto; border-bottom: 0; position: static; }
+    #iTable thead th.hide-m { display: none; }
+    #iTable tbody tr[data-id] { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 14px; border-bottom: 1px solid var(--line-2); }
+    #iTable tbody tr[data-id] td { padding: 0; border: 0; }
+    #iTable tbody tr[data-id] td:nth-child(1) { grid-column: 1; grid-row: 1; }
+    #iTable tbody tr[data-id] td:nth-child(7) { grid-column: 2; grid-row: 1; text-align: right; }
+    #iTable tbody tr[data-id] td:nth-child(2) { grid-column: 1 / -1; }
+    #iTable tbody tr[data-id] td:nth-child(5) { grid-column: 1 / -1; color: var(--muted); font-size: 14px; }
+    #iTable tbody tr[data-id] td:nth-child(5) .s { display: inline; } #iTable tbody tr[data-id] td:nth-child(5) .s:not(:empty)::before { content: ", "; }
+  }
   @media (max-width: 760px) { table.list .hide-m { display: none; } .due-item { flex-wrap: wrap; } .due-item .t { flex-basis: 100%; } }
 
   /* schedule grid */
@@ -287,6 +305,31 @@
   #lock .cf a:hover, #lock .linkbtn:hover { text-decoration: underline; }
   #lock .cf svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; vertical-align: -3px; margin-right: 3px; }
   .privtext p { margin: 0 0 10px; }
+  /* phones: a bar of the 4 most used screens at the bottom; More opens the full list */
+  .pbar { display: none; }
+  @media (max-width: 899px) {
+    .pbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(31,42,69,.08); padding: 4px 4px max(4px, env(safe-area-inset-bottom)); }
+    .pbar button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; background: none; border: 0; border-radius: 10px; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--muted); cursor: pointer; position: relative; }
+    .pbar button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .pbar button[aria-current="page"] { color: var(--navy); font-weight: 700; background: var(--honeydew); }
+    .pbar .badge { position: absolute; top: 4px; left: calc(50% + 6px); background: var(--bad); color: #fff; font-size: 11px; font-weight: 700; border-radius: 999px; min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; }
+    nav.tabs { display: none; }
+    body.navopen nav.tabs { display: flex; flex-direction: column; position: fixed; top: auto; bottom: 64px; left: 8px; right: 8px; max-height: calc(100vh - 140px); overflow-y: auto; z-index: 29; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 -10px 40px rgba(31,42,69,.25); padding: 8px; }
+    body.navopen nav.tabs button { min-height: 46px; font-size: 15.5px; }
+    body.navopen::after { content: ""; position: fixed; inset: 0; background: rgba(31,42,69,.35); z-index: 28; }
+    .savebar { bottom: calc(64px + env(safe-area-inset-bottom)); }
+    main { padding-bottom: 170px; }
+  }
+  /* new job order pop-up and the "still saving" note */
+  .jtoast { position: fixed; right: 20px; bottom: 20px; width: 380px; max-width: calc(100vw - 24px); background: #fff; border-radius: 12px; border-left: 6px solid var(--bad); box-shadow: 0 14px 44px rgba(31,42,69,.3); z-index: 95; padding: 12px 16px 14px; }
+  .jtoast .jh { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .jtoast .jh::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--bad); }
+  .jtoast .jh button { margin-left: auto; background: none; border: 0; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 2px 6px; }
+  .jtoast b.jt { display: block; font-size: 17px; color: var(--navy); margin: 4px 0 2px; }
+  .jtoast p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.45; }
+  .jtoast p + p { margin-top: -6px; }
+  @media (max-width: 899px) { .jtoast { right: 12px; left: 12px; width: auto; bottom: calc(76px + env(safe-area-inset-bottom)); } }
+  .slow { position: fixed; left: 50%; transform: translateX(-50%); top: 84px; z-index: 96; background: var(--navy); color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 14.5px; box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: calc(100vw - 24px); }
   /* roles: r1 Viewer, r2 Technician, r3 Head. need2 / need3 hide what a role cannot do. */
   body.r1 .need2, body.r1 .need3, body.r2 .need3 { display: none !important; }
   nav.tabs .grp { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 12px 14px 2px; }
@@ -523,6 +566,7 @@
       <button role="menuitem" id="mScan" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/></svg>Scan or type an equipment code</button>
       <button role="menuitem" id="mReq" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg>Open the staff request page</button>
       <button role="menuitem" id="mNew" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>What's new</button>
+      <button role="menuitem" id="mAlert" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span id="mAlertT">Turn on desktop alerts</span></button>
       <button role="menuitem" id="mPw" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg>Change my password</button>
       <hr>
       <button role="menuitem" id="lockOut" class="danger" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>Sign out</button>
@@ -886,6 +930,12 @@
       <div class="tablewrap"><table class="list" id="uTable"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th class="hide-m">Last sign-in</th></tr></thead><tbody></tbody>
         <tfoot><tr><td colspan="5"><button class="addrow" id="addUser" type="button"><span class="plus">+</span>Add an ICTU staff account</button></td></tr></tfoot></table></div>
       <div class="msg" id="uMsg" role="status"></div></div>
+    <div class="panel"><h3>New job order emails</h3>
+      <p class="hint" style="margin:0 0 10px">Each request filed on the request page sends an email to these addresses (up to 5, separated by commas). Job orders that ICTU logs in the app send none. The app also checks for new requests every 2 minutes while it is open and shows a pop-up.</p>
+      <label class="f">Send to<input id="alEmails" type="text" inputmode="email" placeholder="you@gmail.com, argie@gmail.com" autocomplete="off"></label>
+      <p class="hint" id="alInfo" style="margin:8px 0 10px"></p>
+      <div class="row"><button class="btn" id="alSave" type="button">Save</button><button class="btn ghost" id="alTest" type="button">Send a test email</button></div>
+      <div class="msg" id="alMsg" role="status"></div></div>
     <div class="panel"><h3>Backup of the Google Sheet</h3>
       <p class="hint" style="margin:0 0 10px">A copy of the whole Sheet is saved on the 1st of every month, at about 6 AM, to the Drive folder "ICT Inventory and PMS Backups". You can also make one now, for example before a big change.</p>
       <p id="bkInfo" style="margin:0 0 10px"></p>
@@ -897,6 +947,16 @@
 </main>
 </div>
 
+<nav class="pbar" id="pbar" aria-label="Main screens">
+  <button type="button" data-p="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</button>
+  <button type="button" data-p="inv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>Inventory</button>
+  <button type="button" data-p="pm" class="need2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Do PM</button>
+  <button type="button" data-p="jo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8 12l2.5 2.5L16 9"/></svg>Job Orders<span class="badge hidden" id="pJo"></span></button>
+  <button type="button" data-p="more" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>More</button>
+</nav>
+<div class="jtoast hidden" id="joToast" role="alert"><div class="jh"><span id="jtWhen">ICT Inventory and PMS · just now</span><button type="button" id="jtX" aria-label="Close">×</button></div>
+  <b class="jt" id="jtTitle"></b><p id="jtBody"></p><div class="row"><button class="btn small" id="jtOpen" type="button">Open job order</button><button class="btn ghost small" id="jtLater" type="button">Later</button></div></div>
+<div class="slow hidden" id="slowNote" role="status">Still saving. The Google Sheet is slow to answer, please don't close the page.</div>
 <div class="savebar hidden" id="pmBar"><div class="in"><div class="msg" id="pmMsg" role="status"></div><button class="btn ghost" id="pmReset" type="button">Clear</button><button class="btn" id="pmSave" type="button">Save PM record</button></div></div>
 </div>
 
@@ -1212,9 +1272,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.3.9";
+const APP_VERSION = "1.4.0";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.0", "Nov 2, 2026", ["New job orders: while the app is open it checks every 2 minutes. A new request shows as \"N new\" on Job Orders, with a pop-up and a short sound (three notes when urgent).", "New job orders: desktop alerts, even when the browser is minimized. Turn them on from your name menu.", "New job orders: an email for each request from the request page. The Head sets the addresses under Accounts and can send a test email.", "Phones: Home, Inventory, Do PM and Job Orders sit in a bar at the bottom. More opens the rest.", "Phones: each unit in the masterlist shows as a small card, and the column names are bigger buttons for sorting.", "Dashboard: PM up to date says how many units never had a PM yet. Due for replacement says how many units have no date acquired, instead of only showing 0.", "A \"Still saving\" note when the Google Sheet is slow to answer, so the page is not closed halfway.", "Lists can be opened with the keyboard (Tab, then Enter). The page is lighter to load."]],
   ["1.3.9", "Oct 29, 2026", ["A What's new list (this one), in the menu and on the sign-in card."]],
   ["1.3.8", "Oct 29, 2026", ["PMS Schedule: Print calendar by section, one 12-month calendar page per section to hand to the section head, with Prepared by and Received by.", "PMS Schedule: Sort by section, equipment ID, name, type, next PM date or frequency."]],
   ["1.3.7", "Oct 29, 2026", ["Inventory: click a column name to sort by it; click again to reverse.", "Inventory: the list scrolls inside its own box, and the column names stay in view.", "The Home notice now tells an old page (press Ctrl+F5) apart from an old Apps Script."]],
@@ -1355,7 +1416,17 @@ $("iImpFile").onchange = async () => {
   } catch (e) { alert(errText(e)); }
 };
 
+// After 20 seconds without an answer, say so, so nobody closes the page in the middle of a save.
+let slowN = 0;
 function api(req) {
+  const p = api0(req);
+  if (req.action === "joPeek") return p;
+  slowN++; const t = setTimeout(() => $("slowNote").classList.remove("hidden"), 20000);
+  const done = () => { clearTimeout(t); if (--slowN <= 0) { slowN = 0; $("slowNote").classList.add("hidden"); } };
+  p.then(done, done);
+  return p;
+}
+function api0(req) {
   req = Object.assign({ token: TOKEN, device: device() }, req);
   const p = GAS ? new Promise((ok, no) =>
     google.script.run.withSuccessHandler(t => ok(JSON.parse(t))).withFailureHandler(e => no(e)).api(JSON.stringify(req)))
@@ -1365,7 +1436,7 @@ function api(req) {
   return p.then(j => { if (j && j.signIn && TOKEN && !$("app").classList.contains("hidden")) signedOut(j.error); return j; });
 }
 function signedOut(why) {
-  TOKEN = ""; store.set("token", ""); ME = null;
+  TOKEN = ""; store.set("token", ""); ME = null; stopPeek();
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
   $("app").classList.add("hidden"); lockStarted = false; showLock(); msg("lockMsg", why || "Please sign in again.", "err");
 }
@@ -1555,13 +1626,18 @@ async function startApp() {
   openApp(j);
 }
 // Public pages (no sign-in) come from the hash: #request, #request&eq=ICT-0001, #eq=ICT-0001, #track=<link code>.
-let wantEq = "";
+let wantEq = "", wantJo = "";
 function route() {
   const h = decodeURIComponent((location.hash || "").replace(/^#/, ""));
   const eq = (h.match(/(?:^|&)eq=([^&]+)/) || [])[1] || "";
   const inApp = !$("app").classList.contains("hidden");
   if (/^request/.test(h)) return showPublic("request", codeOf(eq));
   if (/^track=/.test(h)) return showPublic("track", h.slice(6));
+  if (/^jo=/.test(h)) {
+    const no = h.slice(3).toUpperCase();
+    if (inApp) { history.replaceState(null, "", "#jo"); show("jo"); openJo(no); return; }
+    wantJo = no; return showLock();
+  }
   if (/^eq=/.test(h)) {
     if (inApp) { const c = codeOf(eq); history.replaceState(null, "", "#inv"); show("inv"); if (byId(c)) openEq(c); return; }
     if (TOKEN) { wantEq = codeOf(eq); return showLock(); }
@@ -1602,6 +1678,8 @@ function openApp(j) {
   fillPickers();
   renderAll();
   const v = (location.hash || "").replace("#", "");
+  startPeek();
+  if (wantJo) { show("jo"); openJo(wantJo); wantJo = ""; return; }
   if (wantEq) { show("inv"); if (byId(wantEq)) openEq(wantEq); wantEq = ""; return; }
   show(VIEWS.includes(v) && (v !== "acc" || can("Head")) && (v !== "pm" || can("Technician")) ? v : "home");
 }
@@ -1616,6 +1694,7 @@ function take(j) {
     version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {},
     transfers: j.transfers || [], stock: j.stock || [], moves: j.moves || [], incidents: j.incidents || [], network: j.network || [],
     backup: j.backup || {}, tirRecs: j.tirRecs || [], choices: j.choices || {} };
+  D.jos.forEach(x => seenJo.add(x.jo));
   $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 async function reload() {
@@ -1655,8 +1734,90 @@ $("pwForm").onsubmit = async e => {
   finally { $("pwSave").disabled = false; }
 };
 
+// ---------- new job order alerts ----------
+// Every 2 minutes the app asks for the latest job orders. A request it has not seen yet, that the person
+// did not log themself, shows as "N new" on Job Orders, a pop-up with a sound and, when allowed, a desktop notice.
+const seenJo = new Set();
+let newJo = [], peekTimer = null, audio = null;
+function startPeek() { stopPeek(); peekTimer = setInterval(peekJo, 120000); }
+function stopPeek() { if (peekTimer) clearInterval(peekTimer); peekTimer = null; }
+async function peekJo() {
+  if (!TOKEN || !D) return;
+  let j; try { j = await api({ action: "joPeek" }); } catch (e) { return; }
+  if (!j || !j.ok) return;
+  const fresh = j.jos.filter(x => x.jo && !seenJo.has(x.jo));
+  if (!fresh.length) return;
+  fresh.forEach(x => { seenJo.add(x.jo); if (!D.jos.some(y => y.jo === x.jo)) D.jos.push(x); });
+  const theirs = fresh.filter(x => !(ME && x.updatedBy === ME.name));
+  renderHome(); renderJo(); fillPickers(true);
+  if (!theirs.length) return;
+  newJo = newJo.concat(theirs.map(x => x.jo));
+  joBadge(); joToast(theirs); beep(theirs.some(x => x.urgent === "Yes")); desktopNote(theirs);
+}
+function joBadge() {
+  const n = newJo.length, open = D ? D.jos.filter(joOpen).length : 0;
+  const b = $("navJo");
+  b.textContent = n ? n + " new" : open; b.classList.toggle("hidden", !n && !open); b.style.background = n ? "var(--bad)" : "var(--brand)";
+  $("pJo").textContent = n || ""; $("pJo").classList.toggle("hidden", !n);
+}
+function joLine(x) { return [joWho(x) + (x.unit ? ", " + x.unit : ""), joWhat(x).slice(0, 140)]; }
+function joToast(list) {
+  const x = list[list.length - 1], urgent = list.some(y => y.urgent === "Yes");
+  $("jtTitle").textContent = list.length > 1 ? list.length + " new job orders" + (urgent ? " (one is urgent)" : "") : "New job order " + x.jo + (urgent ? " (urgent)" : "");
+  const [a, b] = joLine(x);
+  $("jtBody").innerHTML = esc(a) + "<br>" + esc(b);
+  $("jtWhen").textContent = "ICT Inventory and PMS · " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  $("jtOpen").textContent = list.length > 1 ? "Open Job Orders" : "Open job order";
+  $("jtOpen").dataset.jo = list.length > 1 ? "" : x.jo;
+  $("joToast").classList.remove("hidden");
+}
+function hideToast() { $("joToast").classList.add("hidden"); }
+function openNewJo(no) { hideToast(); show("jo"); if (no) openJo(no); }
+$("jtOpen").onclick = () => openNewJo($("jtOpen").dataset.jo);
+$("jtLater").onclick = hideToast; $("jtX").onclick = hideToast;
+// A short two-note chime made in the browser (no sound file). Three notes when urgent.
+function beep(urgent) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    (urgent ? [880, 660, 880] : [880, 660]).forEach((f, i) => {
+      const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.22;
+      o.frequency.value = f; o.type = "sine"; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+      o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + 0.21);
+    });
+  } catch (e) {}
+}
+// The browser only allows sound after a click, so the first click wakes it up.
+document.addEventListener("click", () => { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === "suspended") audio.resume(); } catch (e) {} }, { once: true });
+function notesOk() { return "Notification" in window && Notification.permission === "granted"; }
+function desktopNote(list) {
+  if (!notesOk()) return;
+  try {
+    const x = list[list.length - 1], [a, b] = joLine(x);
+    const n = new Notification(list.length > 1 ? list.length + " new job orders" : "New job order " + x.jo + (x.urgent === "Yes" ? " (urgent)" : ""),
+      { body: a + "\n" + b, icon: PUBLIC_URL + "icons/icon-192.png", tag: "ictu-jo" });
+    n.onclick = () => { window.focus(); openNewJo(list.length > 1 ? "" : x.jo); n.close(); };
+  } catch (e) {}
+}
+function alertMenu() {
+  const has = "Notification" in window;
+  $("mAlert").classList.toggle("hidden", !has);
+  if (has) $("mAlertT").textContent = Notification.permission === "granted" ? "Desktop alerts are on" : Notification.permission === "denied" ? "Desktop alerts are blocked (allow them in the browser)" : "Turn on desktop alerts";
+}
+$("mAlert").onclick = async () => {
+  menuOpen(false);
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) {} }
+  alertMenu();
+  if (notesOk()) { beep(false); try { new Notification("Desktop alerts are on", { body: "You will see new job orders here, even when the browser is minimized.", icon: PUBLIC_URL + "icons/icon-192.png" }); } catch (e) {} }
+};
+alertMenu();
+
 // ---------- navigation ----------
 function show(v) {
+  document.body.classList.remove("navopen"); $("pbar").querySelector('[data-p="more"]').setAttribute("aria-expanded", "false");
+  document.querySelectorAll("#pbar [data-p]").forEach(b => { if (b.dataset.p === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  if (v === "jo" && newJo.length) { newJo = []; joBadge(); hideToast(); }
   document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === v ? "true" : "false"));
   document.querySelectorAll("section.view").forEach(s => s.classList.toggle("hidden", s.id !== "v-" + v));
   $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
@@ -1667,6 +1828,21 @@ function show(v) {
   window.scrollTo(0, 0);
 }
 document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => show(b.dataset.v));
+document.querySelectorAll("#pbar [data-p]").forEach(b => b.onclick = e => {
+  if (b.dataset.p !== "more") return show(b.dataset.p);
+  e.stopPropagation();
+  const on = !document.body.classList.contains("navopen");
+  document.body.classList.toggle("navopen", on); b.setAttribute("aria-expanded", on ? "true" : "false");
+  if (on) (document.querySelector('nav.tabs button[aria-selected="true"]') || document.querySelector("nav.tabs button")).focus();
+});
+document.addEventListener("click", e => { if (document.body.classList.contains("navopen") && !e.target.closest("nav.tabs, #pbar")) { document.body.classList.remove("navopen"); $("pbar").querySelector('[data-p="more"]').setAttribute("aria-expanded", "false"); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("navopen")) { document.body.classList.remove("navopen"); $("pbar").querySelector('[data-p="more"]').focus(); } });
+// Rows that open a record can be reached with Tab and opened with Enter or Space.
+new MutationObserver(() => document.querySelectorAll("table.list tbody tr:not([tabindex])").forEach(tr => { if (tr.onclick) tr.tabIndex = 0; }))
+  .observe(document.body, { childList: true, subtree: true });
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("table.list tbody tr[tabindex]")) { e.preventDefault(); e.target.click(); }
+});
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
 
 function opts(list, first) { return (first != null ? '<option value="">' + esc(first) + "</option>" : "") + list.map(x => '<option>' + esc(x) + "</option>").join(""); }
@@ -1762,7 +1938,7 @@ function renderHome() {
   const open = D.jos.filter(joOpen).sort(joSort), lateJo = open.filter(joLate);
   $("tJo").textContent = open.length; $("tJoT").className = "tile" + (lateJo.length ? " bad" : "");
   $("tJoS").textContent = lateJo.length ? lateJo.length + " past the target time" : "all within target";
-  $("navJo").textContent = open.length; $("navJo").classList.toggle("hidden", !open.length);
+  joBadge();
   $("homeJo").innerHTML = open.length ? open.slice(0, 8).map(j => `<div class="due-item"><div class="t"><b>${esc(j.jo)}  ${esc(joWho(j))}, ${esc(j.unit)}</b>
       <span>${esc(joWhat(j))}${j.equipmentId ? " (" + esc(j.equipmentId) + ")" : ""}. Logged ${esc(niceDt(j.logged))}</span></div>
       ${priChip(j.priority)} ${joChip(j)}<button class="btn ghost small" data-jo="${esc(j.jo)}" type="button">Open</button></div>`).join("")
@@ -3408,7 +3584,7 @@ let USERS = [];
 async function loadUsers() {
   if (!can("Head")) return;
   msg("uMsg", "Loading the accounts…");
-  try { const j = await api({ action: "listUsers" }); if (!j.ok) { msg("uMsg", j.error, "err"); return; } USERS = j.users; renderUsers(); msg("uMsg", ""); }
+  try { const j = await api({ action: "listUsers" }); if (!j.ok) { msg("uMsg", j.error, "err"); return; } USERS = j.users; renderUsers(); showAlerts(j.alerts); msg("uMsg", ""); }
   catch (e) { msg("uMsg", errText(e), "err"); }
 }
 function renderUsers() {
@@ -3417,6 +3593,20 @@ function renderUsers() {
     <td class="hide-m">${esc(niceDt(u.lastSignIn)) || "Not yet"}</td></tr>`).join("");
   $("uTable").querySelectorAll("tbody tr[data-u]").forEach(tr => tr.onclick = () => openUser(tr.dataset.u));
 }
+function showAlerts(a) {
+  a = a || {};
+  if (document.activeElement !== $("alEmails")) $("alEmails").value = a.emails || "";
+  $("alInfo").textContent = (a.emails ? "Emails are on." : "Emails are off. Type at least one address and click Save.") +
+    (a.left != null ? " Emails left today: " + a.left + " of the free 100." : " After saving, open Apps Script, run testAlerts once and allow the permission to send email.");
+}
+async function alertCall(req, done) {
+  $("alSave").disabled = $("alTest").disabled = true; msg("alMsg", "Saving…");
+  try { const j = await api(req); if (!j.ok) { msg("alMsg", j.error, "err"); return; } showAlerts(j.alerts); msg("alMsg", done, "ok"); }
+  catch (e) { msg("alMsg", errText(e), "err"); }
+  finally { $("alSave").disabled = $("alTest").disabled = false; }
+}
+$("alSave").onclick = () => alertCall({ action: "saveAlerts", emails: $("alEmails").value }, $("alEmails").value.trim() ? "Saved. Click Send a test email to check it." : "Saved. Emails are off.");
+$("alTest").onclick = () => alertCall({ action: "testAlert" }, "Test email sent. Check the inbox, and the Spam folder the first time.");
 let uCur = null;
 function openUser(name) {
   uCur = name ? USERS.find(u => u.username === name) : null;
@@ -3526,17 +3716,18 @@ function renderDash() {
   hbars($("cOff"), Object.keys(off).sort((a, b) => off[b] - off[a]).slice(0, 10).map(o => ({ label: o, v: off[o] })), ["unit", "units"]);
   // headline numbers
   const sch = act.filter(i => i.condition !== "Unserviceable" && freqM(i)), onTime = sch.filter(i => pmState(i) !== "late").length;
+  const never = sch.filter(i => !i.lastPm).length, overdue = sch.length - onTime - sch.filter(i => !i.lastPm && pmState(i) === "late").length;
   const closed90 = live.filter(j => !joOpen(j) && j.withinTarget && (new Date() - dtOf(j.finishedAt)) / 864e5 <= 90), met = closed90.filter(j => j.withinTarget === "Yes").length;
   const rated = []; live.filter(j => j.logged.slice(0, 7) >= since).forEach(j => [j.csmSpeed, j.csmQuality, j.csmCourtesy].forEach(c => c && rated.push(c)));
   const happy = rated.filter(c => /^(Very Satisfied|Satisfied)$/.test(c)).length;
   const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "n/a";
   const openInc = D.incidents.filter(x => x.status !== "Closed" && x.status !== "Resolved").length;
-  const P = replPlan(), now = P.groups[0];
-  $("dTiles").innerHTML = `<div class="tile"><div class="lb">PM up to date</div><div class="val">${pct(onTime, sch.length)}</div><div class="sm">${onTime} of ${sch.length} scheduled units</div></div>
+  const P = replPlan(), now = P.groups[0], nod = P.noDate.length;
+  $("dTiles").innerHTML = `<div class="tile"><div class="lb">PM up to date</div><div class="val">${pct(onTime, sch.length)}</div><div class="sm">${onTime} of ${sch.length} scheduled units.${never ? " " + never + " never had a PM yet" + (overdue ? ", " + overdue + " overdue" : "") + "." : ""}</div></div>
     <div class="tile"><div class="lb">JOs within target</div><div class="val">${pct(met, closed90.length)}</div><div class="sm">${met} of ${closed90.length} closed in 90 days. Target 90%</div></div>
     <div class="tile"><div class="lb">Client satisfaction</div><div class="val">${pct(happy, rated.length)}</div><div class="sm">${rated.length} ratings in 12 months</div></div>
     <button class="tile${openInc ? " bad" : ""}" data-go="inc"><div class="lb">Open incidents</div><div class="val">${openInc}</div><div class="sm">not yet resolved</div></button>
-    <button class="tile${now.rows.length ? " warn" : ""}" data-go="reports"><div class="lb">Due for replacement</div><div class="val">${now.rows.length}</div><div class="sm">${esc(peso(now.cost) || "")}</div></button>`;
+    <button class="tile${now.rows.length || nod ? " warn" : ""}" data-go="reports"><div class="lb">Due for replacement</div><div class="val">${now.rows.length}</div><div class="sm">${now.rows.length ? esc(peso(now.cost) || "") + (nod ? ". " : "") : ""}${nod ? nod + " unit" + (nod === 1 ? " has" : "s have") + " no date acquired, so not counted" : (now.rows.length ? "" : "None past its useful life")}</div></button>`;
   $("dTiles").querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
 }
 

@@ -45,6 +45,11 @@
  * property JO_LAST_2026 with the last JO number used this year (for example 37).
  * The old online request form also works with this script: put this /exec link in its SHEET_URL.
  *
+ * NEW JOB ORDER ALERTS: the open app checks for new requests every 2 minutes and shows a pop-up.
+ * For emails, the Head types the addresses under Accounts in the app (Script property
+ * JO_ALERT_EMAILS), then runs testAlerts once from the editor and allows the permission to send
+ * email. Each request from the request page then sends one email (free limit: 100 a day).
+ *
  * RECORD CONTROL (ISO 9001:2015 cl. 7.5.3):
  *   - Every tab is protected so only the Sheet owner can edit it by hand; the
  *     page writes through this script, and only for a signed-in ICTU user whose
@@ -60,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.3.9';
+const VERSION = '1.4.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -122,10 +127,10 @@ const NET_HEADERS = ['Net ID', 'Kind', 'Name / Label', 'Location', 'IP Address',
 
 const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 // The lowest role that may do each action. Anything not listed is refused.
-const NEED = { load: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
+const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
-  voidPM: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head' };
+  voidPM: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -214,6 +219,9 @@ function handle_(req) {
       case 'saveIncident':  return saveReg_(REG.incident, req.item, req);
       case 'saveNetwork':   return saveReg_(REG.network, req.item, req);
       case 'load':          return Object.assign(load_(), { me: publicMe_(me) });
+      case 'joPeek':        return joPeek_();
+      case 'saveAlerts':    return saveAlerts_(req);
+      case 'testAlert':     return testAlert_(me.name);
       case 'saveEquipment': return saveEquipment_(req);
       case 'importRows':    return importRows_(req);
       case 'readSticker':   return readSticker_(req);
@@ -582,10 +590,12 @@ function submitJO_(req) {
   if (!(j.types || []).length && !clean_(j.others)) throw new Error('Pick at least one type of request, or describe it under Others.');
   if (j.urgent === 'Yes' && !clean_(j.urgentReason)) throw new Error('Say why it is urgent.');
   throttle_();
-  return withLock_(() => {
+  const res = withLock_(() => {
     const out = createJO_(j, 'Submitted on the request page', 'Requestor', req.device);
     return { ok: true, jo: out.jo, request: out.record };
   });
+  joAlert_(res.request);
+  return res;
 }
 
 // The ICTU side: a new job order logged by ICTU, or an update of one (Part II, status, feedback).
@@ -742,7 +752,8 @@ function createJO_(j, how, by, device) {
 
 // The old "ICTU Job Order Request (Online Form).html" posts here when its SHEET_URL is this script's /exec link.
 function legacyJO_(p) {
-  return withLock_(() => {
+  let rec = null;
+  const res = withLock_(() => {
     const sh = jobSheet_() || makeJoTab_();
     const r = p.id ? findCol_(sh, J['Request ID'] + 1, String(p.id)) : 0;
     const stamp = dt_(new Date());
@@ -763,8 +774,11 @@ function legacyJO_(p) {
       location: p.location, urgent: p.urgent, urgentReason: p.urgent_reason, types: String(p.types || '').split(/;\s*/),
       others: p.others, description: p.description, unitHead: p.unit_head, consent: p.consent === 'Yes' },
       'Submitted on the old online form', 'Requestor', p.device);
+    rec = out.record;
     return { ok: true, jo: out.jo };
   });
+  if (rec) joAlert_(rec);
+  return res;
 }
 
 // ICTU-YYYY-NNNN, per calendar year. Continues from the JO Log rows, or from Script property JO_LAST_YYYY.
@@ -800,6 +814,89 @@ function throttle_() {
   const n = Number(c.get(k) || 0) + 1;
   if (n > 30) throw new Error('Too many requests right now. Please wait a minute and try again.');
   c.put(k, String(n), 120);
+}
+
+// ---------- new job order alerts ----------
+
+// The last 20 job orders, for the app's check for new requests every 2 minutes (reads only those rows).
+function joPeek_() {
+  const sh = jobSheet_();
+  if (!sh) return { ok: true, jos: [] };
+  const n = lastRow_(sh);
+  if (n < 2) return { ok: true, jos: [] };
+  const from = Math.max(2, n - 19);
+  const rows = sh.getRange(from, 1, n - from + 1, JO_HEADERS.length).getValues().filter(r => String(r[J['JO No.']]).trim());
+  return { ok: true, jos: rows.map(toJO_) };
+}
+
+// Email addresses that get an email for each request filed on the request page (Script property JO_ALERT_EMAILS).
+function alertEmails_() {
+  return String(PropertiesService.getScriptProperties().getProperty('JO_ALERT_EMAILS') || '')
+    .split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+}
+
+// Head only: who gets the emails. Blank turns them off.
+function saveAlerts_(req) {
+  const raw = String(req.emails || '').split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean);
+  const bad = raw.filter(e => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+  if (bad.length) throw new Error('This is not an email address: ' + bad[0]);
+  if (raw.length > 5) throw new Error('Up to 5 email addresses only.');
+  const list = [...new Set(raw)];
+  PropertiesService.getScriptProperties().setProperty('JO_ALERT_EMAILS', list.join(', '));
+  audit_('', 'ALERT EMAILS CHANGED', req.by, list.length ? 'New job order emails go to ' + list.join(', ') + '.' : 'New job order emails turned off.', req.device);
+  return { ok: true, alerts: alertsInfo_() };
+}
+
+function alertsInfo_() {
+  let left = null;
+  try { left = MailApp.getRemainingDailyQuota(); } catch (err) {}
+  return { emails: alertEmails_().join(', '), left: left };
+}
+
+// Sends the email for a new request. Never stops the request itself: a failed email is only noted in the Audit Trail.
+function joAlert_(rec, test) {
+  const to = alertEmails_();
+  if (!rec || !to.length || typeof MailApp === 'undefined') return false;
+  try {
+    if (MailApp.getRemainingDailyQuota() < 1) { audit_(rec.jo, 'ALERT EMAIL NOT SENT', 'System', 'The free daily email limit was reached.', ''); return false; }
+    const urgent = rec.urgent === 'Yes';
+    const what = (rec.types || []).concat(rec.others ? [rec.others] : []).join(', ') || 'Request';
+    const who = [rec.firstName, rec.lastName].filter(Boolean).join(' ');
+    const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const lines = [['JO No.', rec.jo], ['Requested by', who + (rec.unit ? ', ' + rec.unit : '')], ['Type', what],
+      ['Equipment', [rec.equipment, rec.model].filter(Boolean).join(', ') + (rec.equipmentId ? ' (' + rec.equipmentId + ')' : '')],
+      ['Urgent', urgent ? 'Yes' + (rec.urgentReason ? '. ' + rec.urgentReason : '') : 'No'], ['Problem', rec.description],
+      ['Priority', rec.priority || 'Not set yet'], ['Contact', rec.contact]].filter(l => l[1]);
+    const link = APP_PAGE + '#jo=' + encodeURIComponent(rec.jo);
+    const subject = (test ? '[TEST] ' : '') + (urgent ? '[URGENT] ' : '') + 'New job order ' + rec.jo + ': ' + what.slice(0, 60) + (rec.unit ? ', ' + rec.unit : '');
+    const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#202124">' +
+      '<p>' + (test ? 'This is a test email from the ICT Inventory and PMS app. ' : '') + 'A new job order request came in from the request page.</p>' +
+      '<table style="border-collapse:collapse">' + lines.map(l => '<tr><td style="padding:4px 18px 4px 0;color:#5f6368;vertical-align:top">' + e(l[0]) +
+        '</td><td style="padding:4px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>' +
+      '<p style="margin:18px 0"><a href="' + e(link) + '" style="background:#0b4fa8;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Open in the app</a></p>' +
+      '<p style="font-size:12px;color:#5f6368">Sent by the ICT Inventory and PMS app of the ICT Unit, DOH TRC Dulag. For ICTU use only.</p></div>';
+    const text = lines.map(l => l[0] + ': ' + l[1]).join('\n') + '\n\nOpen in the app: ' + link;
+    MailApp.sendEmail({ to: to.join(','), subject: subject, body: text, htmlBody: html, name: 'ICT Inventory and PMS' });
+    return true;
+  } catch (err) {
+    audit_(rec.jo, 'ALERT EMAIL NOT SENT', 'System', String(err.message || err).slice(0, 200), '');
+    return false;
+  }
+}
+
+// Head: send a sample email to check the setup.
+function testAlert_(by) {
+  if (!alertEmails_().length) throw new Error('Put in at least one email address and save it first.');
+  const ok = joAlert_({ jo: 'ICTU-0000-TEST', firstName: 'Test', lastName: 'Only', unit: 'ICTU', types: ['Printer / scanner problem'],
+    urgent: 'No', description: 'This is only a test of the new job order email.' }, true);
+  if (!ok) throw new Error('The email could not be sent. Open Apps Script, run testAlerts once and allow the permission to send email.');
+  audit_('', 'ALERT EMAIL TEST', by, 'Test email sent to ' + alertEmails_().join(', ') + '.', '');
+  return { ok: true, alerts: alertsInfo_() };
+}
+
+// Run once from the editor after pasting 1.4.0, so Google asks for the permission to send email.
+function testAlerts() {
+  Logger.log('Emails left today: ' + MailApp.getRemainingDailyQuota() + '. New job order emails go to: ' + (alertEmails_().join(', ') || 'nobody yet (set them under Accounts in the app)'));
 }
 
 function makeJoTab_() {
@@ -1047,7 +1144,7 @@ function changePassword_(req) {
 }
 
 function listUsers_() {
-  return { ok: true, users: userRows_().map(r => ({ username: String(r[U['Username']]), fullName: String(r[U['Full Name']]),
+  return { ok: true, alerts: alertsInfo_(), users: userRows_().map(r => ({ username: String(r[U['Username']]), fullName: String(r[U['Full Name']]),
     position: String(r[U['Position']]), role: String(r[U['Role']]), status: String(r[U['Status']]),
     mustChange: r[U['Must Change Password']] === 'Yes', lastSignIn: dtText_(r[U['Last Sign-in']]),
     createdAt: dtText_(r[U['Created At']]), createdBy: String(r[U['Created By']]) })) };
@@ -1799,6 +1896,7 @@ function sigFolder_() {
   return f;
 }
 
+const APP_PAGE = 'https://trcdulag.github.io/ict-inventory-pms/';   // the page on GitHub Pages
 function appUrl_() { try { return ScriptApp.getService().getUrl() || ''; } catch (err) { return ''; } }
 
 // SHA-256 over the saved PM record, its checklist rows and the signature.

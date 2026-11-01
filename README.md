@@ -61,6 +61,7 @@ Picking an employee fills in the section / unit where that employee is assigned 
 - **Staff request page:** https://trcdulag.github.io/ict-inventory-pms/#request. Print the request QR poster (Job Orders tab) for the ICTU door and the bulletin boards. A request filed there lands in the JO Log tab as *Received*, and the requestor can print the filled form to sign.
 - **Continuing the old JO numbers.** Either paste the rows of the old JO Log into the JO Log tab (same column order, first 33 columns), or add a Script property `JO_LAST_2026` with the last JO number used this year (for example `37`, so the next is ICTU-2026-0038).
 - **The old online request form** still works if its `SHEET_URL` is changed to this script's /exec link. Its requests land in the same JO Log.
+- **New request alerts (1.4.0).** While the app is open it checks for new requests every 2 minutes and shows "N new" on Job Orders, a pop-up and a short sound. Each person can also turn on desktop alerts from their name menu. For emails, the Head types up to 5 addresses under Accounts > New job order emails, then runs `testAlerts` once in the Apps Script editor and allows the permission to send email. Only requests from the request page (and the old online form) send an email, one each, within Gmail's free 100 a day.
 - **Beyond economical repair.** Setting that status on a job order linked to a unit offers to mark the unit Unserviceable, which takes it off the PMS schedule.
 
 ## Accounts, sign-in and backups

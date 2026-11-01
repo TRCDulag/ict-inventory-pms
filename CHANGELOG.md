@@ -2,6 +2,16 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.0 (Nov 2, 2026)
+- New job orders: while the app is open it checks every 2 minutes. A new request shows as "N new" on Job Orders, with a pop-up and a short sound (three notes when urgent).
+- New job orders: desktop alerts, even when the browser is minimized. Turn them on from your name menu.
+- New job orders: an email for each request from the request page. The Head sets the addresses under Accounts and can send a test email.
+- Phones: Home, Inventory, Do PM and Job Orders sit in a bar at the bottom. More opens the rest.
+- Phones: each unit in the masterlist shows as a small card, and the column names are bigger buttons for sorting.
+- Dashboard: PM up to date says how many units never had a PM yet. Due for replacement says how many units have no date acquired, instead of only showing 0.
+- A "Still saving" note when the Google Sheet is slow to answer, so the page is not closed halfway.
+- Lists can be opened with the keyboard (Tab, then Enter). The page is lighter to load.
+
 ## 1.3.9 (Oct 29, 2026)
 - A What's new list (this one), in the menu and on the sign-in card.
 

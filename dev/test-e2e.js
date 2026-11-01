@@ -461,13 +461,52 @@ const shots = path.join(__dirname, 'screenshots');
   ok(true, 'temporary password asks for a new one');
   await phone.fill('#chgPw', 'lopez2026x'); await phone.fill('#chgPw2', 'lopez2026x'); await phone.click('#chgBtn');
   await phone.waitForSelector('#app:not(.hidden)');
-  ok(await phone.isHidden('nav.tabs button[data-v="acc"]') && await phone.isVisible('nav.tabs button[data-v="pm"]'), 'technician sees Do PM but not Accounts');
+  ok(await phone.isVisible('#pbar [data-p="pm"]') && await phone.isHidden('nav.tabs'), 'phone: bottom bar with Do PM, no sideways tab strip');
+  await phone.click('#pbar [data-p="more"]');
+  ok(await phone.isHidden('nav.tabs button[data-v="acc"]') && await phone.isVisible('nav.tabs button[data-v="stock"]'), 'phone: More lists the other screens, technician sees no Accounts');
+  await phone.screenshot({ path: path.join(shots, '07b-phone-more.png') });
+  await phone.click('nav.tabs button[data-v="inv"]');
+  ok(await phone.isHidden('nav.tabs') && await phone.getAttribute('#pbar [data-p="inv"]', 'aria-current') === 'page', 'phone: picking a screen closes the list and marks Inventory');
+  const card = await phone.evaluate(() => { const tr = document.querySelector('#iTable tbody tr[data-id]'); return getComputedStyle(tr).display + ' ' + Math.round(document.querySelector('#iTable th .sortb').getBoundingClientRect().height); });
+  ok(/^grid (4[4-9]|[5-9]\d)$/.test(card), 'phone: masterlist units are cards and sort buttons are at least 44 px tall: ' + card);
+  await phone.screenshot({ path: path.join(shots, '07c-phone-inventory.png') });
+  await phone.click('#pbar [data-p="home"]');
   await phone.screenshot({ path: path.join(shots, '07-phone-home.png'), fullPage: true });
   await phone.click('#homeDue [data-pm]');
   await phone.waitForSelector('#pmBody:not(.hidden)');
   await phone.screenshot({ path: path.join(shots, '08-phone-pm.png'), fullPage: true });
   const overflow = await phone.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok(!overflow, 'no sideways scroll on phone');
+
+  // new job order alerts, on the Head's laptop
+  await page.bringToFront();
+  await page.click('nav.tabs button[data-v="home"]');
+  const filed = await page.evaluate(async () => (await (await fetch('http://localhost:8799/api', { method: 'POST', body: JSON.stringify({ action: 'submitJO',
+    jo: { lastName: 'Dela Cruz', firstName: 'Maria', unit: 'Billing Section', description: 'Printer shows paper jam but there is no paper stuck inside.', types: ['Printer / scanner problem'], urgent: 'Yes', urgentReason: 'Billing statements are due today' } }) })).json()));
+  ok(filed.ok, 'a request filed on the request page');
+  await page.evaluate(() => peekJo());
+  await page.waitForSelector('#joToast:not(.hidden)');
+  ok(/Dela Cruz/i.test(await page.textContent('#jtBody')) && /urgent/.test(await page.textContent('#jtTitle')) && /^\d+ new$/.test(await page.textContent('#navJo')), 'the 2-minute check shows the pop-up and "N new": ' + await page.textContent('#navJo'));
+  const newCount = await page.textContent('#navJo');
+  await page.screenshot({ path: path.join(shots, '20-new-jo-alert.png') });
+  await page.evaluate(() => peekJo());
+  ok(await page.textContent('#navJo') === newCount, 'the same request is not counted twice');
+  await page.evaluate(no => { $('jtOpen').dataset.jo = no; }, filed.jo);   // with more than one, the button opens the list; here, the newest
+  await page.click('#jtOpen');
+  ok(await page.evaluate(() => $('joDlg').open) && await page.inputValue('#jDesc') === 'Printer shows paper jam but there is no paper stuck inside.' && await page.isHidden('#joToast') && !/new/.test(await page.textContent('#navJo')), 'Open job order opens it and clears the count');
+  await page.evaluate(() => $('joDlg').close());
+  await page.click('nav.tabs button[data-v="acc"]');
+  await page.waitForFunction(() => /Emails are off/.test($('alInfo').textContent));
+  await page.fill('#alEmails', 'not an email'); await page.click('#alSave');
+  await page.waitForFunction(() => $('alMsg').classList.contains('err'));
+  await page.fill('#alEmails', 'ictu.head@example.com, argie@example.com'); await page.click('#alSave');
+  await page.waitForFunction(() => $('alMsg').classList.contains('ok'));
+  await page.click('#alTest');
+  await page.waitForFunction(() => /Test email sent/.test($('alMsg').textContent));
+  ok(be.gas._mails.length === 1 && /^\[TEST\]/.test(be.gas._mails[0].subject) && /Emails are on/.test(await page.textContent('#alInfo')), 'the Head sets the emails and sends a test');
+  await page.screenshot({ path: path.join(shots, '21-alert-emails.png'), fullPage: true });
+  await page.click('nav.tabs button[data-v="dash"]');
+  ok(/never had a PM yet/.test(await page.textContent('#dTiles')), 'Dashboard says how many units never had a PM');
 
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');

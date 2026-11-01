@@ -53,7 +53,7 @@ function makeSheet(name) {
 }
 
 function createGas() {
-  const sheets = {}, order = [], props = {}, files = {}, cache = {}, triggers = [], copies = [], fetches = [];
+  const sheets = {}, order = [], props = {}, files = {}, cache = {}, triggers = [], copies = [], fetches = [], mails = [];
   let seq = 0;
   const ss = {
     getSheetByName: n => sheets[n] || null,
@@ -89,6 +89,7 @@ function createGas() {
     UrlFetchApp: { fetch: (url, o) => { fetches.push({ url, body: JSON.parse(o.payload) });
       const text = JSON.stringify({ type: 'Laptop', brand: 'Lenovo', propertyNo: 'SEICT-HV-25-11-102', icsNo: '2025-11-212', parNo: '', accountable: 'JA Elona', cost: 'Php 45,500.00', eulYears: 5, serial: '', dateAcquired: '' });
       return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }) }; } },
+    MailApp: { getRemainingDailyQuota: () => 100 - mails.length, sendEmail: o => { mails.push(o); } },
     HtmlService: { createHtmlOutputFromFile: () => { const o = { setTitle: () => o, setFaviconUrl: () => o, addMetaTag: () => o, setXFrameOptionsMode: () => o }; return o; }, XFrameOptionsMode: { ALLOWALL: 1 } },
     ContentService: { createTextOutput: t => ({ text: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
     DriveApp: {
@@ -113,7 +114,7 @@ function createGas() {
       getUuid: () => crypto.randomUUID(),
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }
     },
-    _ss: ss, _props: props, _files: files, _cache: cache, _triggers: triggers, _copies: copies, _fetches: fetches
+    _ss: ss, _props: props, _files: files, _cache: cache, _triggers: triggers, _copies: copies, _fetches: fetches, _mails: mails
   };
   return gas;
 }
