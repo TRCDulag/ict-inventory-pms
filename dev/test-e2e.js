@@ -509,9 +509,11 @@ const shots = path.join(__dirname, 'screenshots');
   ok(/never had a PM yet/.test(await page.textContent('#dTiles')), 'Dashboard says how many units never had a PM');
 
   // one tab at a time: a second tab of the app (as from the email link) takes over
+  await page.context().addInitScript(() => { new MutationObserver(() => { const f = document.getElementById('lockForm'); if (f && !f.classList.contains('hidden') && f.offsetParent) window.__sawSignIn = true; }).observe(document, { subtree: true, childList: true, attributes: true }); });
   const [tab2] = await Promise.all([page.waitForEvent('popup'), page.evaluate(no => window.open('/#jo=' + no, '_blank'), filed.jo)]);
   await tab2.waitForSelector('#app:not(.hidden)');
   await page.waitForSelector('#elsewhere:not(.hidden)');
+  ok(await tab2.evaluate(() => !!window.__sawSignIn) === false, 'a signed-in tab never shows the sign-in form while it opens');
   ok(await tab2.evaluate(() => $('joDlg').open) && await tab2.inputValue('#jDesc') === 'Printer shows paper jam but there is no paper stuck inside.', 'the email link opens the job order in the new tab');
   ok(await page.evaluate(() => peekTimer === null), 'the older tab stops checking for new job orders');
   await page.screenshot({ path: path.join(shots, '22-other-tab.png') });
@@ -519,6 +521,11 @@ const shots = path.join(__dirname, 'screenshots');
   await Promise.race([tab2.waitForEvent('close'), tab2.waitForSelector('#elsewhere:not(.hidden)')]).catch(() => {});
   ok(await page.isHidden('#elsewhere') && await page.evaluate(() => peekTimer !== null) && (tab2.isClosed() || await tab2.isVisible('#elsewhere')), '"Use the app in this tab" takes it back, and the other tab closes or steps aside');
   if (!tab2.isClosed()) await tab2.close();
+
+  await page.evaluate(() => { location.hash = 'jo=ICTU-0000-TEST'; });
+  await page.waitForSelector('#joToast:not(.hidden)');
+  ok(/test email/.test(await page.textContent('#jtBody')) && await page.isHidden('#jtOpen'), 'the test email link says it is a test');
+  await page.click('#jtX');
 
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');

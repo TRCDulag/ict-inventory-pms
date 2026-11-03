@@ -332,6 +332,11 @@
   .elsewhere { position: fixed; inset: 0; z-index: 99; background: rgba(31,42,69,.72); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .elsewhere .panel { max-width: 440px; margin: 0; }
   .elsewhere p { margin: 0 0 14px; }
+  .opening { text-align: center; padding-top: 34px; padding-bottom: 38px; }
+  .opening h2 { margin: 14px 0 4px; }
+  .spin { display: inline-block; width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--brand); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2.4s; } }
   .slow { position: fixed; left: 50%; transform: translateX(-50%); top: 84px; z-index: 96; background: var(--navy); color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 14.5px; box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: calc(100vw - 24px); }
   /* roles: r1 Viewer, r2 Technician, r3 Head. need2 / need3 hide what a role cannot do. */
   body.r1 .need2, body.r1 .need3, body.r2 .need3 { display: none !important; }
@@ -446,8 +451,10 @@
   <div class="card">
     <div class="ch"><div class="seals"><img class="pDoh" alt="Department of Health"><img class="pTrc" alt="TRC Dulag"></div>
       <h1>ICT Inventory and PMS</h1><p>ICT Unit, DOH TRC Dulag</p></div>
+    <!-- already signed in: shown while the data loads, instead of the sign-in form -->
+    <div class="cb2 opening" id="openPane" role="status"><span class="spin" aria-hidden="true"></span><h2>Opening the app…</h2><p class="s" id="openWho"></p></div>
     <!-- sign in -->
-    <form class="cb2" id="lockForm" autocomplete="on">
+    <form class="cb2 hidden" id="lockForm" autocomplete="on">
       <h2>Sign in</h2><p class="s">For ICT Unit staff. Use your own username and password.</p>
       <label class="f">Username<input id="uIn" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
       <label class="f pw">Password<input id="pwIn" type="password" autocomplete="current-password" required><button type="button" class="pwShow" aria-label="Show password">Show</button></label>
@@ -1279,9 +1286,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.1";
+const APP_VERSION = "1.4.2";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.2", "Nov 3, 2026", ["Opening the app when already signed in (for example from the job order email) shows \"Opening the app\u2026\" instead of the sign-in form while the data loads.", "The link in the test email now says it is a test, instead of opening an empty list."]],
   ["1.4.1", "Nov 3, 2026", ["Only one tab of the app stays active. Opening the app again, for example from the link in a job order email, takes over, and the older tab stops (and closes itself where the browser allows it)."]],
   ["1.4.0", "Nov 2, 2026", ["New job orders: while the app is open it checks every 2 minutes. A new request shows as \"N new\" on Job Orders, with a pop-up and a short sound (three notes when urgent).", "New job orders: desktop alerts, even when the browser is minimized. Turn them on from your name menu.", "New job orders: an email for each request from the request page. The Head sets the addresses under Accounts and can send a test email.", "Phones: Home, Inventory, Do PM and Job Orders sit in a bar at the bottom. More opens the rest.", "Phones: each unit in the masterlist shows as a small card, and the column names are bigger buttons for sorting.", "Dashboard: PM up to date says how many units never had a PM yet. Due for replacement says how many units have no date acquired, instead of only showing 0.", "A \"Still saving\" note when the Google Sheet is slow to answer, so the page is not closed halfway.", "Lists can be opened with the keyboard (Tab, then Enter). The page is lighter to load."]],
   ["1.3.9", "Oct 29, 2026", ["A What's new list (this one), in the menu and on the sign-in card."]],
@@ -1621,16 +1629,16 @@ function initLock() {
   route();
 }
 function lockPane(which) {
-  ["lockForm", "setupForm", "chgForm"].forEach(id => $(id).classList.add("hidden"));
-  $({ sign: "lockForm", setup: "setupForm", chg: "chgForm" }[which]).classList.remove("hidden");
-  $("lockAlt").classList.toggle("hidden", which === "chg");
+  ["lockForm", "setupForm", "chgForm", "openPane"].forEach(id => $(id).classList.add("hidden"));
+  $({ sign: "lockForm", setup: "setupForm", chg: "chgForm", open: "openPane" }[which]).classList.remove("hidden");
+  $("lockAlt").classList.toggle("hidden", which === "chg" || which === "open");
   const f = { sign: $("uIn").value ? "pwIn" : "uIn", setup: "suPin", chg: "chgPw" }[which];
-  setTimeout(() => $(f).focus(), 30);
+  if (f) setTimeout(() => $(f).focus(), 30);
 }
 async function startApp() {
   msg("lockMsg", "Opening…");
   const j = await api({ action: "load" });
-  if (!j.ok) { if (j.signIn) { TOKEN = ""; store.set("token", ""); lockPane("sign"); } msg("lockMsg", j.error, "err"); return; }
+  if (!j.ok) { if (j.signIn) { TOKEN = ""; store.set("token", ""); } lockPane("sign"); msg("lockMsg", j.error, "err"); return; }
   openApp(j);
 }
 // Public pages (no sign-in) come from the hash: #request, #request&eq=ICT-0001, #eq=ICT-0001, #track=<link code>.
@@ -1643,7 +1651,7 @@ function route() {
   if (/^track=/.test(h)) return showPublic("track", h.slice(6));
   if (/^jo=/.test(h)) {
     const no = h.slice(3).toUpperCase();
-    if (inApp) { history.replaceState(null, "", "#jo"); show("jo"); openJo(no); return; }
+    if (inApp) { history.replaceState(null, "", "#jo"); show("jo"); openLinkedJo(no); return; }
     wantJo = no; return showLock();
   }
   if (/^eq=/.test(h)) {
@@ -1661,7 +1669,13 @@ async function showLock() {
   if (!$("app").classList.contains("hidden")) return;
   $("lock").classList.remove("hidden");
   if (lockStarted) return; lockStarted = true;
-  if (TOKEN) { lockPane("sign"); try { await startApp(); msg("lockMsg", ""); } catch (e) { msg("lockMsg", errText(e), "err"); } return; }
+  if (TOKEN) {
+    const who = store.get("user");
+    $("openWho").textContent = who ? "Signed in as " + who : "";
+    lockPane("open");
+    try { await startApp(); msg("lockMsg", ""); } catch (e) { lockPane("sign"); msg("lockMsg", errText(e), "err"); }
+    return;
+  }
   lockPane("sign");
   checkSetup();
 }
@@ -1688,7 +1702,7 @@ function openApp(j) {
   renderAll();
   const v = (location.hash || "").replace("#", "");
   startPeek();
-  if (wantJo) { show("jo"); openJo(wantJo); wantJo = ""; return; }
+  if (wantJo) { show("jo"); openLinkedJo(wantJo); wantJo = ""; return; }
   if (wantEq) { show("inv"); if (byId(wantEq)) openEq(wantEq); wantEq = ""; return; }
   show(VIEWS.includes(v) && (v !== "acc" || can("Head")) && (v !== "pm" || can("Technician")) ? v : "home");
 }
@@ -1777,8 +1791,15 @@ function joToast(list) {
   $("jtBody").innerHTML = esc(a) + "<br>" + esc(b);
   $("jtWhen").textContent = "ICT Inventory and PMS · " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   $("jtOpen").textContent = list.length > 1 ? "Open Job Orders" : "Open job order";
-  $("jtOpen").dataset.jo = list.length > 1 ? "" : x.jo;
+  $("jtOpen").dataset.jo = list.length > 1 ? "" : x.jo; $("jtOpen").classList.remove("hidden");
   $("joToast").classList.remove("hidden");
+}
+// A job order named in a link (the email's Open in the app). A test email's ICTU-0000-TEST has none.
+function openLinkedJo(no) {
+  if (D.jos.some(x => x.jo === no)) return openJo(no);
+  $("jtTitle").textContent = "No job order " + no;
+  $("jtBody").textContent = /TEST$/.test(no) ? "That link came from the test email, so there is no job order to open. The link works." : "It may have been typed wrong, or the list needs a refresh.";
+  $("jtWhen").textContent = "ICT Inventory and PMS"; $("jtOpen").classList.add("hidden"); $("joToast").classList.remove("hidden");
 }
 function hideToast() { $("joToast").classList.add("hidden"); }
 function openNewJo(no) { hideToast(); show("jo"); if (no) openJo(no); }

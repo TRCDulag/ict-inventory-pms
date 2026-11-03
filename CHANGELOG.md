@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.2 (Nov 3, 2026)
+- Opening the app when already signed in (for example from the job order email) shows "Opening the app…" instead of the sign-in form while the data loads.
+- The link in the test email now says it is a test, instead of opening an empty list.
+
 ## 1.4.1 (Nov 3, 2026)
 - Only one tab of the app stays active. Opening the app again, for example from the link in a job order email, takes over, and the older tab stops (and closes itself where the browser allows it).
 
