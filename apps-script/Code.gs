@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.4.9';
+const VERSION = '1.5.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -130,7 +130,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
-  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -229,6 +229,7 @@ function handle_(req) {
       case 'savePMRound':   return savePMRound_(req);
       case 'catchUp':       return catchUp_(req);
       case 'renameOffice':  return renameOffice_(req);
+      case 'tidyOffices':   return tidyOffices_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
       case 'addOffice':     return addOffice_(req);
@@ -536,13 +537,19 @@ function renameOffice_(req) {
   if (!from || !to) throw new Error('Pick the section and type its new name.');
   if (nameKey_(from) === nameKey_(to)) throw new Error('The new name is the same as the old one.');
   return withLock_(() => {
+    const count = renameCore_(from, to, req.by);
+    audit_('', 'SECTION RENAMED', clean_(req.by), '"' + from + '" is now "' + to + '" for ' + count + ' unit(s) in the masterlist.', req.device);
+    return { ok: true, count: count, to: to };
+  });
+}
+function renameCore_(from, to, by) {
     const sh = sheet_(INV), n = lastRow_(sh), c = I['Office / Section'] + 1, now = new Date();
     let count = 0;
     if (n >= 2) {
       const vals = sh.getRange(2, c, n - 1, 1).getValues();
       vals.forEach((v, i) => { if (nameKey_(v[0]) === nameKey_(from)) {
         sh.getRange(i + 2, c).setValue(to);
-        sh.getRange(i + 2, I['Updated At'] + 1, 1, 2).setValues([[now, clean_(req.by)]]);
+        sh.getRange(i + 2, I['Updated At'] + 1, 1, 2).setValues([[now, clean_(by)]]);
         count++;
       } });
     }
@@ -554,8 +561,49 @@ function renameOffice_(req) {
       col.forEach((v, i) => { if (i > 0 && nameKey_(v[0]) === nameKey_(from)) { ls.getRange(i + 1, 3).setValue(hasTo || renamed ? '' : to); renamed = true; } });
       if (!hasTo && !renamed) appendOffice_(to);
     }
-    audit_('', 'SECTION RENAMED', clean_(req.by), '"' + from + '" is now "' + to + '" for ' + count + ' unit(s) in the masterlist.', req.device);
-    return { ok: true, count: count, to: to };
+    return count;
+}
+
+// Section names the Head settled on (Nov 3, 2026). The key is nameKey_ of the old name.
+const SECTION_NAMES = {
+  mainoffice: 'IDADIN/ICTU', idtomisidadin: 'IDADIN/ICTU', ictu: 'IDADIN/ICTU', idadinictu: 'IDADIN/ICTU',
+  ritdchpo: 'Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division)', chpo: 'Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division)',
+  mss: 'Medical Social Work Section', cashunit: 'Cash Operations Section', cashop: 'Cash Operations Section', cashier: 'Cash Operations Section',
+  cao: 'Office of the Chief Administrative Officer'
+};
+// "Accounting", "Accounting Section" and "ACCOUNTING SECTION" are the same section.
+function sectionKey_(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/\b(section|unit|office|of|the|and)\b/g, ' ').replace(/[^a-z0-9]/g, '');
+}
+// The settled name for a section: the list above first, then a name already in use that differs only by
+// "Section", "Unit", "Office of the" or capitals (the one in the employee masterlist or the Lists tab wins).
+function canonOffice_(name, known) {
+  const n = clean_(name); if (!n) return n;
+  if (SECTION_NAMES[nameKey_(n)]) return SECTION_NAMES[nameKey_(n)];
+  const k = sectionKey_(n); if (!k) return n;
+  const same = (known || []).filter(o => o && sectionKey_(o) === k);
+  return same.length ? same[0] : n;
+}
+// Tidy section names: the plan (and with apply, the renames) for every section in the masterlist.
+function tidyOffices_(req) {
+  return withLock_(() => {
+    const rows = readRows_(INV, INV_HEADERS), counts = {};
+    rows.forEach(r => { const o = clean_(r[I['Office / Section']]); if (o) counts[o] = (counts[o] || 0) + 1; });
+    const official = allOffices_();
+    // most used name first, so a group of look-alikes takes the name most units already have
+    const inUse = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    const plan = [];
+    Object.keys(counts).forEach(o => {
+      const to = canonOffice_(o, official.concat(inUse.filter(x => !SECTION_NAMES[nameKey_(x)])));
+      if (to && to !== o) plan.push([o, to, counts[o]]);
+    });
+    plan.sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]));
+    if (req.apply && plan.length) {
+      plan.forEach(p => renameCore_(p[0], p[1], req.by));
+      audit_('', 'SECTIONS TIDIED', clean_(req.by), plan.map(p => '"' + p[0] + '" to "' + p[1] + '" (' + p[2] + ')').join('; ').slice(0, 1000), req.device);
+    }
+    return { ok: true, plan: plan, applied: !!req.apply };
   });
 }
 
@@ -1547,6 +1595,8 @@ function importRows_(req) {
       return m || n;
     };
     const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
+    let knownOffices = [];
+    try { knownOffices = allOffices_().concat(rows.map(r => clean_(r[I['Office / Section']]))); } catch (err) {}
     const ids = {}, serials = {};
     const same = (a, b) => String(a[I['Equipment Type']]).toLowerCase() === String(b[I['Equipment Type']]).toLowerCase() &&
       String(a[I['Brand / Model']]).toLowerCase() === String(b[I['Brand / Model']]).toLowerCase();
@@ -1556,6 +1606,7 @@ function importRows_(req) {
       if (!o || typeof o !== 'object') return;
       const row = INV_HEADERS.map(k => val(o, k, INV_DATES));
       if (!row[I['Equipment Type']] && !row[I['Brand / Model']] && !row[I['Serial No.']]) return;
+      if (row[I['Office / Section']]) row[I['Office / Section']] = canonOffice_(row[I['Office / Section']], knownOffices);
       if (row[I['End User']]) row[I['End User']] = fixName(row[I['End User']], row[I['Office / Section']]);
       const id = row[I['Equipment ID']], sn = String(row[I['Serial No.']]).toLowerCase();
       // Already there: the same serial no., or (with no serial no.) the same ID for the same type and brand.
@@ -1596,6 +1647,7 @@ function importRows_(req) {
       if (!/^PM-\d{4}-\d+$/.test(ref)) return;
       if (refs[ref]) { out.pmSkipped.push(ref); return; }
       row[P['ICT Personnel']] = fullName(row[P['ICT Personnel']]);
+      if (row[P['Office / Section']]) row[P['Office / Section']] = canonOffice_(row[P['Office / Section']], knownOffices);
       if (row[P['End User']]) row[P['End User']] = fixName(row[P['End User']], row[P['Office / Section']]);
       if (moved[row[P['Equipment ID']]]) row[P['Equipment ID']] = moved[row[P['Equipment ID']]];   // its unit got a new ID above
       row[P['Record Status']] = row[P['Record Status']] || 'Valid';

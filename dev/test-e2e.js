@@ -585,6 +585,16 @@ const shots = path.join(__dirname, 'screenshots');
   ok(await page.evaluate(() => D.inventory.some(i => i.office === 'IDADIN/ICTU') && !D.inventory.some(i => i.office === 'ICTU')), 'Rename a section renames every unit under it');
   await page.evaluate(() => $('renDlg').close());
 
+  // dashboard: a section bar opens the inventory list for that section
+  await page.click('nav.tabs button[data-v="dash"]');
+  const firstSec = await page.getAttribute('#cOff g.go', 'data-label');
+  await page.click('#cOff g.go');
+  await page.waitForSelector('#v-inv:not(.hidden)');
+  ok(await page.inputValue('#iOffice') === firstSec && await page.evaluate(s => [...document.querySelectorAll('#iTable tbody tr[data-id]')].every(tr => byId(tr.dataset.id).office === s), firstSec), 'clicking a section on the dashboard lists only its equipment: ' + firstSec);
+  page.on('dialog', () => {});
+  await page.click('#iTidy');
+  await page.waitForTimeout(500);
+
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');
   await browser.close(); server.close();

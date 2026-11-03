@@ -359,6 +359,7 @@
   .chart .bar { fill: var(--brand); }
   .chart .bar.soft { fill: #9DB9E4; }
   .chart .hit:hover + .bar, .chart g.bh:hover .bar { fill: var(--brand-hover); }
+  .chart g.go { cursor: pointer; } .chart g.go:focus { outline: none; } .chart g.go:focus .bar { fill: var(--brand-hover); }
   .chart text { font: 15px "Barlow", system-ui, sans-serif; fill: var(--muted); }
   .chart text.v { fill: var(--ink); font-weight: 600; }
   .chart .grid line { stroke: var(--line-2); }
@@ -652,6 +653,7 @@
         <button class="btn ghost small" id="iLabels" type="button">Print QR labels</button>
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
+        <button class="btn ghost small need3" id="iTidy" type="button">Tidy section names</button>
         <button class="btn ghost small need3" id="iRen" type="button">Rename a section</button>
         <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
@@ -1333,9 +1335,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.9";
+const APP_VERSION = "1.5.0";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.5.0", "Nov 3, 2026", ["Dashboard: click a bar in Equipment by section (or Condition) to open the inventory list for that section (or condition).", "Inventory: \"Tidy section names\" (Head) merges sections that are the same under two names, after showing the list first. For example RITD CHPO into Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division), MSS into Medical Social Work Section, Cash Unit into Cash Operations Section, CAO into Office of the Chief Administrative Officer, and Main Office, IDTOMIS/IDADIN and ICTU into IDADIN/ICTU.", "Import from Excel uses the same section names, so imported units land in the merged sections."]],
   ["1.4.9", "Nov 3, 2026", ["Inventory: \"Rename a section\" (Head) gives every unit under a section a new name at once, for example Main Office to IDADIN/ICTU. Saved PM records and job orders keep the name they had."]],
   ["1.4.8", "Nov 3, 2026", ["Import from Excel: an end user who is not in the employee masterlist is left out, and the unit stays under its section. Short names like \"L. Panopio\", \"Girlie P.\" or a first name alone are matched too when only one employee fits."]],
   ["1.4.7", "Nov 3, 2026", ["PMS schedule: \"Record a PM round\" saves one PM record for each ticked unit at once, with the same date and result. For PMs that were done; the date cannot be in the future.", "PMS schedule: \"Catch-up schedule\" (Head) gives every overdue unit a new PM date on the coming working days, a set number a day. It plans the PMs; it does not mark them as done."]],
@@ -2470,6 +2473,20 @@ $("renForm").onsubmit = async e => {
     $("iRen").onclick(); msg("renMsg", `"${from}" is now "${j.to}" for ${units(j.count, ["unit", "units"])}.`, "ok");
   } catch (err) { msg("renMsg", errText(err), "err"); }
   finally { $("renSave").disabled = false; }
+};
+
+// Tidy section names: shows the merges first, then applies them on OK.
+$("iTidy").onclick = async () => {
+  try {
+    const p = await api({ action: "tidyOffices" });
+    if (!p.ok) return alert(p.error);
+    if (!p.plan.length) return alert("The section names are already tidy. Nothing to merge.");
+    if (!confirm("These sections will be merged or renamed:\n\n" + p.plan.map(x => `${x[0]} (${units(x[2], ["unit", "units"])})  →  ${x[1]}`).join("\n") + "\n\nSaved PM records and job orders keep the name they had. Go ahead?")) return;
+    const j = await api({ action: "tidyOffices", apply: true });
+    if (!j.ok) return alert(j.error);
+    await reload();
+    alert("Done. " + units(j.plan.length, ["section was", "sections were"]) + " merged or renamed.");
+  } catch (err) { alert(errText(err)); }
 };
 
 // ---------- PM round and catch-up schedule ----------
@@ -3935,16 +3952,25 @@ function vbars(el, data, unit) {
         <text x="${x + bw / 2}" y="${H - 7}" text-anchor="middle">${esc(d.label)}</text></g>`; }).join("")}
     <line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/></svg>`;
 }
-function hbars(el, data, unit) {
+// go(label): the bars can be clicked (or Enter on the keyboard) to open the matching list.
+function hbars(el, data, unit, go) {
   if (!data.length) { el.innerHTML = '<p class="hint">No data yet.</p>'; return; }
   const W = 560, row = 32, L = 190, R = 44, H = data.length * row + 6, max = Math.max(1, ...data.map(d => d.v));
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(data.map(d => d.label + " " + d.v).join(", "))}">
     ${data.map((d, i) => { const y = i * row + 6, w = (W - L - R) * d.v / max;
-      return `<g class="bh" data-tip="${esc(d.label)}: ${esc(units(d.v, unit))}"><rect x="0" y="${y - 3}" width="${W}" height="${row}" fill="transparent"/>
+      return `<g class="bh${go && d.v ? " go" : ""}" data-tip="${esc(d.label)}: ${esc(units(d.v, unit))}${go && d.v ? ". Click to see them" : ""}" data-label="${esc(d.label)}"${go && d.v ? ' tabindex="0" role="button"' : ""}><rect x="0" y="${y - 3}" width="${W}" height="${row}" fill="transparent"/>
         <text x="${L - 10}" y="${y + 17}" text-anchor="end">${esc(d.label.length > 22 ? d.label.slice(0, 21) + "…" : d.label)}</text>
         ${d.v ? `<path class="bar" d="M${L},${y + 4}H${L + w - 4}Q${L + w},${y + 4} ${L + w},${y + 8}V${y + 16}Q${L + w},${y + 20} ${L + w - 4},${y + 20}H${L}Z"/>` : ""}
         <text class="v" x="${L + w + 6}" y="${y + 17}">${d.v}</text></g>`; }).join("")}
     <line class="axis" x1="${L}" x2="${L}" y1="0" y2="${H}"/></svg>`;
+  if (go) el.querySelectorAll("g.go").forEach(g => { g.onclick = () => { tipEl.classList.add("hidden"); go(g.dataset.label); }; g.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); g.onclick(); } }; });
+}
+// Opens the inventory list filtered to one section or one condition.
+function invFilter(office, cond) {
+  $("iQ").value = ""; $("iType").value = "";
+  if (office != null) { if (![...$("iOffice").options].some(o => o.value === office)) $("iOffice").insertAdjacentHTML("beforeend", `<option>${esc(office)}</option>`); $("iOffice").value = office; }
+  $("iCond").value = cond || "";
+  show("inv"); renderInv(); window.scrollTo(0, 0);
 }
 function last12() {
   const t = parse(todayStr()), out = [];
@@ -3961,12 +3987,12 @@ function renderDash() {
   const byType = {}; live.filter(j => j.logged.slice(0, 7) >= since).forEach(j => { const gs = new Set((j.types || []).map(t => groups[t] || "OTHERS")); if (j.others || !gs.size) gs.add("OTHERS"); gs.forEach(g => byType[g] = (byType[g] || 0) + 1); });
   hbars($("cType"), JO_TYPES.map(g => g[0]).concat(["OTHERS"]).map(g => ({ label: { "HARDWARE": "Hardware", "SOFTWARE & SYSTEMS": "Software and systems", "NETWORK": "Network", "ICTU SERVICES": "ICTU services", "OTHERS": "Others" }[g] || g, v: byType[g] || 0 })), ["job order", "job orders"]);
   const act = D.inventory.filter(active);
-  hbars($("cCond"), D.lists.conditions.filter(c => c !== "Disposed").map(c => ({ label: c, v: act.filter(i => i.condition === c).length })), ["unit", "units"]);
+  hbars($("cCond"), D.lists.conditions.filter(c => c !== "Disposed").map(c => ({ label: c, v: act.filter(i => i.condition === c).length })), ["unit", "units"], c => { $("iOffice").value = ""; invFilter(null, c); });
   const bands = [["Under 3 years", 0, 3], ["3 to 4 years", 3, 5], ["5 to 6 years", 5, 7], ["7 years or more", 7, 99]];
   const ages = act.map(i => replOf(i).age);
   hbars($("cAge"), bands.map(b => ({ label: b[0], v: ages.filter(a => a != null && a >= b[1] && a < b[2]).length })).concat([{ label: "No date acquired", v: ages.filter(a => a == null).length }]), ["unit", "units"]);
   const off = {}; act.forEach(i => off[i.office] = (off[i.office] || 0) + 1);
-  hbars($("cOff"), Object.keys(off).sort((a, b) => off[b] - off[a]).slice(0, 10).map(o => ({ label: o, v: off[o] })), ["unit", "units"]);
+  hbars($("cOff"), Object.keys(off).sort((a, b) => off[b] - off[a]).slice(0, 10).map(o => ({ label: o, v: off[o] })), ["unit", "units"], o => invFilter(o, ""));
   // headline numbers
   const sch = act.filter(i => i.condition !== "Unserviceable" && freqM(i)), onTime = sch.filter(i => pmState(i) !== "late").length;
   const never = sch.filter(i => !i.lastPm).length, overdue = sch.length - onTime - sch.filter(i => !i.lastPm && pmState(i) === "late").length;

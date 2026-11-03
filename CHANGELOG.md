@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.5.0 (Nov 3, 2026)
+- Dashboard: click a bar in Equipment by section (or Condition) to open the inventory list for that section (or condition).
+- Inventory: "Tidy section names" (Head) merges sections that are the same under two names, after showing the list first. For example RITD CHPO into Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division), MSS into Medical Social Work Section, Cash Unit into Cash Operations Section, CAO into Office of the Chief Administrative Officer, and Main Office, IDTOMIS/IDADIN and ICTU into IDADIN/ICTU.
+- Import from Excel uses the same section names, so imported units land in the merged sections.
+
 ## 1.4.9 (Nov 3, 2026)
 - Inventory: "Rename a section" (Head) gives every unit under a section a new name at once, for example Main Office to IDADIN/ICTU. Saved PM records and job orders keep the name they had.
 

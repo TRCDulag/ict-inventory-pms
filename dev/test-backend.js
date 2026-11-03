@@ -332,14 +332,33 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
 // renaming a section
 {
   const before = call({ action: 'load' });
-  const n = before.inventory.filter(i => i.office === 'ICTU').length;
+  const n = before.inventory.filter(i => i.office === 'ICTU').length, had = before.inventory.filter(i => i.office === 'IDADIN/ICTU').length;
   const pmIctu = before.pms.filter(p => p.office === 'ICTU').length;
   ok(/role \(Technician\)/.test(asTech({ action: 'renameOffice', from: 'ICTU', to: 'IDADIN/ICTU' }).error), 'only the Head renames a section');
   const rn = call({ action: 'renameOffice', from: 'ICTU', to: 'idadin/ictu' });
   const L = call({ action: 'load' });
-  ok(rn.ok && n > 0 && rn.count === n && rn.to === 'IDADIN/ICTU' && L.inventory.filter(i => i.office === 'IDADIN/ICTU').length === n && !L.inventory.some(i => i.office === 'ICTU')
+  ok(rn.ok && n > 0 && rn.count === n && rn.to === 'IDADIN/ICTU' && L.inventory.filter(i => i.office === 'IDADIN/ICTU').length === n + had && !L.inventory.some(i => i.office === 'ICTU')
     && L.pms.filter(p => p.office === 'ICTU').length === pmIctu && L.lists.offices.includes('IDADIN/ICTU') && !L.lists.offices.includes('ICTU'), 'a section is renamed in the masterlist and the lists, PM records keep theirs: ' + JSON.stringify(rn));
   ok(!call({ action: 'renameOffice', from: 'IDADIN/ICTU', to: 'IDADIN/ICTU' }).ok, 'the same name is refused');
+}
+
+// tidy section names
+{
+  call({ action: 'importRows', file: 't.xlsx', inventory: [
+    { 'Equipment ID': 'NEW-T1', 'Equipment Type': 'Printer', 'Brand / Model': 'Tidy A', 'Office / Section': 'Budget Section' },
+    { 'Equipment ID': 'NEW-T2', 'Equipment Type': 'Printer', 'Brand / Model': 'Tidy B', 'Office / Section': 'Main Office' }] });
+  let L = call({ action: 'load' });
+  ok(L.inventory.find(i => i.brand === 'Tidy B').office === 'IDADIN/ICTU', 'import puts Main Office under IDADIN/ICTU');
+  // look-alike names typed by hand in the masterlist
+  const setOff = (brand, office) => { const it = call({ action: 'load' }).inventory.find(x => x.brand === brand); it.office = office; return call({ action: 'saveEquipment', item: it }); };
+  setOff('Tidy A', 'BUDGET'); setOff('Tidy B', 'MSS');
+  const plan = call({ action: 'tidyOffices' });
+  const pl = Object.fromEntries(plan.plan.map(x => [x[0], x[1]]));
+  ok(plan.ok && !plan.applied && pl['BUDGET'] === 'Budget Section' && pl['MSS'] === 'Medical Social Work Section' && !pl['Budget Section'], 'tidy shows the merges first: ' + JSON.stringify(plan.plan));
+  ok(call({ action: 'load' }).inventory.find(i => i.brand === 'Tidy A').office === 'BUDGET', 'nothing changes until it is applied');
+  const ap = call({ action: 'tidyOffices', apply: true });
+  L = call({ action: 'load' });
+  ok(ap.applied && L.inventory.find(i => i.brand === 'Tidy A').office === 'Budget Section' && L.inventory.find(i => i.brand === 'Tidy B').office === 'Medical Social Work Section' && call({ action: 'tidyOffices' }).plan.length === 0, 'tidy merges the look-alike sections, and a second run has nothing left');
 }
 
 // reading a property sticker photo (Gemini stand-in)
