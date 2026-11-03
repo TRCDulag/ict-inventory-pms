@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.6 (Nov 3, 2026)
+- Import from Excel: each end user is changed to the nearest name in the employee masterlist (for example "ENGR. ORACION" to the full name). The message after the import lists every name it changed and the ones it could not find.
+
 ## 1.4.5 (Nov 3, 2026)
 - Import from Excel: a unit with no serial no. and no ICT ID (as from a paper PM report) is not added twice. When the same type, brand, office and end user is already in the masterlist, its PM records go to that unit.
 

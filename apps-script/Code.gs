@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.4.5';
+const VERSION = '1.4.6';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -1446,7 +1446,16 @@ function importRows_(req) {
   const val = (o, k, dates) => dates.indexOf(k) >= 0 ? (toDate_(String(o[k] || '').slice(0, 10)) || '') : clean_(o[k]);
   return withLock_(() => {
     const now = new Date(), by = clean_(req.by);
-    const out = { ok: true, added: [], skipped: [], pmAdded: [], pmSkipped: [], renumbered: {} };
+    const out = { ok: true, added: [], skipped: [], pmAdded: [], pmSkipped: [], renumbered: {}, names: [], unmatched: [] };
+    // End users typed by hand ("ENGR. ORACION", "JOSEPH ZABALA") become the nearest name in the employee masterlist.
+    let emps = null;
+    try { emps = employees_().list; } catch (err) { emps = []; }
+    const fixName = (n, office) => {
+      const m = nearestEmployee_(n, office, emps);
+      if (m && m !== n && !out.names.some(x => x[0] === n)) out.names.push([n, m]);
+      if (!m && emps.length && out.unmatched.indexOf(n) < 0) out.unmatched.push(n);
+      return m || n;
+    };
     const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
     const ids = {}, serials = {};
     const same = (a, b) => String(a[I['Equipment Type']]).toLowerCase() === String(b[I['Equipment Type']]).toLowerCase() &&
@@ -1457,6 +1466,7 @@ function importRows_(req) {
       if (!o || typeof o !== 'object') return;
       const row = INV_HEADERS.map(k => val(o, k, INV_DATES));
       if (!row[I['Equipment Type']] && !row[I['Brand / Model']] && !row[I['Serial No.']]) return;
+      if (row[I['End User']]) row[I['End User']] = fixName(row[I['End User']], row[I['Office / Section']]);
       const id = row[I['Equipment ID']], sn = String(row[I['Serial No.']]).toLowerCase();
       // Already there: the same serial no., or (with no serial no.) the same ID for the same type and brand.
       if ((sn && serials[sn]) || (!sn && id && ids[id] && same(ids[id], row))) { out.skipped.push(id || row[I['Serial No.']]); return; }
@@ -1496,6 +1506,7 @@ function importRows_(req) {
       if (!/^PM-\d{4}-\d+$/.test(ref)) return;
       if (refs[ref]) { out.pmSkipped.push(ref); return; }
       row[P['ICT Personnel']] = fullName(row[P['ICT Personnel']]);
+      if (row[P['End User']]) row[P['End User']] = fixName(row[P['End User']], row[P['Office / Section']]);
       if (moved[row[P['Equipment ID']]]) row[P['Equipment ID']] = moved[row[P['Equipment ID']]];   // its unit got a new ID above
       row[P['Record Status']] = row[P['Record Status']] || 'Valid';
       row[P['Record Hash']] = '';   // made outside the app, so it has no hash to check
@@ -1964,6 +1975,37 @@ function properCase_(t) {
 }
 
 /** Compares names loosely: case, dots, spaces and accents do not matter. */
+// The masterlist name closest to a hand-typed one, or '' when none is close enough or two are equally close.
+// Titles (Dr., Engr.) are dropped. The surname must match (one typo allowed in a long one). A first name, when
+// given, must match too (or start the same way); the office breaks a tie.
+function nearestEmployee_(typed, office, emps) {
+  const words = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z\s.-]/g, ' ')
+    .split(/[\s.]+/).filter(w => w && !/^(dr|engr|atty|mr|mrs|ms|rn|md|jr|sr|ii|iii)$/.test(w));
+  const lev = (a, b) => { const d = []; for (let i = 0; i <= a.length; i++) { d[i] = [i]; for (let j = 1; j <= b.length; j++) d[i][j] = i ? Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; } return d[a.length][b.length]; };
+  const near = (a, b) => a === b || (a.length >= 5 && b.length >= 5 && lev(a, b) <= 1);
+  const w = words(typed); if (!w.length || !emps || !emps.length) return '';
+  const sur = w[w.length - 1], first = w.length > 1 ? w[0] : '';
+  const off = nameKey_(office);
+  let best = '', top = 0, tie = false;
+  emps.forEach(e => {
+    const ew = words(e.name); if (ew.length < 1) return;
+    // the surname can be two words (Dela Cruz): compare the joined last words too
+    const es = ew[ew.length - 1], es2 = ew.slice(-2).join('');
+    if (!near(sur, es) && !(w.length > 1 && near(w.slice(-2).join(''), es2))) return;
+    let score = 10;
+    if (first) {
+      const ef = ew[0];
+      if (ef === first) score += 10;
+      else if (ef.startsWith(first) || first.startsWith(ef) || (first.length >= 4 && lev(ef, first) <= 2)) score += 6;
+      else if (ew.slice(0, -1).some(x => x === first)) score += 4;
+      else return;
+    }
+    if (off && e.office && (nameKey_(e.office).indexOf(off) >= 0 || off.indexOf(nameKey_(e.office)) >= 0)) score += 3;
+    if (score > top) { top = score; best = e.name; tie = false; } else if (score === top && e.name !== best) tie = true;
+  });
+  return tie ? '' : best;
+}
+
 function nameKey_(t) {
   return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }

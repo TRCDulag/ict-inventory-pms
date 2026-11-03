@@ -299,6 +299,15 @@ ok(r.added.length === 1 && /^ICT-\d{4}$/.test(paperId) && call({ action: 'load' 
 paper.pms[0]['PM Ref No.'] = 'PM-2024-002'; paper.inventory[0]['End User'] = ' test  user ';
 r = call(paper);
 ok(r.added.length === 0 && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-002').equipmentId === paperId, 'the same unit from the same office and end user is not added twice, and its PM goes to the unit already there');
+// hand-typed end users become the masterlist name
+r = call({ action: 'importRows', file: 'report.xlsx', inventory: [
+  { 'Equipment ID': 'NEW-02', 'Equipment Type': 'Laptop', 'Office / Section': 'ACCOUNTING SECTION', 'End User': 'ANA GARCIA' },
+  { 'Equipment ID': 'NEW-03', 'Equipment Type': 'Laptop', 'Office / Section': 'Budget Section', 'End User': 'Ma. Clara Santoz' },
+  { 'Equipment ID': 'NEW-04', 'Equipment Type': 'Laptop', 'Office / Section': 'Cash Unit', 'End User': 'DR. REYES' },
+  { 'Equipment ID': 'NEW-05', 'Equipment Type': 'Laptop', 'Office / Section': 'HIMS', 'End User': 'Nobody Known' }],
+  pms: [{ 'PM Ref No.': 'PM-2024-003', 'Date': '2024-11-13', 'Equipment Type': 'Laptop', 'End User': 'ANA GARCIA', 'Office / Section': 'ACCOUNTING SECTION', 'Equipment ID': 'NEW-02' }] });
+const nm = Object.fromEntries(r.names);
+ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Maria Clara R. Santos' && nm['DR. REYES'] === 'Jose Mari S. Reyes Jr.' && r.unmatched.join() === 'Nobody Known' && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-003').endUser === 'Ana Liza M. Garcia', 'end users are matched to the employee masterlist: ' + JSON.stringify(r.names) + JSON.stringify(r.unmatched));
 
 // reading a property sticker photo (Gemini stand-in)
 ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');
