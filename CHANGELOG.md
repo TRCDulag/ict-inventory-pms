@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.2 (Nov 3, 2026)
+- Internet Downtime: the PLDT line (router ether6, ISP IN) and the Starlink line (router ether7) are now in the list from the start, so you can pick them right away. They show under Network and IP, where you can add the bandwidth, account no. and monthly cost.
+
 ## 1.6.1 (Nov 3, 2026)
 - New Internet Downtime page: record each time the internet goes down, with the line, the time it went down and came back, the cause and the ISP ticket. The app works out the hours.
 - Each month shows the uptime of every line and how long the whole office had no internet. Print the monthly report for ISO or for a rebate request to the ISP.

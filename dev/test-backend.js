@@ -251,8 +251,10 @@ ok(!call({ action: 'saveIncident', item: { no: r.item.no, severity: 'Huge' } }).
 
 // network and IP inventory
 r = call({ action: 'saveNetwork', item: { kind: 'Router', name: 'Main router', ip: '192.168.1.1', mac: '001a2b3c4d5e', monthly: '' } });
-ok(r.ok && r.item.id === 'NET-001' && r.item.mac === '00:1A:2B:3C:4D:5E' && r.item.status === 'Active', 'network item added: ' + r.error);
-ok(/already used by NET-001/.test(call({ action: 'saveNetwork', item: { kind: 'Switch', name: 'Sw', ip: '192.168.1.1' } }).error), 'duplicate IP refused');
+const seeded = call({ action: 'load' }).network.filter(n => n.kind === 'Internet Line');
+ok(seeded.length === 2 && seeded.some(n => n.provider === 'PLDT' && /ether6/.test(n.location)) && seeded.some(n => n.provider === 'Starlink' && /ether7/.test(n.location)), 'the PLDT and Starlink lines are there from the start');
+ok(r.ok && r.item.id === 'NET-003' && r.item.mac === '00:1A:2B:3C:4D:5E' && r.item.status === 'Active', 'network item added: ' + r.error);
+ok(/already used by NET-003/.test(call({ action: 'saveNetwork', item: { kind: 'Switch', name: 'Sw', ip: '192.168.1.1' } }).error), 'duplicate IP refused');
 ok(/should look like/.test(call({ action: 'saveNetwork', item: { kind: 'Switch', name: 'Sw', ip: '192.168.1.300' } }).error), 'bad IP refused');
 r = call({ action: 'saveNetwork', item: { kind: 'Internet Line', name: 'PLDT fiber', provider: 'PLDT', bandwidth: '200 Mbps', contractEnd: '2027-03-31', monthly: '2,899' } });
 ok(r.ok && r.item.contractEnd === '2027-03-31' && r.item.monthly === 2899, 'internet line with contract');
@@ -287,7 +289,7 @@ ok(audIso.includes('ISO DOCUMENT ADDED') && audIso.includes('ISO REVISION ADDED'
 
 // everything comes back on load
 L = call({ action: 'load' });
-ok(L.transfers.length === 2 && L.stock.length === 1 && L.moves.length === 2 && L.incidents.length === 1 && L.network.length === 2, 'load returns the registers');
+ok(L.transfers.length === 2 && L.stock.length === 1 && L.moves.length === 2 && L.incidents.length === 1 && L.network.length === 4, 'load returns the registers');
 ok(L.lists.types[0].length === 4 && L.lists.types.find(t => t[0] === 'Monitor')[2] === 7, 'useful life per type');
 ok(L.me.role === 'Head' && L.choices.incType.length > 3, 'load returns the signed-in user and choices');
 

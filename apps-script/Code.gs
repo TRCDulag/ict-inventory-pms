@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.6.1';
+const VERSION = '1.6.2';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -267,6 +267,7 @@ function handle_(req) {
 
 function load_() {
   normalizeInventory_();
+  seedNetLines_();
   const inv = readRows_(INV, INV_HEADERS).map(toItem_);
   const pms = readRows_(PM, PM_HEADERS).map(toPM_);
   const emp = employees_();
@@ -1653,6 +1654,19 @@ function toObj_(spec, r) {
 }
 
 // Adds a row to a register, or updates one, with the Audit Trail entry. Used for stock items, incidents and the network list.
+// The two ICTU internet lines on the router. Added once (when there is no internet line yet);
+// if someone later removes or retires them, they are not added again.
+const NET_LINES = [
+  { kind: 'Internet Line', name: 'PLDT', location: 'Router ether6 (ISP IN)', provider: 'PLDT', status: 'Active' },
+  { kind: 'Internet Line', name: 'Starlink', location: 'Router ether7 (STARLINK)', provider: 'Starlink', status: 'Active' }];
+function seedNetLines_() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('NET_LINES_SEEDED') || !SpreadsheetApp.getActive().getSheetByName(NETWORK)) return;
+  const NH = idx_(NET_HEADERS), have = readRows_(NETWORK, NET_HEADERS).filter(x => x[NH['Kind']] === 'Internet Line');
+  if (!have.length) NET_LINES.forEach(it => saveReg_(REG.network, it, { by: 'Setup' }));
+  props.setProperty('NET_LINES_SEEDED', '1');
+}
+
 // An internet downtime entry: the line must be an Internet Line in the Network list (or ALL),
 // the times must make sense, and the hours and status are worked out here, not taken from the page.
 function downCheck_(row, H) {
@@ -2020,6 +2034,7 @@ function setup() {
   }
   if (!ss.getSheetByName(ADDED)) makeAddedTab_();
   seedIso_();
+  seedNetLines_();
   ss.getSheets().forEach(protect_);
   sigFolder_();
   backupFolder_();

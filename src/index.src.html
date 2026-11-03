@@ -1477,9 +1477,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.1";
+const APP_VERSION = "1.6.2";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.2", "Nov 3, 2026", ["Internet Downtime: the PLDT line (router ether6, ISP IN) and the Starlink line (router ether7) are now in the list from the start, so you can pick them right away. They show under Network and IP, where you can add the bandwidth, account no. and monthly cost."]],
   ["1.6.1", "Nov 3, 2026", ["New Internet Downtime page: record each time the internet goes down, with the line, the time it went down and came back, the cause and the ISP ticket. The app works out the hours.", "Each month shows the uptime of every line and how long the whole office had no internet. Print the monthly report for ISO or for a rebate request to the ISP.", "While a line is down, a red note and a count on the menu stay up until someone presses \"It is back now\".", "Run setup once in Apps Script to add the Internet Downtime tab. List your internet lines under Network and IP (Kind: Internet Line) first."]],
   ["1.6.0", "Nov 3, 2026", ["New ISO Documents page: every ICTU controlled document (procedures, forms, Context, ROA, APW) with its current revision, effectivity date and status, and the revisions and DRFs behind it. Marking a revision Approved updates the document by itself.", "Print the master list of documents, the DRF and revision log, the revision history of a document, and a copy of each form the app prints, for the audit.", "Setup adds the ISO Documents and ISO Revisions tabs with the ICTU documents known so far (COH-IDN-P-01, COH-IDN-F-01 to F-09, Context, ROA and APW). Codes F-03 to F-09 are proposed until the DCO confirms them."]],
   ["1.5.2", "Nov 3, 2026", ["Inventory: \"For disposal\" (Head) lists every Unserviceable unit with its serial, section, age and last job order or TIR. Tick units, print the list to attach to the IIRUP, then mark them Disposed in one go with the IIRUP no. and date. Disposed units stay in the masterlist for the record."]],
@@ -4179,7 +4180,7 @@ $("xPrint").onclick = () => {
 
 // ---------- internet downtime log ----------
 function netLines() { return D.network.filter(n => n.kind === "Internet Line" && n.status !== "Retired"); }
-function lineLabel(id) { if (id === "ALL") return "All internet lines"; const n = D.network.find(x => x.id === id); return n ? n.name + (n.provider ? " (" + n.provider + ")" : "") : id; }
+function lineLabel(id) { if (id === "ALL") return "All internet lines"; const n = D.network.find(x => x.id === id); return n ? n.name + (n.provider && n.provider.toLowerCase() !== n.name.toLowerCase() ? " (" + n.provider + ")" : "") : id; }
 function ym(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
 function hrs(h) { return (Math.round(h * 100) / 100).toLocaleString("en-PH", { maximumFractionDigits: 2 }); }
 function hm(h) { const m = Math.round(h * 60); return m < 60 ? m + " min" : Math.floor(m / 60) + " hr" + (m % 60 ? " " + (m % 60) + " min" : ""); }
