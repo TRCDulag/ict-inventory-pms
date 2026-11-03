@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.0 (Nov 3, 2026)
+- New ISO Documents page: every ICTU controlled document (procedures, forms, Context, ROA, APW) with its current revision, effectivity date and status, and the revisions and DRFs behind it. Marking a revision Approved updates the document by itself.
+- Print the master list of documents, the DRF and revision log, the revision history of a document, and a copy of each form the app prints, for the audit.
+- Setup adds the ISO Documents and ISO Revisions tabs with the ICTU documents known so far (COH-IDN-P-01, COH-IDN-F-01 to F-09, Context, ROA and APW). Codes F-03 to F-09 are proposed until the DCO confirms them.
+
 ## 1.5.2 (Nov 3, 2026)
 - Inventory: "For disposal" (Head) lists every Unserviceable unit with its serial, section, age and last job order or TIR. Tick units, print the list to attach to the IIRUP, then mark them Disposed in one go with the IIRUP no. and date. Disposed units stay in the masterlist for the record.
 

@@ -53,7 +53,7 @@ for p in S["pms"]:
 
 ws = wb.create_sheet("Checklist Results"); tab(ws, H["CHK"])
 ws = wb.create_sheet("JO Log"); tab(ws, H["JO"])
-for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET")]:
+for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET"), ("ISO Documents", "ISOD"), ("ISO Revisions", "ISOR")]:
     ws = wb.create_sheet(name); tab(ws, H[key])
 ws = wb.create_sheet("Audit Trail"); tab(ws, H["AUD"])
 if S["items"]:
@@ -82,6 +82,7 @@ about = [["ICT Inventory and PMS Register (ICTU)"], [],
  ["Stock Items / Stock Movements", "Spare parts and consumables, and every receipt, issue and adjustment (SM-YYYY-NNNN). The balance is the sum of the movements."],
  ["Incidents", "ICT security incidents and data breaches (INC-YYYY-NNN), with the DPO and NPC dates."],
  ["Network", "Network devices, fixed IP addresses and internet lines (NET-NNN). No passwords."],
+ ["ISO Documents / ISO Revisions", "The ICTU controlled documents (procedures, forms, Context, ROA, APW) and every revision and DRF (REV-YYYY-NNN). Setup fills them with the ICTU documents the first time it runs, when both are empty."],
  ["Lists", "Choices shown in the app. Edit these to add offices, staff, equipment types with their default PM frequency, useful life (years) and replacement cost."],
  ["PM frequency", "Monthly, Quarterly, Semi-Annual, Annual, or Not scheduled (checked with its PC) for monitors, keyboards, hubs and other parts of a PC set."],
  ["Protection", "After setup, every tab can be edited by hand only by the Sheet owner. The app writes through Apps Script, only for a signed-in ICTU account whose role allows it. A copy of the Sheet is saved to Drive every month."]]

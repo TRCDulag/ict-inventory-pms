@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.5.2';
+const VERSION = '1.6.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -74,6 +74,7 @@ const INV = 'Inventory', PM = 'PM Log', CHK = 'Checklist Results', AUDIT = 'Audi
 const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log';
 const USERS = 'Users', TRANSFERS = 'Transfers', STOCK = 'Stock Items', MOVES = 'Stock Movements', INCIDENTS = 'Incidents', NETWORK = 'Network';
 const BACKUP_FOLDER = 'ICT Inventory and PMS Backups';
+const ISO_DOCS = 'ISO Documents', ISO_REVS = 'ISO Revisions';
 
 const INV_HEADERS = ['Equipment ID', 'Property Tag No.', 'Equipment Type', 'Brand / Model', 'Description / Specs',
   'Serial No.', 'Office / Section', 'End User', 'Accountable Officer', 'Source Document (RIS / PAR / ICS)',
@@ -125,11 +126,23 @@ const NET_HEADERS = ['Net ID', 'Kind', 'Name / Label', 'Location', 'IP Address',
   'Brand / Model', 'Equipment ID', 'Provider / ISP', 'Account / Circuit No.', 'Bandwidth', 'Contract End',
   'Monthly Cost', 'Status', 'Remarks', 'Updated At', 'Updated By'];
 
+// ISO: the ICTU's controlled documents (procedures, forms, Context, ROA, APW) and every revision or DRF.
+const ISO_DOC_HEADERS = ['Doc ID', 'Document Code', 'Title', 'Kind', 'Current Rev.', 'Effectivity Date', 'Status',
+  'Related Procedure', 'File / Copy Location', 'Retention', 'Remarks', 'Updated At', 'Updated By'];
+const ISO_REV_HEADERS = ['Rev Ref', 'Document Code', 'Rev. No.', 'Nature', 'Description of Change', 'Author', 'DRF No.',
+  'DRF Date', 'Status', 'Date Approved', 'Effectivity Date', 'Disseminated On', 'File / Copy Location', 'Remarks',
+  'Recorded By', 'Recorded At', 'Updated At', 'Updated By', 'Action History'];
+const ISO_KINDS = ['Procedure', 'Form', 'Context / Issues', 'Risk and Opportunity Assessment', 'Action Planning Worksheet',
+  'Work Instruction', 'Manual / Policy', 'Others'];
+const ISO_DOC_STATUS = ['Draft', 'DRF filed', 'Under review', 'Approved (in use)', 'Obsolete'];
+const ISO_NATURE = ['New document', 'Revision', 'Deletion'];
+const ISO_REV_STATUS = ['Draft', 'Submitted to DCO', 'Under review', 'Approved', 'Returned / disapproved', 'Cancelled'];
+
 const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 // The lowest role that may do each action. Anything not listed is refused.
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
-  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
+  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician',
   savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
@@ -218,6 +231,8 @@ function handle_(req) {
       case 'saveMove':      return saveMove_(req);
       case 'saveIncident':  return saveReg_(REG.incident, req.item, req);
       case 'saveNetwork':   return saveReg_(REG.network, req.item, req);
+      case 'saveIsoDoc':    return saveReg_(REG.isoDoc, req.item, req);
+      case 'saveIsoRev':    return saveIsoRev_(req);
       case 'load':          return Object.assign(load_(), { me: publicMe_(me) });
       case 'joPeek':        return joPeek_();
       case 'saveAlerts':    return saveAlerts_(req);
@@ -258,8 +273,10 @@ function load_() {
            transfers: tab(TRANSFERS, TRANSFER_HEADERS).map(r => toObj_(REG.transfer, r)),
            stock: tab(STOCK, STOCK_HEADERS).map(r => toObj_(REG.stock, r)), moves: tab(MOVES, MOVE_HEADERS).map(r => toObj_(REG.move, r)),
            incidents: tab(INCIDENTS, INCIDENT_HEADERS).map(r => toObj_(REG.incident, r)), network: tab(NETWORK, NET_HEADERS).map(r => toObj_(REG.network, r)),
+           isoDocs: tab(ISO_DOCS, ISO_DOC_HEADERS).map(r => toObj_(REG.isoDoc, r)), isoRevs: tab(ISO_REVS, ISO_REV_HEADERS).map(r => toObj_(REG.isoRev, r)),
            backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '' }, tirRecs: TIR_RECS,
-           choices: { transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS } };
+           choices: { transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS,
+             isoKind: ISO_KINDS, isoDocStatus: ISO_DOC_STATUS, isoNature: ISO_NATURE, isoRevStatus: ISO_REV_STATUS } };
 }
 
 function saveEquipment_(req) {
@@ -1473,8 +1490,128 @@ const REG = {
           throw new Error('IP ' + ip + ' is already used by ' + x[0] + ' (' + x[H['Name / Label']] + ').');
       });
       checkEq_(row[H['Equipment ID']]);
+    } },
+  isoDoc: { tab: ISO_DOCS, h: ISO_DOC_HEADERS, label: 'ISO DOCUMENT',
+    map: { id: 'Doc ID', code: 'Document Code', title: 'Title', kind: 'Kind', rev: 'Current Rev.', effectivity: 'Effectivity Date',
+      status: 'Status', procedure: 'Related Procedure', location: 'File / Copy Location', retention: 'Retention', remarks: 'Remarks',
+      updatedAt: 'Updated At', updatedBy: 'Updated By' },
+    days: ['effectivity'], required: ['code', 'title', 'kind'],
+    choices: { kind: ISO_KINDS, status: ISO_DOC_STATUS }, defaults: { status: 'Draft', rev: '00' },
+    next: sh => nextNo_(sh, 1, 'ISO-', 3),
+    check: (row, H) => {
+      row[H['Document Code']] = String(row[H['Document Code']]).toUpperCase().replace(/\s+/g, ' ');
+      const code = row[H['Document Code']];
+      readRows_(ISO_DOCS, ISO_DOC_HEADERS).forEach(x => {
+        if (x[0] !== row[0] && String(x[H['Document Code']]).toUpperCase() === code) throw new Error(code + ' is already in the list as ' + x[0] + '.');
+      });
+      row[H['Current Rev.']] = revNo_(row[H['Current Rev.']]);
+    } },
+  isoRev: { tab: ISO_REVS, h: ISO_REV_HEADERS, label: 'ISO REVISION',
+    map: { ref: 'Rev Ref', code: 'Document Code', rev: 'Rev. No.', nature: 'Nature', description: 'Description of Change', author: 'Author',
+      drfNo: 'DRF No.', drfDate: 'DRF Date', status: 'Status', approved: 'Date Approved', effectivity: 'Effectivity Date',
+      disseminated: 'Disseminated On', location: 'File / Copy Location', remarks: 'Remarks', recordedBy: 'Recorded By', recordedAt: 'Recorded At',
+      updatedAt: 'Updated At', updatedBy: 'Updated By', history: 'Action History' },
+    days: ['drfDate', 'approved', 'effectivity', 'disseminated'], required: ['code', 'rev', 'nature', 'description'],
+    choices: { nature: ISO_NATURE, status: ISO_REV_STATUS }, defaults: { status: 'Draft', nature: 'Revision' },
+    next: (sh, now) => nextNo_(sh, 1, 'REV-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
+    check: (row, H) => {
+      row[H['Document Code']] = String(row[H['Document Code']]).toUpperCase().replace(/\s+/g, ' ');
+      const code = row[H['Document Code']];
+      if (!isoDocRow_(code)) throw new Error(code + ' is not in the list of ISO documents. Add the document first.');
+      row[H['Rev. No.']] = revNo_(row[H['Rev. No.']]);
+      if (row[H['Status']] === 'Approved' && !row[H['Effectivity Date']]) throw new Error('Put the effectivity date of the approved revision.');
+      readRows_(ISO_REVS, ISO_REV_HEADERS).forEach(x => {
+        if (x[0] !== row[0] && String(x[H['Document Code']]).toUpperCase() === code && String(x[H['Rev. No.']]) === row[H['Rev. No.']] &&
+            ['Cancelled', 'Returned / disapproved'].indexOf(x[H['Status']]) < 0 && ['Cancelled', 'Returned / disapproved'].indexOf(row[H['Status']]) < 0)
+          throw new Error('Rev. ' + row[H['Rev. No.']] + ' of ' + code + ' is already recorded as ' + x[0] + '.');
+      });
     } }
 };
+
+// "1" -> "01", "Rev. 2" -> "02"; anything else is kept as typed.
+function revNo_(v) {
+  const s = String(v == null ? '' : v).trim().replace(/^rev(ision)?\.?\s*(no\.?)?\s*/i, '');
+  return /^\d{1,2}$/.test(s) ? ('0' + s).slice(-2) : s;
+}
+
+function isoDocRow_(code) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(ISO_DOCS);
+  if (!sh) throw new Error('Tab "' + ISO_DOCS + '" not found. Run setup in Apps Script.');
+  const H = idx_(ISO_DOC_HEADERS), rows = readRows_(ISO_DOCS, ISO_DOC_HEADERS);
+  for (let i = 0; i < rows.length; i++) if (String(rows[i][H['Document Code']]).toUpperCase() === String(code).toUpperCase()) return rows[i];
+  return null;
+}
+
+// Saves a revision (DRF), then brings its document up to date: an approved revision becomes the
+// current one, a filed DRF marks the document as in review, and an approved deletion makes it obsolete.
+function saveIsoRev_(req) {
+  const res = saveReg_(REG.isoRev, req.item, req);
+  if (!res.ok || res.unchanged) return res;
+  const rv = res.item;
+  const docRow = isoDocRow_(rv.code);
+  const doc = toObj_(REG.isoDoc, docRow), upd = {};
+  const newer = (a, b) => (parseInt(a, 10) || 0) >= (parseInt(b, 10) || 0);
+  if (rv.status === 'Approved') {
+    if (rv.nature === 'Deletion') { upd.status = 'Obsolete'; if (rv.effectivity) upd.effectivity = rv.effectivity; }
+    else if (newer(rv.rev, doc.rev) || doc.status !== 'Approved (in use)') { upd.rev = rv.rev; upd.effectivity = rv.effectivity; upd.status = 'Approved (in use)'; }
+  } else if (doc.status !== 'Approved (in use)' && doc.status !== 'Obsolete') {
+    const st = { 'Submitted to DCO': 'DRF filed', 'Under review': 'Under review' }[rv.status];
+    if (st) upd.status = st;
+  }
+  const changed = Object.keys(upd).some(k => String(doc[k] || '') !== String(upd[k] || ''));
+  if (changed) {
+    const d = saveReg_(REG.isoDoc, Object.assign({ id: doc.id }, upd), req);
+    res.doc = d.item;
+  }
+  return res;
+}
+
+// The ICTU documents known on 3 Nov 2026, put in the ISO tabs the first time setup runs. Codes F-03 to
+// F-09 are proposed and wait for the Document Control Officer. Dates left blank are not known yet.
+const ISO_SEED = [
+  ['COH-IDN-P-01', 'ICT Equipment Management, Preventive Maintenance and Job Order', 'Procedure', '00', '2024-12-18', 'Approved (in use)', '',
+    [['00', 'New document', 'Initial issue (Preventive Maintenance)', 'Approved', '2024-12-18'],
+     ['01', 'Revision', 'Retitled. Covers registration, PM, job orders, transfer and disposal done in the ICT Inventory and PMS App, with forms COH-IDN-F-01 to F-09.', 'Draft', '']]],
+  ['COH-IDN-F-01', 'ICTU Job Order Request Form', 'Form', '00', '', 'Approved (in use)', 'COH-IDN-P-01',
+    [['00', 'New document', 'Initial issue (ICTU Job Order Form)', 'Approved', ''],
+     ['01', 'Revision', 'Printed from the ICT Inventory and PMS App with the JO No., priority, ICTU assessment and client feedback. Wording kept.', 'Draft', '']]],
+  ['COH-IDN-F-02', 'ICT Equipment Preventive Maintenance Checklist', 'Form', '00', '2024-12-23', 'Approved (in use)', 'COH-IDN-P-01',
+    [['00', 'New document', 'Initial issue', 'Approved', '2024-12-23'],
+     ['01', 'Revision', 'Printed from the ICT Inventory and PMS App with the PM Ref. No. and the checklist items for the kind of equipment. Wording kept.', 'Draft', '']]],
+  ['COH-IDN-F-03', 'Technical Inspection Report', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-04', 'Preventive Maintenance Schedule of ICT Equipment', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-05', 'ICTU/IDADIN Preventive Maintenance Report', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-06', 'Monthly ICTU Job Order Report', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-07', 'ICT Equipment Transfer / Turnover Slip', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-08', 'ICT Equipment Service and Maintenance History', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-09', 'ICT Equipment Inventory Masterlist', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-QMS-F-06 (ICTU)', 'Context of the Organization: Issues and Status (ICTU)', 'Context / Issues', '01', '', 'Approved (in use)', '',
+    [['01', 'Revision', 'January 2025 issues (received 21 May 2025)', 'Approved', ''],
+     ['02', 'Revision', 'Update as of 01 Jul 2025', 'Draft', '2025-07-01'], ['03', 'Revision', 'Update as of 01 Jan 2026', 'Draft', '2026-01-01'],
+     ['04', 'Revision', 'Update as of 01 Jul 2026', 'Draft', '2026-07-01']]],
+  ['COH-QMS-F-07 (ICTU)', 'Risk and Opportunity Assessment Worksheet (ICTU)', 'Risk and Opportunity Assessment', '01', '', 'Approved (in use)', '',
+    [['01', 'Revision', 'January 2025 assessment (received 21 May 2025)', 'Approved', ''],
+     ['02', 'Revision', 'Update as of 01 Jul 2025', 'Draft', '2025-07-01'], ['03', 'Revision', 'Update as of 01 Jan 2026', 'Draft', '2026-01-01'],
+     ['04', 'Revision', 'Update as of 01 Jul 2026', 'Draft', '2026-07-01']]],
+  ['COH-QMS-F-08 (ICTU)', 'Action Planning Worksheet (ICTU)', 'Action Planning Worksheet', '01', '', 'Approved (in use)', '',
+    [['01', 'Revision', 'APW 2025 (received 21 May 2025)', 'Approved', ''],
+     ['02', 'Revision', 'Status Jul to Dec 2025, as of 01 Jul 2025', 'Draft', '2025-07-01'], ['03', 'Revision', 'Status Jan to Jun 2026, as of 01 Jan 2026', 'Draft', '2026-01-01'],
+     ['04', 'Revision', 'Status Jul to Oct 2026, as of 01 Jul 2026', 'Draft', '2026-07-01']]]
+];
+
+function seedIso_() {
+  const ds = sheet_(ISO_DOCS), rs = sheet_(ISO_REVS);
+  if (lastRow_(ds) > 1 || lastRow_(rs) > 1) return 0;
+  const stamp = dt_(new Date()), docs = [], revs = [];
+  ISO_SEED.forEach((d, i) => {
+    docs.push(['ISO-' + ('00' + (i + 1)).slice(-3), d[0], d[1], d[2], d[3], d[4], d[5], d[6], '', '', '', stamp, 'Setup']);
+    d[7].forEach(r => revs.push(['REV-SEED-' + ('00' + (revs.length + 1)).slice(-3), d[0], r[0], r[1], r[2], 'J. ELONA', '', '', r[3],
+      r[3] === 'Approved' ? r[4] : '', r[4], '', '', r[3] === 'Approved' || !r[4] ? '' : 'Proposed date', 'Setup', stamp, '', '', stamp + ' - Recorded at setup']));
+  });
+  ds.getRange(2, 1, docs.length, ISO_DOC_HEADERS.length).setNumberFormat('@').setValues(docs);
+  rs.getRange(2, 1, revs.length, ISO_REV_HEADERS.length).setNumberFormat('@').setValues(revs);
+  return docs.length;
+}
 
 function checkEq_(id) { if (id && !findRow_(sheet_(INV), String(id))) throw new Error('Equipment ' + id + ' is not in the masterlist.'); }
 
@@ -1802,7 +1939,7 @@ function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(TZ);
   [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS], [USERS, USER_HEADERS],
-   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS]].forEach(([name, h]) => {
+   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS]].forEach(([name, h]) => {
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
     // Writes the header row when it is missing, and adds new columns to an older tab (such as a pasted JO Log).
     const have = sh.getRange(1, 1, 1, h.length).getValues()[0];
@@ -1833,6 +1970,7 @@ function setup() {
     }
   }
   if (!ss.getSheetByName(ADDED)) makeAddedTab_();
+  seedIso_();
   ss.getSheets().forEach(protect_);
   sigFolder_();
   backupFolder_();

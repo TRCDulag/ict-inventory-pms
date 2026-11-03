@@ -614,6 +614,8 @@
     <button role="tab" data-v="jo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8 12l2.5 2.5L16 9"/></svg>Job Orders<span class="badge hidden" id="navJo" style="background:var(--brand)"></span></button>
     <button role="tab" data-v="inc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.5"/></svg>Incidents</button>
     <button role="tab" data-v="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Reports and Forms</button>
+    <div class="grp">Quality (ISO)</div>
+    <button role="tab" data-v="iso"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 14l2 2 4-4"/></svg>ISO Documents</button>
     <button role="tab" data-v="acc" class="need3"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M17 11h4M19 9v4"/></svg>Accounts</button>
   </nav>
 <main>
@@ -909,6 +911,23 @@
       <label class="f">Year<select id="tYear"></select></label></div>
       <div class="row" style="margin-top:12px"><button class="btn need2" id="newTr" type="button">Record a transfer or turnover</button><span class="hint" id="tCount" style="margin:0"></span></div></div>
     <div class="tablewrap"><table class="list" id="tTable"><thead><tr><th>Transfer no.</th><th>Date</th><th>Equipment</th><th>From</th><th>To</th><th class="hide-m">PAR / ICS / PTR</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- ISO DOCUMENTS -->
+  <section class="view hidden" id="v-iso">
+    <h2>ISO documents</h2>
+    <p class="lead">The ICTU's controlled documents: procedures, forms, Context, ROA and APW. Each one shows its current revision, effectivity date and status, with every revision and DRF behind it. Print the lists for the audit.</p>
+    <div class="tiles" id="oTiles"></div>
+    <div class="panel"><div class="filters">
+      <label class="f q">Search<input id="oQ" type="search" placeholder="Code, title, procedure"></label>
+      <label class="f">Kind<select id="oKind"></select></label>
+      <label class="f">Status<select id="oStatus"></select></label></div>
+      <div class="row" style="margin-top:12px"><span class="hint" id="oCount" style="margin:0"></span><span class="spacer"></span>
+        <button class="btn ghost small" id="oPrintList" type="button">Print master list of documents</button>
+        <button class="btn ghost small" id="oPrintLog" type="button">Print DRF and revision log</button></div></div>
+    <div class="tablewrap"><table class="list" id="oTable"><thead><tr><th>Code</th><th>Title</th><th>Rev.</th><th class="hide-m">Effectivity</th><th>Status</th><th class="hide-m">Pending</th></tr></thead><tbody></tbody>
+      <tfoot class="need2"><tr><td colspan="6"><button class="addrow" id="addIsoDoc" type="button"><span class="plus">+</span>Add a controlled document</button></td></tr></tfoot></table></div>
+    <div class="panel" style="margin-top:16px"><h3>Latest revisions and DRFs</h3><div class="tablewrap"><table class="list" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div></div>
   </section>
 
   <!-- SPARE PARTS AND CONSUMABLES -->
@@ -1294,6 +1313,52 @@
     <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="nSave">Save</button></div>
   </form>
 </dialog>
+<!-- ISO document -->
+<dialog id="oDlg">
+  <form id="oForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="oTitle">ISO document</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db"><div class="grid g3">
+      <label class="f"><span class="req">Document code</span><input id="oCode" placeholder="COH-IDN-F-03"></label>
+      <label class="f span2"><span class="req">Title</span><input id="oTitleIn"></label>
+      <label class="f"><span class="req">Kind</span><select id="oKindIn"></select></label>
+      <label class="f">Current rev. no.<input id="oRev" placeholder="00"></label>
+      <label class="f">Effectivity date<input id="oEff" type="date"></label>
+      <label class="f">Status<select id="oStat"></select></label>
+      <label class="f">Related procedure<input id="oProc" placeholder="COH-IDN-P-01"></label>
+      <label class="f">Retention<input id="oRet" placeholder="For example: 3 years after superseded"></label>
+      <label class="f wide">File / copy location<input id="oLoc" placeholder="Drive link, or where the signed copy is filed"></label>
+      <label class="f wide">Remarks<input id="oRem"></label></div>
+      <p class="hint">The current revision, effectivity date and status change by themselves when a revision below is marked Approved.</p>
+      <div class="msg" id="oMsg" role="status"></div>
+      <div id="oRevBox" class="hidden"><h4 style="margin:14px 0 6px">Revision history and DRFs</h4>
+        <div class="tablewrap"><table class="list" id="oRevTable"><thead><tr><th>Rev.</th><th>Description of change</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div>
+        <div class="row" style="margin-top:8px"><button class="btn ghost small need2" type="button" id="oAddRev">+ Add a revision or DRF</button><span class="spacer"></span>
+          <button class="btn ghost small hidden" type="button" id="oPrintForm">Print the form</button>
+          <button class="btn ghost small" type="button" id="oPrintHist">Print revision history</button></div></div></div>
+    <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="oSave">Save</button></div>
+  </form>
+</dialog>
+<!-- ISO revision / DRF -->
+<dialog id="ovDlg">
+  <form id="ovForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="ovTitle">Revision</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db"><div class="grid g3">
+      <label class="f"><span class="req">Rev. no.</span><input id="ovRev" placeholder="01"></label>
+      <label class="f"><span class="req">Nature</span><select id="ovNature"></select></label>
+      <label class="f">Status<select id="ovStat"></select></label>
+      <label class="f wide"><span class="req">Description of change</span><textarea id="ovDesc" rows="2"></textarea></label>
+      <label class="f">Author<input id="ovAuthor" placeholder="J. ELONA"></label>
+      <label class="f">DRF no.<input id="ovDrf" placeholder="given by the DCO"></label>
+      <label class="f">DRF date<input id="ovDrfDate" type="date"></label>
+      <label class="f">Date approved<input id="ovAppr" type="date"></label>
+      <label class="f">Effectivity date<input id="ovEff" type="date"></label>
+      <label class="f">Disseminated on (COH-QMS-F-02)<input id="ovDiss" type="date"></label>
+      <label class="f wide">File / copy location<input id="ovLoc" placeholder="Drive link, or where the signed copy is filed"></label>
+      <label class="f wide">Remarks<input id="ovRem"></label></div>
+      <div class="msg" id="ovMsg" role="status"></div></div>
+    <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="ovSave">Save</button></div>
+  </form>
+</dialog>
 <!-- incident -->
 <dialog id="xDlg">
   <form id="xForm" method="dialog" autocomplete="off">
@@ -1372,9 +1437,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.5.2";
+const APP_VERSION = "1.6.0";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.0", "Nov 3, 2026", ["New ISO Documents page: every ICTU controlled document (procedures, forms, Context, ROA, APW) with its current revision, effectivity date and status, and the revisions and DRFs behind it. Marking a revision Approved updates the document by itself.", "Print the master list of documents, the DRF and revision log, the revision history of a document, and a copy of each form the app prints, for the audit.", "Setup adds the ISO Documents and ISO Revisions tabs with the ICTU documents known so far (COH-IDN-P-01, COH-IDN-F-01 to F-09, Context, ROA and APW). Codes F-03 to F-09 are proposed until the DCO confirms them."]],
   ["1.5.2", "Nov 3, 2026", ["Inventory: \"For disposal\" (Head) lists every Unserviceable unit with its serial, section, age and last job order or TIR. Tick units, print the list to attach to the IIRUP, then mark them Disposed in one go with the IIRUP no. and date. Disposed units stay in the masterlist for the record."]],
   ["1.5.1", "Nov 3, 2026", ["Record a PM round: Tick all overdue only ticks the overdue units that match the search (for example only printers). With no match, it ticks all overdue units.", "Do PM: each unit in the list has a colored mark, red for overdue, blue for planned this month or soon, green for PM done and up to date.", "Dashboard: Due for replacement opens the list of those units with their specs, serial, section, age, useful life and costs. Click a unit to open it, or download it for Excel.", "The Tidy section names button is removed. Imports still use the agreed section names."]],
   ["1.5.0", "Nov 3, 2026", ["Dashboard: click a bar in Equipment by section (or Condition) to open the inventory list for that section (or condition).", "Inventory: \"Tidy section names\" (Head) merges sections that are the same under two names, after showing the list first. For example RITD CHPO into Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division), MSS into Medical Social Work Section, Cash Unit into Cash Operations Section, CAO into Office of the Chief Administrative Officer, and Main Office, IDTOMIS/IDADIN and ICTU into IDADIN/ICTU.", "Import from Excel uses the same section names, so imported units land in the merged sections."]],
@@ -1790,7 +1856,7 @@ function codeOf(t) {
 }
 function msg(id, t, cls) { const el = $(id); el.textContent = t || ""; el.className = "msg" + (cls ? " " + cls : ""); }
 
-const VIEWS = ["home", "dash", "inv", "sched", "pm", "recs", "tr", "stock", "net", "jo", "inc", "reports", "acc"];
+const VIEWS = ["home", "dash", "inv", "sched", "pm", "recs", "tr", "stock", "net", "jo", "inc", "reports", "iso", "acc"];
 function openApp(j) {
   take(j);
   setMe(j.me || ME);
@@ -1813,6 +1879,7 @@ function take(j) {
   D = { inventory: j.inventory || [], pms: j.pms || [], jos: j.jos || [], lists: j.lists, form: j.form || {}, joForm: j.joForm || {}, today: j.today || isoDate(new Date()),
     version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {},
     transfers: j.transfers || [], stock: j.stock || [], moves: j.moves || [], incidents: j.incidents || [], network: j.network || [],
+    isoDocs: j.isoDocs || [], isoRevs: j.isoRevs || [],
     backup: j.backup || {}, tirRecs: j.tirRecs || [], choices: j.choices || {} };
   D.jos.forEach(x => seenJo.add(x.jo));
   $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -2090,7 +2157,7 @@ function fillPickers(keep) {
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
-function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderRepl(); renderCost(); renderBackup();
+function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderIso(); renderRepl(); renderCost(); renderBackup();
   if (!$("v-dash").classList.contains("hidden")) renderDash(); }
 
 // ---------- home ----------
@@ -3848,6 +3915,147 @@ $("nPrint").onclick = () => {
     <table><thead><tr><th>ID</th><th>Kind</th><th>Name / Label</th><th>IP Address</th><th>MAC Address</th><th>VLAN / Subnet</th><th>Location</th><th>Brand / Model</th><th>Provider / Account</th><th>Contract End</th><th>Status</th></tr></thead><tbody>
     ${list.map(n => `<tr><td>${esc(n.id)}</td><td>${esc(n.kind)}</td><td>${esc(n.name)}</td><td>${esc(n.ip)}</td><td>${esc(n.mac)}</td><td>${esc(n.vlan)}</td><td>${esc(n.location)}</td><td>${esc(n.model)}${n.equipmentId ? " (" + esc(n.equipmentId) + ")" : ""}</td>
       <td>${esc([n.provider, n.account, n.bandwidth].filter(Boolean).join(", "))}</td><td>${esc(nice(n.contractEnd))}</td><td>${esc(n.status)}</td></tr>`).join("")}</tbody></table>${signs()}</div>`, true);
+};
+
+// ---------- ISO documents (controlled documents, revisions and DRFs) ----------
+const ISO_DONE = ["Approved", "Returned / disapproved", "Cancelled"];
+const isoChip = s => '<span class="chip ' + ({ "Approved (in use)": "ok", Approved: "ok", Obsolete: "mute", Cancelled: "mute", "Returned / disapproved": "bad", Draft: "", "DRF filed": "warn", "Submitted to DCO": "warn", "Under review": "warn" }[s] || "") + '">' + esc(s) + "</span>";
+const revsOf = code => D.isoRevs.filter(r => r.code === code).sort((a, b) => (parseInt(a.rev, 10) || 0) - (parseInt(b.rev, 10) || 0) || (a.ref < b.ref ? -1 : 1));
+const pendingOf = code => revsOf(code).filter(r => !ISO_DONE.includes(r.status));
+// Forms the app prints, so the ISO page can print a copy of each.
+const ISO_FORMS = {
+  "COH-IDN-F-01": () => doPrint(joFormHtml(null), false), "COH-IDN-F-02": () => doPrint(formHtml(null), false),
+  "COH-IDN-F-03": () => printTir({}), "COH-IDN-F-04": () => schedPrintBySection(), "COH-IDN-F-05": () => $("qPrint").click(),
+  "COH-IDN-F-06": () => $("mrPrint").click(), "COH-IDN-F-07": () => printTr({}), "COH-IDN-F-09": () => $("rPrintInv").click() };
+let isoFilled = false;
+function isoPickers() {
+  if (isoFilled) return; isoFilled = true;
+  const C = D.choices;
+  $("oKind").innerHTML = opts(C.isoKind || [], "All kinds"); $("oStatus").innerHTML = '<option value="">Not obsolete</option>' + opts(C.isoDocStatus || []) + '<option value="*">Everything</option>';
+  $("oKindIn").innerHTML = opts(C.isoKind || []); $("oStat").innerHTML = opts(C.isoDocStatus || []);
+  $("ovNature").innerHTML = opts(C.isoNature || []); $("ovStat").innerHTML = opts(C.isoRevStatus || []);
+}
+function isoFiltered() {
+  const q = $("oQ").value.trim().toLowerCase(), k = $("oKind").value, st = $("oStatus").value;
+  return D.isoDocs.filter(d => (!k || d.kind === k) && (st === "*" ? true : st ? d.status === st : d.status !== "Obsolete") &&
+    hay([d.code, d.title, d.kind, d.procedure, d.remarks], q)).sort((a, b) => a.code.localeCompare(b.code));
+}
+function renderIso() {
+  isoPickers();
+  const live = D.isoDocs.filter(d => d.status !== "Obsolete"), inUse = live.filter(d => d.status === "Approved (in use)").length;
+  const pend = D.isoRevs.filter(r => !ISO_DONE.includes(r.status)), drafts = live.filter(d => d.status !== "Approved (in use)").length;
+  $("oTiles").innerHTML = `<div class="tile"><div class="lb">Controlled documents</div><div class="val">${live.length}</div><div class="sm">not counting obsolete</div></div>
+    <div class="tile"><div class="lb">Approved and in use</div><div class="val">${inUse}</div></div>
+    <div class="tile${drafts ? " warn" : ""}"><div class="lb">Not yet approved</div><div class="val">${drafts}</div><div class="sm">new documents still in draft or review</div></div>
+    <div class="tile${pend.length ? " warn" : ""}"><div class="lb">Revisions in progress</div><div class="val">${pend.length}</div><div class="sm">draft, with the DCO or under review</div></div>`;
+  const list = isoFiltered();
+  $("oCount").textContent = list.length + " of " + D.isoDocs.length + " documents";
+  $("oTable").tBodies[0].innerHTML = list.length ? list.map(d => { const p = pendingOf(d.code);
+    return `<tr data-o="${esc(d.id)}"><td><b>${esc(d.code)}</b><div class="s">${esc(d.kind)}</div></td><td>${esc(d.title)}</td><td class="num">${esc(d.rev)}</td>
+      <td class="hide-m">${esc(nice(d.effectivity))}</td><td>${isoChip(d.status)}</td><td class="hide-m">${p.map(r => "Rev. " + esc(r.rev) + " " + isoChip(r.status)).join("<br>")}</td></tr>`; }).join("")
+    : '<tr><td colspan="6" class="empty">' + (D.isoDocs.length ? "Nothing matches." : "No documents yet. Run setup in Apps Script once to add the ICTU documents, or add one below.") + "</td></tr>";
+  $("oTable").querySelectorAll("tbody tr[data-o]").forEach(tr => tr.onclick = () => openIsoDoc(tr.dataset.o));
+  const latest = D.isoRevs.slice().sort((a, b) => String(b.updatedAt || b.recordedAt).localeCompare(String(a.updatedAt || a.recordedAt))).slice(0, 12);
+  $("orTable").tBodies[0].innerHTML = latest.length ? latest.map(r => `<tr data-r="${esc(r.ref)}"><td>${esc(r.ref)}</td><td><b>${esc(r.code)}</b><div class="s">${esc(r.description)}</div></td>
+    <td class="num">${esc(r.rev)}</td><td class="hide-m">${esc(r.nature)}</td><td>${isoChip(r.status)}</td><td class="hide-m">${esc(nice(r.effectivity))}</td></tr>`).join("")
+    : '<tr><td colspan="6" class="empty">No revisions recorded yet.</td></tr>';
+  $("orTable").querySelectorAll("tbody tr[data-r]").forEach(tr => tr.onclick = () => openIsoRev(tr.dataset.r));
+}
+["oQ", "oKind", "oStatus"].forEach(id => $(id).addEventListener("input", renderIso));
+let oCur = null, ovCur = null, ovCode = "";
+const ISO_DOC_FIELDS = { oCode: "code", oTitleIn: "title", oKindIn: "kind", oRev: "rev", oEff: "effectivity", oStat: "status", oProc: "procedure", oRet: "retention", oLoc: "location", oRem: "remarks" };
+function openIsoDoc(id) {
+  isoPickers();
+  oCur = id ? D.isoDocs.find(d => d.id === id) : null;
+  const d = oCur || { kind: "Form", rev: "00", status: "Draft" };
+  Object.keys(ISO_DOC_FIELDS).forEach(k => $(k).value = d[ISO_DOC_FIELDS[k]] == null ? "" : d[ISO_DOC_FIELDS[k]]);
+  $("oTitle").textContent = oCur ? oCur.code + "  " + oCur.title : "Add a controlled document";
+  $("oRevBox").classList.toggle("hidden", !oCur);
+  if (oCur) renderIsoDocRevs();
+  msg("oMsg", oCur && oCur.updatedAt ? "Last updated " + niceDt(oCur.updatedAt) + " by " + oCur.updatedBy + "." : ""); $("oDlg").showModal();
+}
+function renderIsoDocRevs() {
+  const rv = revsOf(oCur.code);
+  $("oRevTable").tBodies[0].innerHTML = rv.length ? rv.map(r => `<tr data-r="${esc(r.ref)}"><td class="num"><b>${esc(r.rev)}</b></td><td>${esc(r.description)}<div class="s">${esc(r.nature)}${r.drfNo ? ", DRF " + esc(r.drfNo) : ""}</div></td>
+    <td>${isoChip(r.status)}</td><td class="hide-m">${esc(nice(r.effectivity))}</td></tr>`).join("") : '<tr><td colspan="4" class="empty">No revisions recorded yet.</td></tr>';
+  $("oRevTable").querySelectorAll("tbody tr[data-r]").forEach(tr => tr.onclick = () => openIsoRev(tr.dataset.r));
+  $("oPrintForm").classList.toggle("hidden", !ISO_FORMS[oCur.code]);
+}
+$("addIsoDoc").onclick = () => openIsoDoc(null);
+$("oForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = {}; Object.keys(ISO_DOC_FIELDS).forEach(k => item[ISO_DOC_FIELDS[k]] = $(k).value.trim());
+  if (oCur) item.id = oCur.id;
+  if (!item.code || !item.title) { msg("oMsg", "Put the document code and title.", "err"); return; }
+  $("oSave").disabled = true; msg("oMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveIsoDoc", item });
+    if (!j.ok) { msg("oMsg", j.error, "err"); return; }
+    const i = D.isoDocs.findIndex(x => x.id === j.item.id); if (i >= 0) D.isoDocs[i] = j.item; else D.isoDocs.push(j.item);
+    if (oCur && oCur.code !== j.item.code) D.isoRevs.forEach(r => { if (r.code === oCur.code) r.code = j.item.code; });
+    oCur = j.item; renderIso(); $("oTitle").textContent = oCur.code + "  " + oCur.title; $("oRevBox").classList.remove("hidden"); renderIsoDocRevs();
+    msg("oMsg", j.unchanged ? "Nothing was changed." : i >= 0 ? "Saved." : "Added. You can now add its revisions and DRFs.", "ok");
+  } catch (err) { msg("oMsg", errText(err), "err"); }
+  finally { $("oSave").disabled = false; }
+};
+const ISO_REV_FIELDS = { ovRev: "rev", ovNature: "nature", ovStat: "status", ovDesc: "description", ovAuthor: "author", ovDrf: "drfNo", ovDrfDate: "drfDate",
+  ovAppr: "approved", ovEff: "effectivity", ovDiss: "disseminated", ovLoc: "location", ovRem: "remarks" };
+function openIsoRev(ref, code) {
+  isoPickers();
+  ovCur = ref ? D.isoRevs.find(r => r.ref === ref) : null;
+  ovCode = ovCur ? ovCur.code : code;
+  const last = revsOf(ovCode).slice(-1)[0];
+  const next = last ? String((parseInt(last.rev, 10) || 0) + 1).padStart(2, "0") : "00";
+  const r = ovCur || { rev: next, nature: last ? "Revision" : "New document", status: "Draft", author: (ME.name || "").split(/\s+/).length > 1 ? (ME.name[0] + ". " + ME.name.split(/\s+/).slice(-1)[0]).toUpperCase() : "" };
+  Object.keys(ISO_REV_FIELDS).forEach(k => $(k).value = r[ISO_REV_FIELDS[k]] == null ? "" : r[ISO_REV_FIELDS[k]]);
+  $("ovTitle").textContent = (ovCur ? ovCur.ref + "  " : "New revision of ") + ovCode;
+  msg("ovMsg", ovCur && (ovCur.updatedAt || ovCur.recordedAt) ? "Last updated " + niceDt(ovCur.updatedAt || ovCur.recordedAt) + " by " + (ovCur.updatedBy || ovCur.recordedBy) + "." : ""); $("ovDlg").showModal();
+}
+$("oAddRev").onclick = () => { if (oCur) openIsoRev(null, oCur.code); };
+$("ovStat").addEventListener("input", () => { if ($("ovStat").value === "Approved" && !$("ovAppr").value) $("ovAppr").value = todayStr(); });
+$("ovForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = { code: ovCode }; Object.keys(ISO_REV_FIELDS).forEach(k => item[ISO_REV_FIELDS[k]] = $(k).value.trim());
+  if (ovCur) item.ref = ovCur.ref;
+  if (!item.rev || !item.description) { msg("ovMsg", "Put the rev. no. and the description of change.", "err"); return; }
+  if (item.status === "Approved" && !item.effectivity) { msg("ovMsg", "Put the effectivity date of the approved revision.", "err"); return; }
+  $("ovSave").disabled = true; msg("ovMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveIsoRev", item });
+    if (!j.ok) { msg("ovMsg", j.error, "err"); return; }
+    const i = D.isoRevs.findIndex(x => x.ref === j.item.ref); if (i >= 0) D.isoRevs[i] = j.item; else D.isoRevs.push(j.item);
+    if (j.doc) { const k = D.isoDocs.findIndex(x => x.id === j.doc.id); if (k >= 0) D.isoDocs[k] = j.doc; if (oCur && oCur.id === j.doc.id) { oCur = j.doc; Object.keys(ISO_DOC_FIELDS).forEach(f => $(f).value = oCur[ISO_DOC_FIELDS[f]] || ""); } }
+    ovCur = j.item; renderIso(); if (oCur && $("oDlg").open) renderIsoDocRevs(); $("ovTitle").textContent = ovCur.ref + "  " + ovCode;
+    msg("ovMsg", j.unchanged ? "Nothing was changed." : (i >= 0 ? "Saved." : "Recorded as " + ovCur.ref + ".") + (j.doc ? " The document now shows " + j.doc.status + ", Rev. " + j.doc.rev + "." : ""), "ok");
+  } catch (err) { msg("ovMsg", errText(err), "err"); }
+  finally { $("ovSave").disabled = false; }
+};
+$("oPrintForm").onclick = () => { if (oCur && ISO_FORMS[oCur.code]) { $("oDlg").close(); ISO_FORMS[oCur.code](); } };
+$("oPrintHist").onclick = () => {
+  if (!oCur) return;
+  const rv = revsOf(oCur.code).filter(r => r.status !== "Cancelled");
+  doPrint(`<div class="sheet">${header()}<h3>REVISION HISTORY</h3><div class="sub">${esc(oCur.code)} ${esc(oCur.title)}. Current revision: Rev. ${esc(oCur.rev)}${oCur.effectivity ? ", effective " + esc(longDate(oCur.effectivity)) : ""}. Status: ${esc(oCur.status)}. As of ${esc(longDate(todayStr()))}.</div>
+    <table><thead><tr><th>Rev. No.</th><th>Description of Change</th><th>Author</th><th>DRF No. / Date</th><th>Status</th><th>Date Approved</th><th>Effectivity Date</th><th>Disseminated</th></tr></thead><tbody>
+    ${rv.map(r => `<tr><td class="c">${esc(r.rev)}</td><td>${esc(r.description)}${r.nature !== "Revision" ? " (" + esc(r.nature) + ")" : ""}</td><td>${esc(r.author)}</td><td>${esc([r.drfNo, nice(r.drfDate)].filter(Boolean).join(", "))}</td>
+      <td>${esc(r.status)}</td><td>${esc(nice(r.approved))}</td><td>${esc(nice(r.effectivity))}</td><td>${esc(nice(r.disseminated))}</td></tr>`).join("") || '<tr><td colspan="8" class="c">No revisions recorded.</td></tr>'}
+    </tbody></table>${signs()}</div>`, false);
+};
+$("oPrintList").onclick = () => {
+  const list = isoFiltered();
+  doPrint(`<div class="sheet land">${header()}<h3>MASTER LIST OF DOCUMENTS</h3><div class="sub">Information and Communications Technology Unit (ICTU/IDADIN), Office of the TRC Chief. As of ${esc(longDate(todayStr()))}.</div>
+    <table><thead><tr><th>No.</th><th>Document Code</th><th>Document Title</th><th>Kind</th><th>Rev. No.</th><th>Effectivity Date</th><th>Status</th><th>Related Procedure</th><th>Pending Revision</th><th>Location of Copy</th><th>Retention</th></tr></thead><tbody>
+    ${list.map((d, n) => `<tr><td class="c">${n + 1}</td><td>${esc(d.code)}</td><td>${esc(d.title)}</td><td>${esc(d.kind)}</td><td class="c">${esc(d.rev)}</td><td>${esc(nice(d.effectivity))}</td><td>${esc(d.status)}</td><td>${esc(d.procedure)}</td>
+      <td>${pendingOf(d.code).map(r => "Rev. " + esc(r.rev) + " (" + esc(r.status) + ")").join(", ")}</td><td>${esc(/^https?:/.test(d.location || "") ? "Google Drive" : d.location)}</td><td>${esc(d.retention)}</td></tr>`).join("")}
+    </tbody></table>${signs()}</div>`, true);
+};
+$("oPrintLog").onclick = () => {
+  const codes = new Set(isoFiltered().map(d => d.code));
+  const rv = D.isoRevs.filter(r => codes.has(r.code)).sort((a, b) => a.code.localeCompare(b.code) || (parseInt(a.rev, 10) || 0) - (parseInt(b.rev, 10) || 0));
+  doPrint(`<div class="sheet land">${header()}<h3>DOCUMENT REQUEST (DRF) AND REVISION LOG</h3><div class="sub">Information and Communications Technology Unit (ICTU/IDADIN). As of ${esc(longDate(todayStr()))}.</div>
+    <table><thead><tr><th>Ref.</th><th>Document Code</th><th>Rev. No.</th><th>Nature</th><th>Description of Change</th><th>Author</th><th>DRF No.</th><th>DRF Date</th><th>Status</th><th>Date Approved</th><th>Effectivity</th><th>Disseminated</th></tr></thead><tbody>
+    ${rv.map(r => `<tr><td>${esc(r.ref)}</td><td>${esc(r.code)}</td><td class="c">${esc(r.rev)}</td><td>${esc(r.nature)}</td><td>${esc(r.description)}</td><td>${esc(r.author)}</td><td>${esc(r.drfNo)}</td><td>${esc(nice(r.drfDate))}</td>
+      <td>${esc(r.status)}</td><td>${esc(nice(r.approved))}</td><td>${esc(nice(r.effectivity))}</td><td>${esc(nice(r.disseminated))}</td></tr>`).join("")}
+    </tbody></table>${signs()}</div>`, true);
 };
 
 // ---------- incident and data breach log ----------

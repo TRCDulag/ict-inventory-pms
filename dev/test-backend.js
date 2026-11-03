@@ -40,6 +40,7 @@ let V = call({ action: 'saveUser', user: { isNew: true, username: 'viewer1', ful
 let VS = raw({ action: 'signIn', username: 'viewer1', password: V.tempPassword });
 raw({ action: 'changePassword', token: VS.token, old: V.tempPassword, password: 'viewer2026x' });
 ok(raw({ action: 'load', token: VS.token }).ok && /role \(Viewer\)/.test(raw({ action: 'saveEquipment', token: VS.token, item: {} }).error), 'viewer reads but cannot save');
+ok(/role \(Viewer\)/.test(raw({ action: 'saveIsoDoc', token: VS.token, item: { code: 'X', title: 'Y', kind: 'Form' } }).error), 'a Viewer cannot change ISO documents');
 call({ action: 'saveUser', user: { username: 'viewer1', status: 'Disabled' } });
 ok(raw({ action: 'load', token: VS.token }).signIn, 'disabled account is signed out at once');
 ok(/at least one active Head/.test(call({ action: 'saveUser', user: { username: 'jed', role: 'Technician' } }).error), 'last Head cannot be demoted');
@@ -256,6 +257,33 @@ ok(/should look like/.test(call({ action: 'saveNetwork', item: { kind: 'Switch',
 r = call({ action: 'saveNetwork', item: { kind: 'Internet Line', name: 'PLDT fiber', provider: 'PLDT', bandwidth: '200 Mbps', contractEnd: '2027-03-31', monthly: '2,899' } });
 ok(r.ok && r.item.contractEnd === '2027-03-31' && r.item.monthly === 2899, 'internet line with contract');
 ok(/Dates should look like/.test(call({ action: 'saveNetwork', item: { kind: 'Switch', name: 'S2', contractEnd: 'next year' } }).error), 'bad date refused');
+
+
+// ISO documents and revisions (setup put in the ICTU documents)
+L = call({ action: 'load' });
+ok(L.isoDocs.length === 13 && L.isoRevs.length >= 20 && L.choices.isoKind.includes('Procedure'), 'setup seeded the ISO documents and revisions');
+const f02 = L.isoDocs.find(d => d.code === 'COH-IDN-F-02');
+ok(f02 && f02.rev === '00' && f02.effectivity === '2024-12-23' && f02.status === 'Approved (in use)', 'F-02 seeded as Rev 00 in use');
+ok(/already in the list/.test(call({ action: 'saveIsoDoc', item: { code: 'coh-idn-f-02', title: 'Dup', kind: 'Form' } }).error), 'duplicate document code refused');
+r = call({ action: 'saveIsoDoc', item: { code: 'coh-idn-wi-01', title: 'Backup work instruction', kind: 'Work Instruction' } });
+ok(r.ok && r.item.code === 'COH-IDN-WI-01' && r.item.rev === '00' && r.item.status === 'Draft' && r.item.id === 'ISO-014', 'document added: ' + r.error);
+ok(/not in the list of ISO documents/.test(call({ action: 'saveIsoRev', item: { code: 'XYZ-1', rev: '1', nature: 'Revision', description: 'x' } }).error), 'revision of an unknown document refused');
+r = call({ action: 'saveIsoRev', item: { code: 'COH-IDN-WI-01', rev: '0', nature: 'New document', description: 'Initial issue', status: 'Submitted to DCO', drfDate: '2026-11-03' } });
+ok(r.ok && r.item.rev === '00' && /^REV-\d{4}-001$/.test(r.item.ref) && r.doc && r.doc.status === 'DRF filed', 'DRF filed marks the document: ' + r.error);
+const wiRef = r.item.ref;
+ok(/effectivity date/.test(call({ action: 'saveIsoRev', item: { ref: wiRef, status: 'Approved' } }).error), 'approval needs the effectivity date');
+r = call({ action: 'saveIsoRev', item: { ref: wiRef, status: 'Approved', approved: '2026-11-10', effectivity: '2026-11-15' } });
+ok(r.ok && r.doc && r.doc.status === 'Approved (in use)' && r.doc.effectivity === '2026-11-15' && r.doc.rev === '00', 'approved revision updates the document');
+ok(/already recorded/.test(call({ action: 'saveIsoRev', item: { code: 'COH-IDN-WI-01', rev: '00', nature: 'Revision', description: 'again' } }).error), 'same rev twice refused');
+r = call({ action: 'saveIsoRev', item: { code: 'COH-IDN-F-02', rev: 'Rev. 1', nature: 'Revision', description: 'App form', status: 'Approved', approved: '2026-11-20', effectivity: '2026-12-01' } });
+ok(/already recorded/.test(r.error || '') , 'F-02 Rev 01 seeded draft blocks a second Rev 01');
+const f02r1 = call({ action: 'load' }).isoRevs.find(x => x.code === 'COH-IDN-F-02' && x.rev === '01');
+r = call({ action: 'saveIsoRev', item: { ref: f02r1.ref, status: 'Approved', approved: '2026-11-20', effectivity: '2026-12-01' } });
+ok(r.ok && r.doc.rev === '01' && r.doc.effectivity === '2026-12-01', 'approving the seeded F-02 Rev 01 makes it current');
+r = call({ action: 'saveIsoRev', item: { code: 'COH-IDN-WI-01', rev: '01', nature: 'Deletion', description: 'No longer needed', status: 'Approved', effectivity: '2027-01-01' } });
+ok(r.ok && r.doc.status === 'Obsolete', 'approved deletion makes the document obsolete');
+const audIso = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
+ok(audIso.includes('ISO DOCUMENT ADDED') && audIso.includes('ISO REVISION ADDED') && audIso.includes('ISO DOCUMENT UPDATED'), 'ISO changes are in the Audit Trail');
 
 // everything comes back on load
 L = call({ action: 'load' });
