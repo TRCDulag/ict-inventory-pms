@@ -2,6 +2,12 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.1 (Nov 3, 2026)
+- New Internet Downtime page: record each time the internet goes down, with the line, the time it went down and came back, the cause and the ISP ticket. The app works out the hours.
+- Each month shows the uptime of every line and how long the whole office had no internet. Print the monthly report for ISO or for a rebate request to the ISP.
+- While a line is down, a red note and a count on the menu stay up until someone presses "It is back now".
+- Run setup once in Apps Script to add the Internet Downtime tab. List your internet lines under Network and IP (Kind: Internet Line) first.
+
 ## 1.6.0 (Nov 3, 2026)
 - New ISO Documents page: every ICTU controlled document (procedures, forms, Context, ROA, APW) with its current revision, effectivity date and status, and the revisions and DRFs behind it. Marking a revision Approved updates the document by itself.
 - Print the master list of documents, the DRF and revision log, the revision history of a document, and a copy of each form the app prints, for the audit.

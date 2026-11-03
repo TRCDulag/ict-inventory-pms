@@ -403,6 +403,25 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'UNITS DISPOSED'), 'disposal is in the Audit Trail');
 }
 
+// internet downtime log
+{
+  const line = call({ action: 'saveNetwork', item: { kind: 'Internet Line', name: 'Test Fiber', provider: 'Test ISP', status: 'Active' } }).item.id;
+  const sw = call({ action: 'saveNetwork', item: { kind: 'Switch', name: 'Test Switch DT' } }).item.id;
+  ok(/internet line/.test(asTech({ action: 'saveDowntime', item: { line: sw, down: '2026-10-01 08:00' } }).error), 'downtime must be on an internet line');
+  ok(/future/.test(asTech({ action: 'saveDowntime', item: { line, down: '2099-01-01 08:00' } }).error), 'downtime cannot start in the future');
+  ok(/after/.test(asTech({ action: 'saveDowntime', item: { line, down: '2026-10-01 08:00', up: '2026-10-01 07:00' } }).error), 'back-up time must be after the down time');
+  let w = asTech({ action: 'saveDowntime', item: { line, down: '2026-10-01 08:00', up: '2026-10-01 10:30', cause: 'ISP outage', ticket: 'T-1', hours: 99, status: 'Ongoing' } });
+  ok(w.ok && /^DT-\d{4}-001$/.test(w.item.no) && w.item.hours === 2.5 && w.item.status === 'Restored' && w.item.lineName === 'Test Fiber' && w.item.provider === 'Test ISP' && w.item.scope === 'Whole office', 'downtime saved; hours and status are worked out by the backend: ' + JSON.stringify(w.item));
+  ok(/overlaps/.test(asTech({ action: 'saveDowntime', item: { line, down: '2026-10-01 09:00', up: '2026-10-01 09:30' } }).error), 'an overlapping entry on the same line is refused');
+  w = asTech({ action: 'saveDowntime', item: { line: 'all', down: '2026-10-05 13:00', cause: 'Power interruption' } });
+  ok(w.ok && w.item.status === 'Ongoing' && w.item.hours === '' && w.item.line === 'ALL', 'an ongoing outage of all lines has no hours yet');
+  const no = w.item.no;
+  w = asTech({ action: 'saveDowntime', item: { no, line: 'ALL', down: '2026-10-05 13:00', up: '2026-10-05 13:45', cause: 'Power interruption', scope: 'Whole office' } });
+  ok(w.ok && w.item.status === 'Restored' && w.item.hours === 0.75 && /Restored/.test(w.item.history), 'marking it back up closes it: ' + JSON.stringify(w.item));
+  ok(call({ action: 'load' }).downtime.length === 2 && call({ action: 'load' }).choices.downCause.includes('ISP outage'), 'the downtime log loads with its choices');
+  ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'INTERNET DOWNTIME ADDED'), 'downtime is in the Audit Trail');
+}
+
 // reading a property sticker photo (Gemini stand-in)
 ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');
 be.gas._props.GEMINI_API_KEY = 'test-key';

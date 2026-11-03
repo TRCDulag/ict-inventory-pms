@@ -613,6 +613,7 @@
     <div class="grp">Service desk</div>
     <button role="tab" data-v="jo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M8 12l2.5 2.5L16 9"/></svg>Job Orders<span class="badge hidden" id="navJo" style="background:var(--brand)"></span></button>
     <button role="tab" data-v="inc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.5"/></svg>Incidents</button>
+    <button role="tab" data-v="down"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><path d="M12 19h.01"/><path d="M3 3l18 18"/></svg>Internet Downtime<span class="badge hidden" id="navDown"></span></button>
     <button role="tab" data-v="reports"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Reports and Forms</button>
     <div class="grp">Quality (ISO)</div>
     <button role="tab" data-v="iso"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 14l2 2 4-4"/></svg>ISO Documents</button>
@@ -968,6 +969,20 @@
       <label class="f">Show<select id="xShow"><option value="open">Not yet closed</option><option value="">All incidents</option></select></label></div>
       <div class="row" style="margin-top:12px"><button class="btn need2" id="newInc" type="button">Record an incident</button><span class="hint" id="xCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="xPrint" type="button">Print the log</button></div></div>
     <div class="tablewrap"><table class="list" id="xTable"><thead><tr><th>Incident no.</th><th>Discovered</th><th>Type / description</th><th>Severity</th><th>Status</th><th class="hide-m">Personal data</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- INTERNET DOWNTIME -->
+  <section class="view hidden" id="v-down">
+    <h2>Internet downtime log</h2>
+    <p class="lead">Every time the internet goes down: when it went down, when it came back, the cause and the ISP ticket. The app adds up the hours and the uptime for each month. The lines come from Network and IP (Kind: Internet Line).</p>
+    <div id="wOngoing"></div>
+    <div class="panel"><div class="filters">
+      <label class="f">Month<input id="wMonth" type="month"></label>
+      <label class="f">Line<select id="wLine"></select></label>
+      <label class="f q">Search<input id="wQ" type="search" placeholder="Downtime no., cause, ticket, areas"></label></div>
+      <div class="row" style="margin-top:12px"><button class="btn need2" id="newDown" type="button">Record downtime</button><span class="hint" id="wCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="wPrint" type="button">Print monthly report</button></div></div>
+    <div class="tiles" id="wTiles"></div>
+    <div class="tablewrap"><table class="list" id="wTable"><thead><tr><th>Downtime no.</th><th>Line</th><th>Went down</th><th>Came back</th><th>Hours</th><th class="hide-m">Cause</th><th>Status</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <!-- ACCOUNTS AND BACKUP (Head) -->
@@ -1385,6 +1400,31 @@
     <div class="df"><button class="btn ghost hidden" type="button" id="xPrintOne">Print incident report</button><span class="spacer"></span><button class="btn need2" type="submit" id="xSave">Save</button></div>
   </form>
 </dialog>
+<!-- internet downtime -->
+<dialog id="wDlg">
+  <form id="wForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="wTitle">Internet downtime</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <p class="hint hidden" id="wNoLine" style="margin:0 0 10px">No internet line is listed yet. Add each line under Network and IP with Kind "Internet Line" and the provider, or pick "All internet lines" for now.</p>
+      <div class="grid g3">
+        <label class="f"><span class="req">Internet line</span><select id="wFLine"></select></label>
+        <label class="f"><span class="req">Went down at</span><input id="wDown" type="datetime-local"></label>
+        <label class="f">Came back at<span class="s" style="font-weight:400"> (blank while still down)</span><input id="wUp" type="datetime-local"></label>
+        <label class="f"><span class="req">Scope</span><select id="wScope"></select></label>
+        <label class="f">Areas affected<input id="wAreas" placeholder="Only if not the whole office"></label>
+        <label class="f"><span class="req">Cause</span><select id="wCause"></select></label>
+        <label class="f">Reported to the ISP at<input id="wIspAt" type="datetime-local"></label>
+        <label class="f">ISP ticket / reference no.<input id="wTicket"></label>
+        <label class="f">Reported by<input id="wBy" class="combo" data-combo="emp" placeholder="Who noticed or called it in"></label>
+        <label class="f wide">Actions taken<textarea id="wAct" placeholder="Restarted the router, called the ISP hotline, switched to the backup line"></textarea></label>
+        <label class="f wide">Remarks<input id="wRem"></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" id="wBackNow">It is back now</button><span class="hint" id="wHours" style="margin:0"></span></div>
+      <div id="wHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="wHist"></div></div>
+      <div class="msg" id="wMsg" role="status"></div></div>
+    <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="wSave">Save</button></div>
+  </form>
+</dialog>
 <!-- user account (Head) -->
 <dialog id="uDlg" class="small">
   <form id="uForm" method="dialog" autocomplete="off">
@@ -1437,9 +1477,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.0";
+const APP_VERSION = "1.6.1";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.1", "Nov 3, 2026", ["New Internet Downtime page: record each time the internet goes down, with the line, the time it went down and came back, the cause and the ISP ticket. The app works out the hours.", "Each month shows the uptime of every line and how long the whole office had no internet. Print the monthly report for ISO or for a rebate request to the ISP.", "While a line is down, a red note and a count on the menu stay up until someone presses \"It is back now\".", "Run setup once in Apps Script to add the Internet Downtime tab. List your internet lines under Network and IP (Kind: Internet Line) first."]],
   ["1.6.0", "Nov 3, 2026", ["New ISO Documents page: every ICTU controlled document (procedures, forms, Context, ROA, APW) with its current revision, effectivity date and status, and the revisions and DRFs behind it. Marking a revision Approved updates the document by itself.", "Print the master list of documents, the DRF and revision log, the revision history of a document, and a copy of each form the app prints, for the audit.", "Setup adds the ISO Documents and ISO Revisions tabs with the ICTU documents known so far (COH-IDN-P-01, COH-IDN-F-01 to F-09, Context, ROA and APW). Codes F-03 to F-09 are proposed until the DCO confirms them."]],
   ["1.5.2", "Nov 3, 2026", ["Inventory: \"For disposal\" (Head) lists every Unserviceable unit with its serial, section, age and last job order or TIR. Tick units, print the list to attach to the IIRUP, then mark them Disposed in one go with the IIRUP no. and date. Disposed units stay in the masterlist for the record."]],
   ["1.5.1", "Nov 3, 2026", ["Record a PM round: Tick all overdue only ticks the overdue units that match the search (for example only printers). With no match, it ticks all overdue units.", "Do PM: each unit in the list has a colored mark, red for overdue, blue for planned this month or soon, green for PM done and up to date.", "Dashboard: Due for replacement opens the list of those units with their specs, serial, section, age, useful life and costs. Click a unit to open it, or download it for Excel.", "The Tidy section names button is removed. Imports still use the agreed section names."]],
@@ -1493,7 +1534,7 @@ let ME = null;                           // { username, name, position, role, mu
 const RANK = { Viewer: 1, Technician: 2, Head: 3 };
 const can = role => !!ME && RANK[ME.role] >= RANK[role];
 let D = { inventory: [], pms: [], jos: [], employees: [], masterlist: {}, lists: { types: [], offices: [], staff: [], activities: [], conditions: [] }, form: {}, joForm: {}, today: "",
-  transfers: [], stock: [], moves: [], incidents: [], network: [], backup: {}, tirRecs: [], choices: {} };
+  transfers: [], stock: [], moves: [], incidents: [], network: [], downtime: [], backup: {}, tirRecs: [], choices: {} };
 
 // ---------- connection ----------
 function gsUrl() { return (store.get("gsUrl") || DEFAULT_URL).trim(); }
@@ -1856,7 +1897,7 @@ function codeOf(t) {
 }
 function msg(id, t, cls) { const el = $(id); el.textContent = t || ""; el.className = "msg" + (cls ? " " + cls : ""); }
 
-const VIEWS = ["home", "dash", "inv", "sched", "pm", "recs", "tr", "stock", "net", "jo", "inc", "reports", "iso", "acc"];
+const VIEWS = ["home", "dash", "inv", "sched", "pm", "recs", "tr", "stock", "net", "jo", "inc", "down", "reports", "iso", "acc"];
 function openApp(j) {
   take(j);
   setMe(j.me || ME);
@@ -1878,7 +1919,7 @@ function setMe(me) {
 function take(j) {
   D = { inventory: j.inventory || [], pms: j.pms || [], jos: j.jos || [], lists: j.lists, form: j.form || {}, joForm: j.joForm || {}, today: j.today || isoDate(new Date()),
     version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {},
-    transfers: j.transfers || [], stock: j.stock || [], moves: j.moves || [], incidents: j.incidents || [], network: j.network || [],
+    transfers: j.transfers || [], stock: j.stock || [], moves: j.moves || [], incidents: j.incidents || [], network: j.network || [], downtime: j.downtime || [],
     isoDocs: j.isoDocs || [], isoRevs: j.isoRevs || [],
     backup: j.backup || {}, tirRecs: j.tirRecs || [], choices: j.choices || {} };
   D.jos.forEach(x => seenJo.add(x.jo));
@@ -2126,7 +2167,7 @@ function fillPickers(keep) {
   keepVal("jPri", '<option value="">All priorities</option>' + opts(JO_PRIORITY) + '<option value="none">No priority yet</option>');
   const C = D.choices || {};
   keepVal("tKind", opts(C.transfer || [], "All kinds")); keepVal("trKind", opts(C.transfer || []));
-  keepVal("mKind", opts(C.move || [])); keepVal("xType", opts(C.incType || []));
+  keepVal("mKind", opts(C.move || [])); keepVal("xType", opts(C.incType || [])); keepVal("wCause", opts(C.downCause || [])); keepVal("wScope", opts(C.downScope || []));
   keepVal("nKind", opts(C.netKind || [], "All kinds")); keepVal("nKindIn", opts(C.netKind || []));
   keepVal("jTirRec", opts(D.tirRecs || [], "None (no TIR needed)"));
   keepVal("kCat", opts([...new Set(D.stock.map(k => k.category).filter(Boolean))].sort(), "All categories"));
@@ -2157,7 +2198,7 @@ function fillPickers(keep) {
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
-function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderIso(); renderRepl(); renderCost(); renderBackup();
+function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderDown(); renderIso(); renderRepl(); renderCost(); renderBackup();
   if (!$("v-dash").classList.contains("hidden")) renderDash(); }
 
 // ---------- home ----------
@@ -4133,6 +4174,114 @@ $("xPrint").onclick = () => {
     <table><thead><tr><th>Incident No.</th><th>Discovered</th><th>Type</th><th>Severity</th><th>Personal Data</th><th>Description</th><th>Actions Taken</th><th>DPO</th><th>NPC</th><th>Status</th></tr></thead><tbody>
     ${list.map(x => `<tr><td>${esc(x.no)}</td><td>${esc(niceDt(x.discovered))}</td><td>${esc(x.type)}</td><td>${esc(x.severity)}</td><td>${esc(x.personal)}</td><td>${esc(x.description)}</td><td>${esc(x.actions)}</td>
       <td>${esc(niceDt(x.dpoOn))}</td><td>${esc([x.npcNeeded, niceDt(x.npcOn)].filter(Boolean).join(", "))}</td><td>${esc(x.status)}</td></tr>`).join("") || '<tr><td colspan="10" class="c">No incidents recorded.</td></tr>'}
+    </tbody></table>${signs()}</div>`, true);
+};
+
+// ---------- internet downtime log ----------
+function netLines() { return D.network.filter(n => n.kind === "Internet Line" && n.status !== "Retired"); }
+function lineLabel(id) { if (id === "ALL") return "All internet lines"; const n = D.network.find(x => x.id === id); return n ? n.name + (n.provider ? " (" + n.provider + ")" : "") : id; }
+function ym(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); }
+function hrs(h) { return (Math.round(h * 100) / 100).toLocaleString("en-PH", { maximumFractionDigits: 2 }); }
+function hm(h) { const m = Math.round(h * 60); return m < 60 ? m + " min" : Math.floor(m / 60) + " hr" + (m % 60 ? " " + (m % 60) + " min" : ""); }
+// Total hours covered by a set of [start, end] times, counting overlaps once.
+function unionHours(iv) {
+  iv = iv.filter(x => x[1] > x[0]).sort((a, b) => a[0] - b[0]);
+  let total = 0, cs = null, ce = null;
+  iv.forEach(([a, b]) => { if (ce === null || a > ce) { if (ce !== null) total += ce - cs; cs = a; ce = b; } else if (b > ce) ce = b; });
+  if (ce !== null) total += ce - cs;
+  return total / 3600e3;
+}
+function downMonth(month) {
+  const [y, m] = month.split("-").map(Number), start = new Date(y, m - 1, 1), now = new Date();
+  const end = new Date(Math.min(new Date(y, m, 1).getTime(), now.getTime()));
+  const hours = Math.max(0, (end - start) / 3600e3);
+  const clip = w => { const a = dtOf(w.down), b = w.up ? dtOf(w.up) : now; return a && b ? [Math.max(a, start), Math.min(b, end)] : [0, 0]; };
+  const inMonth = D.downtime.filter(w => { const [a, b] = clip(w); return b > a || (dtOf(w.down) >= start && dtOf(w.down) < new Date(y, m, 1)); });
+  const ids = [...new Set(netLines().map(n => n.id).concat(inMonth.map(w => w.line).filter(x => x !== "ALL")))];
+  const lines = ids.map(id => { const ev = inMonth.filter(w => w.line === id || w.line === "ALL"), down = unionHours(ev.map(clip));
+    return { id, label: lineLabel(id), events: ev.length, down, uptime: hours ? 100 * (1 - down / hours) : 100 }; });
+  const whole = inMonth.filter(w => w.scope === "Whole office"), wholeDown = unionHours(whole.map(clip));
+  return { start, end, hours, list: inMonth, lines, whole: { events: whole.length, down: wholeDown, uptime: hours ? 100 * (1 - wholeDown / hours) : 100 } };
+}
+function downFiltered() {
+  const month = $("wMonth").value, line = $("wLine").value, q = $("wQ").value.trim().toLowerCase();
+  const list = month ? downMonth(month).list : D.downtime;
+  return list.filter(w => (!line || w.line === line || w.line === "ALL") && hay([w.no, w.lineName, w.provider, w.cause, w.ticket, w.areas, w.actions, w.remarks, w.reportedBy], q))
+    .sort((a, b) => a.down < b.down ? 1 : -1);
+}
+const downChip = s => '<span class="chip ' + (s === "Ongoing" ? "bad" : "ok") + '">' + esc(s === "Ongoing" ? "Still down" : "Restored") + "</span>";
+function renderDown() {
+  if (!$("wMonth").value) $("wMonth").value = ym(new Date());
+  const lv = $("wLine").value;
+  $("wLine").innerHTML = '<option value="">All lines</option>' + [...new Set(netLines().map(n => n.id).concat(D.downtime.map(w => w.line).filter(x => x !== "ALL")))].map(id => '<option value="' + esc(id) + '">' + esc(lineLabel(id)) + "</option>").join("");
+  $("wLine").value = lv;
+  const ongoing = D.downtime.filter(w => w.status === "Ongoing");
+  $("navDown").textContent = ongoing.length; $("navDown").classList.toggle("hidden", !ongoing.length);
+  $("wOngoing").innerHTML = ongoing.map(w => '<div class="issues" style="background:var(--bad-soft);color:var(--ink);margin-bottom:10px"><b>' + esc(lineLabel(w.line)) + " is down</b> since " + esc(niceDt(w.down)) + " (" + esc(hm((new Date() - dtOf(w.down)) / 3600e3)) + "). " +
+    '<button class="btn small need2" type="button" data-wback="' + esc(w.no) + '">It is back now</button></div>').join("");
+  $("wOngoing").querySelectorAll("[data-wback]").forEach(b => b.onclick = () => { openDown(b.dataset.wback); $("wUp").value = isoDate(new Date()) + "T" + nowTime(); downHours(); });
+  const month = $("wMonth").value, S = month ? downMonth(month) : null;
+  $("wTiles").innerHTML = S ? `<div class="tile"><div class="lb">Whole office without internet</div><div class="val">${esc(hm(S.whole.down))}</div><div class="sm">${S.whole.events} time(s), uptime ${S.whole.uptime.toFixed(2)}%</div></div>` +
+    S.lines.map(l => `<div class="tile"><div class="lb">${esc(l.label)}</div><div class="val">${l.uptime.toFixed(2)}%</div><div class="sm">uptime, ${esc(hm(l.down))} down, ${l.events} time(s)</div></div>`).join("") : "";
+  const list = downFiltered();
+  $("wCount").textContent = list.length + " of " + D.downtime.length + " entries";
+  $("wTable").tBodies[0].innerHTML = list.length ? list.map(w => `<tr data-w="${esc(w.no)}"><td><b>${esc(w.no)}</b></td><td>${esc(lineLabel(w.line))}<div class="s">${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</div></td>
+      <td class="num">${esc(niceDt(w.down))}</td><td class="num">${esc(w.up ? niceDt(w.up) : "")}</td><td class="num">${w.up ? esc(hm(Number(w.hours) || 0)) : ""}</td><td class="hide-m">${esc(w.cause)}${w.ticket ? '<div class="s">Ticket ' + esc(w.ticket) + "</div>" : ""}</td><td>${downChip(w.status)}</td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">' + (D.downtime.length ? "Nothing in this month." : "No downtime recorded.") + "</td></tr>";
+  $("wTable").querySelectorAll("tbody tr[data-w]").forEach(tr => tr.onclick = () => openDown(tr.dataset.w));
+}
+["wMonth", "wLine", "wQ"].forEach(id => $(id).addEventListener("input", renderDown));
+$("newDown").onclick = () => openDown(null);
+let wCur = null;
+const DOWN_FIELDS = { wFLine: "line", wScope: "scope", wAreas: "areas", wCause: "cause", wTicket: "ticket", wBy: "reportedBy", wAct: "actions", wRem: "remarks" };
+function openDown(no) {
+  wCur = no ? D.downtime.find(w => w.no === no) : null;
+  const lines = netLines();
+  $("wFLine").innerHTML = lines.map(n => '<option value="' + esc(n.id) + '">' + esc(lineLabel(n.id)) + "</option>").join("") + '<option value="ALL">All internet lines</option>' +
+    (wCur && wCur.line !== "ALL" && !lines.some(n => n.id === wCur.line) ? '<option value="' + esc(wCur.line) + '">' + esc(lineLabel(wCur.line)) + "</option>" : "");
+  $("wNoLine").classList.toggle("hidden", !!lines.length);
+  const w = wCur || { scope: "Whole office", cause: "Unknown", line: lines.length ? lines[0].id : "ALL" };
+  Object.keys(DOWN_FIELDS).forEach(k => $(k).value = w[DOWN_FIELDS[k]] == null ? "" : w[DOWN_FIELDS[k]]);
+  $("wDown").value = toLocalInput(w.down) || isoDate(new Date()) + "T" + nowTime(); $("wUp").value = toLocalInput(w.up); $("wIspAt").value = toLocalInput(w.ispAt);
+  $("wDown").max = $("wUp").max = $("wIspAt").max = isoDate(new Date()) + "T23:59";
+  $("wTitle").textContent = wCur ? wCur.no + "  " + lineLabel(wCur.line) : "Record internet downtime";
+  $("wHistWrap").classList.toggle("hidden", !wCur); $("wHist").textContent = wCur ? wCur.history : "";
+  downHours(); msg("wMsg", ""); $("wDlg").showModal();
+}
+function downHours() {
+  const a = dtOf($("wDown").value), b = dtOf($("wUp").value);
+  $("wHours").textContent = a && b ? (b < a ? "The time it came back is before the time it went down." : "Down for " + hm((b - a) / 3600e3) + ".") : a ? "Still down (" + hm(Math.max(0, new Date() - a) / 3600e3) + " so far)." : "";
+}
+["wDown", "wUp"].forEach(id => $(id).addEventListener("input", downHours));
+$("wBackNow").onclick = () => { $("wUp").value = isoDate(new Date()) + "T" + nowTime(); downHours(); };
+$("wForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = {}; Object.keys(DOWN_FIELDS).forEach(k => item[DOWN_FIELDS[k]] = $(k).value.trim());
+  Object.assign(item, { down: $("wDown").value, up: $("wUp").value, ispAt: $("wIspAt").value });
+  if (wCur) item.no = wCur.no;
+  if (!item.line || !item.down) { msg("wMsg", "Pick the line and when it went down.", "err"); return; }
+  if (item.up && item.up < item.down) { msg("wMsg", "The time it came back must be after the time it went down.", "err"); return; }
+  $("wSave").disabled = true; msg("wMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveDowntime", item });
+    if (!j.ok) { msg("wMsg", j.error, "err"); return; }
+    const i = D.downtime.findIndex(x => x.no === j.item.no); if (i >= 0) D.downtime[i] = j.item; else D.downtime.push(j.item);
+    wCur = j.item; renderDown(); $("wTitle").textContent = wCur.no + "  " + lineLabel(wCur.line); $("wHistWrap").classList.remove("hidden"); $("wHist").textContent = wCur.history;
+    msg("wMsg", j.unchanged ? "Nothing was changed." : (i >= 0 ? "Saved." : "Recorded as " + wCur.no + ".") + (wCur.up ? " Down for " + hm(Number(wCur.hours) || 0) + "." : ""), "ok");
+  } catch (err) { msg("wMsg", errText(err), "err"); }
+  finally { $("wSave").disabled = false; }
+};
+$("wPrint").onclick = () => {
+  const month = $("wMonth").value || ym(new Date()), S = downMonth(month), [y, m] = month.split("-").map(Number);
+  const title = MONTHS_LONG[m - 1] + " " + y, list = S.list.slice().sort((a, b) => a.down < b.down ? -1 : 1);
+  doPrint(`<div class="sheet land">${header()}<h3>INTERNET DOWNTIME REPORT</h3><div class="sub">For the month of ${esc(title)}${S.end < new Date(y, m, 1) ? " (as of " + esc(niceDt(isoDate(S.end) + " " + String(S.end.getHours()).padStart(2, "0") + ":" + String(S.end.getMinutes()).padStart(2, "0"))) + ")" : ""}. Hours in the period: ${esc(hrs(S.hours))}.</div>
+    <table><thead><tr><th>Internet Line</th><th>Times Down</th><th>Total Downtime</th><th>Hours Down</th><th>Uptime</th></tr></thead><tbody>
+    <tr><td><b>Whole office without internet</b></td><td class="c">${S.whole.events}</td><td>${esc(hm(S.whole.down))}</td><td class="c">${esc(hrs(S.whole.down))}</td><td class="c">${S.whole.uptime.toFixed(2)}%</td></tr>
+    ${S.lines.map(l => `<tr><td>${esc(l.label)}</td><td class="c">${l.events}</td><td>${esc(hm(l.down))}</td><td class="c">${esc(hrs(l.down))}</td><td class="c">${l.uptime.toFixed(2)}%</td></tr>`).join("")}
+    </tbody></table>
+    <table><thead><tr><th>No.</th><th>Line</th><th>Went Down</th><th>Came Back</th><th>Hours</th><th>Scope / Areas</th><th>Cause</th><th>Reported to ISP</th><th>Ticket No.</th><th>Actions Taken</th></tr></thead><tbody>
+    ${list.map(w => `<tr><td>${esc(w.no)}</td><td>${esc(lineLabel(w.line))}</td><td>${esc(niceDt(w.down))}</td><td>${esc(w.up ? niceDt(w.up) : "Still down")}</td><td class="c">${w.up ? esc(hrs(Number(w.hours) || 0)) : ""}</td>
+      <td>${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</td><td>${esc(w.cause)}</td><td>${esc(niceDt(w.ispAt))}</td><td>${esc(w.ticket)}</td><td>${esc(w.actions)}</td></tr>`).join("") || '<tr><td colspan="10" class="c">No downtime recorded this month.</td></tr>'}
     </tbody></table>${signs()}</div>`, true);
 };
 

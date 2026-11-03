@@ -53,7 +53,7 @@ for p in S["pms"]:
 
 ws = wb.create_sheet("Checklist Results"); tab(ws, H["CHK"])
 ws = wb.create_sheet("JO Log"); tab(ws, H["JO"])
-for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET"), ("ISO Documents", "ISOD"), ("ISO Revisions", "ISOR")]:
+for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET"), ("Internet Downtime", "DOWN"), ("ISO Documents", "ISOD"), ("ISO Revisions", "ISOR")]:
     ws = wb.create_sheet(name); tab(ws, H[key])
 ws = wb.create_sheet("Audit Trail"); tab(ws, H["AUD"])
 if S["items"]:
@@ -82,6 +82,7 @@ about = [["ICT Inventory and PMS Register (ICTU)"], [],
  ["Stock Items / Stock Movements", "Spare parts and consumables, and every receipt, issue and adjustment (SM-YYYY-NNNN). The balance is the sum of the movements."],
  ["Incidents", "ICT security incidents and data breaches (INC-YYYY-NNN), with the DPO and NPC dates."],
  ["Network", "Network devices, fixed IP addresses and internet lines (NET-NNN). No passwords."],
+ ["Internet Downtime", "Each time the internet went down (DT-YYYY-NNN): the line, when it went down and came back, the hours, cause and ISP ticket. The app works out the hours and the monthly uptime."],
  ["ISO Documents / ISO Revisions", "The ICTU controlled documents (procedures, forms, Context, ROA, APW) and every revision and DRF (REV-YYYY-NNN). Setup fills them with the ICTU documents the first time it runs, when both are empty."],
  ["Lists", "Choices shown in the app. Edit these to add offices, staff, equipment types with their default PM frequency, useful life (years) and replacement cost."],
  ["PM frequency", "Monthly, Quarterly, Semi-Annual, Annual, or Not scheduled (checked with its PC) for monitors, keyboards, hubs and other parts of a PC set."],

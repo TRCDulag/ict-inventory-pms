@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.6.0';
+const VERSION = '1.6.1';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -75,6 +75,7 @@ const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log';
 const USERS = 'Users', TRANSFERS = 'Transfers', STOCK = 'Stock Items', MOVES = 'Stock Movements', INCIDENTS = 'Incidents', NETWORK = 'Network';
 const BACKUP_FOLDER = 'ICT Inventory and PMS Backups';
 const ISO_DOCS = 'ISO Documents', ISO_REVS = 'ISO Revisions';
+const DOWNTIME = 'Internet Downtime';
 
 const INV_HEADERS = ['Equipment ID', 'Property Tag No.', 'Equipment Type', 'Brand / Model', 'Description / Specs',
   'Serial No.', 'Office / Section', 'End User', 'Accountable Officer', 'Source Document (RIS / PAR / ICS)',
@@ -122,6 +123,9 @@ const INCIDENT_HEADERS = ['Incident No.', 'Discovered At', 'Type', 'Personal Dat
   'Systems / Equipment Affected', 'Equipment ID', 'Description', 'Actions Taken', 'Reported to DPO On',
   'NPC Notification Needed?', 'NPC Notified On', 'Status', 'Related JO No.', 'Recorded By', 'Recorded At',
   'Updated At', 'Updated By', 'Action History'];
+const DOWN_HEADERS = ['Downtime No.', 'Internet Line', 'Line Name', 'Provider / ISP', 'Down From', 'Back Up At', 'Hours Down', 'Scope',
+  'Areas Affected', 'Cause', 'Reported to ISP At', 'ISP Ticket No.', 'Reported By', 'Actions Taken', 'Status', 'Remarks',
+  'Recorded By', 'Recorded At', 'Updated At', 'Updated By', 'Action History'];
 const NET_HEADERS = ['Net ID', 'Kind', 'Name / Label', 'Location', 'IP Address', 'MAC Address', 'VLAN / Subnet',
   'Brand / Model', 'Equipment ID', 'Provider / ISP', 'Account / Circuit No.', 'Bandwidth', 'Contract End',
   'Monthly Cost', 'Status', 'Remarks', 'Updated At', 'Updated By'];
@@ -142,7 +146,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 // The lowest role that may do each action. Anything not listed is refused.
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
-  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician',
+  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician',
   savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
@@ -230,6 +234,7 @@ function handle_(req) {
       case 'saveStockItem': return saveReg_(REG.stock, req.item, req);
       case 'saveMove':      return saveMove_(req);
       case 'saveIncident':  return saveReg_(REG.incident, req.item, req);
+      case 'saveDowntime':  return saveReg_(REG.downtime, req.item, req);
       case 'saveNetwork':   return saveReg_(REG.network, req.item, req);
       case 'saveIsoDoc':    return saveReg_(REG.isoDoc, req.item, req);
       case 'saveIsoRev':    return saveIsoRev_(req);
@@ -273,9 +278,10 @@ function load_() {
            transfers: tab(TRANSFERS, TRANSFER_HEADERS).map(r => toObj_(REG.transfer, r)),
            stock: tab(STOCK, STOCK_HEADERS).map(r => toObj_(REG.stock, r)), moves: tab(MOVES, MOVE_HEADERS).map(r => toObj_(REG.move, r)),
            incidents: tab(INCIDENTS, INCIDENT_HEADERS).map(r => toObj_(REG.incident, r)), network: tab(NETWORK, NET_HEADERS).map(r => toObj_(REG.network, r)),
+           downtime: tab(DOWNTIME, DOWN_HEADERS).map(r => toObj_(REG.downtime, r)),
            isoDocs: tab(ISO_DOCS, ISO_DOC_HEADERS).map(r => toObj_(REG.isoDoc, r)), isoRevs: tab(ISO_REVS, ISO_REV_HEADERS).map(r => toObj_(REG.isoRev, r)),
            backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '' }, tirRecs: TIR_RECS,
-           choices: { transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS,
+           choices: { transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS, downCause: DOWN_CAUSES, downScope: DOWN_SCOPES,
              isoKind: ISO_KINDS, isoDocStatus: ISO_DOC_STATUS, isoNature: ISO_NATURE, isoRevStatus: ISO_REV_STATUS } };
 }
 
@@ -1432,6 +1438,9 @@ const TRANSFER_KINDS = ['Transfer to another section', 'Change of end user', 'Tu
 const MOVE_KINDS = ['Received', 'Issued', 'Adjustment (+)', 'Adjustment (-)'];
 const INC_TYPES = ['Malware / virus', 'Phishing / suspicious email', 'Unauthorized access', 'Lost or stolen device',
   'Data sent to the wrong person / leak', 'System or network outage', 'Hardware failure', 'Fire, flood or power problem', 'Others'];
+const DOWN_CAUSES = ['ISP outage', 'Power interruption', 'Router / modem / equipment problem', 'Cable or fiber cut', 'Bad weather',
+  'Billing / account problem', 'Maintenance by the ISP', 'Unknown', 'Others'];
+const DOWN_SCOPES = ['Whole office', 'Some sections / areas'];
 const NET_KINDS = ['Router', 'Switch', 'Access Point', 'Firewall', 'Server', 'Network Printer', 'CCTV / NVR', 'IP Phone',
   'Workstation (fixed IP)', 'Internet Line', 'Others'];
 
@@ -1491,6 +1500,15 @@ const REG = {
       });
       checkEq_(row[H['Equipment ID']]);
     } },
+  downtime: { tab: DOWNTIME, h: DOWN_HEADERS, label: 'INTERNET DOWNTIME',
+    map: { no: 'Downtime No.', line: 'Internet Line', lineName: 'Line Name', provider: 'Provider / ISP', down: 'Down From', up: 'Back Up At',
+      hours: 'Hours Down', scope: 'Scope', areas: 'Areas Affected', cause: 'Cause', ispAt: 'Reported to ISP At', ticket: 'ISP Ticket No.',
+      reportedBy: 'Reported By', actions: 'Actions Taken', status: 'Status', remarks: 'Remarks', recordedBy: 'Recorded By', recordedAt: 'Recorded At',
+      updatedAt: 'Updated At', updatedBy: 'Updated By', history: 'Action History' },
+    dts: ['down', 'up', 'ispAt'], nums: ['hours'], required: ['line', 'down', 'scope', 'cause'],
+    choices: { cause: DOWN_CAUSES, scope: DOWN_SCOPES, status: ['Ongoing', 'Restored'] }, defaults: { scope: 'Whole office', cause: 'Unknown' },
+    next: (sh, now) => nextNo_(sh, 1, 'DT-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
+    check: (row, H) => downCheck_(row, H) },
   isoDoc: { tab: ISO_DOCS, h: ISO_DOC_HEADERS, label: 'ISO DOCUMENT',
     map: { id: 'Doc ID', code: 'Document Code', title: 'Title', kind: 'Kind', rev: 'Current Rev.', effectivity: 'Effectivity Date',
       status: 'Status', procedure: 'Related Procedure', location: 'File / Copy Location', retention: 'Retention', remarks: 'Remarks',
@@ -1635,6 +1653,37 @@ function toObj_(spec, r) {
 }
 
 // Adds a row to a register, or updates one, with the Audit Trail entry. Used for stock items, incidents and the network list.
+// An internet downtime entry: the line must be an Internet Line in the Network list (or ALL),
+// the times must make sense, and the hours and status are worked out here, not taken from the page.
+function downCheck_(row, H) {
+  const line = String(row[H['Internet Line']]).toUpperCase();
+  row[H['Internet Line']] = line;
+  if (line === 'ALL') { row[H['Line Name']] = 'All internet lines'; }
+  else {
+    const NH = idx_(NET_HEADERS), n = readRows_(NETWORK, NET_HEADERS).find(x => String(x[0]).toUpperCase() === line);
+    if (!n || n[NH['Kind']] !== 'Internet Line') throw new Error('Pick an internet line from the Network list.');
+    row[H['Line Name']] = n[NH['Name / Label']];
+    row[H['Provider / ISP']] = n[NH['Provider / ISP']];
+  }
+  const now = dt_(new Date()), down = String(row[H['Down From']]), up = String(row[H['Back Up At']]), isp = String(row[H['Reported to ISP At']]);
+  const ok = t => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(t);
+  if (!ok(down) || (up && !ok(up)) || (isp && !ok(isp))) throw new Error('Dates and times should look like 2026-11-03 08:30.');
+  if (down > now) throw new Error('The time the internet went down cannot be in the future.');
+  if (up && up > now) throw new Error('The time the internet came back cannot be in the future.');
+  if (up && up < down) throw new Error('The time it came back must be after the time it went down.');
+  if (isp && isp < down) throw new Error('The time it was reported to the ISP must be after it went down.');
+  const ms = t => Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10), +t.slice(11, 13), +t.slice(14, 16));
+  row[H['Hours Down']] = up ? Math.round((ms(up) - ms(down)) / 36e3) / 100 : '';
+  row[H['Status']] = up ? 'Restored' : 'Ongoing';
+  readRows_(DOWNTIME, DOWN_HEADERS).forEach(x => {
+    if (x[0] === row[0] || String(x[H['Internet Line']]).toUpperCase() !== line) return;
+    const a = dtText_(x[H['Down From']]), b = dtText_(x[H['Back Up At']]) || '9999';
+    if (a < (up || '9999') && down < b) throw new Error('This overlaps ' + x[0] + ' on the same line (' + niceDt_(a) + '). Update that entry instead.');
+  });
+}
+
+function niceDt_(t) { return String(t || '').replace(/^(\d{4})-(\d{2})-(\d{2})/, '$2/$3/$1'); }
+
 function saveReg_(spec, it, req) {
   it = it || {};
   const by = req.by;
@@ -1939,7 +1988,7 @@ function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(TZ);
   [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS], [USERS, USER_HEADERS],
-   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS]].forEach(([name, h]) => {
+   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [DOWNTIME, DOWN_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS]].forEach(([name, h]) => {
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
     // Writes the header row when it is missing, and adds new columns to an older tab (such as a pasted JO Log).
     const have = sh.getRange(1, 1, 1, h.length).getValues()[0];

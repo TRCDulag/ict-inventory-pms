@@ -631,6 +631,28 @@ const shots = path.join(__dirname, 'screenshots');
   ok(await page.evaluate(id => D.inventory.find(i => i.id === id).condition === 'Disposed' && !dispUnits().some(i => i.id === id), dispId), 'the ticked unit is marked Disposed and leaves the list: ' + await page.textContent('#dispMsg'));
   await page.evaluate(() => $('dispDlg').close());
 
+  // internet downtime log
+  await page.evaluate(async () => { await api({ action: 'saveNetwork', item: { kind: 'Internet Line', name: 'E2E Fiber', provider: 'E2E ISP' } }); await reload(); });
+  await page.click('nav.tabs button[data-v="down"]');
+  await page.click('#newDown'); await page.waitForSelector('#wDlg[open]');
+  ok(await page.evaluate(() => [...$('wFLine').options].some(o => /E2E Fiber/.test(o.text))), 'the downtime form lists the internet lines from Network and IP');
+  await page.evaluate(() => { const d = new Date(Date.now() - 90 * 60e3); $('wDown').value = isoDate(d) + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); $('wDown').dispatchEvent(new Event('input')); });
+  await page.selectOption('#wFLine', { label: 'E2E Fiber (E2E ISP)' }); await page.selectOption('#wCause', 'ISP outage');
+  await page.click('#wSave');
+  await page.waitForFunction(() => /Recorded as DT-/.test($('wMsg').textContent));
+  await page.evaluate(() => $('wDlg').close());
+  ok(await page.evaluate(() => /E2E Fiber .*is down/.test($('wOngoing').textContent) && $('navDown').textContent === '1'), 'a line that is still down shows a red note and a count on the menu');
+  await page.screenshot({ path: path.join(shots, '27-internet-down.png'), fullPage: true });
+  await page.click('#wOngoing [data-wback]'); await page.waitForSelector('#wDlg[open]');
+  await page.click('#wSave');
+  await page.waitForFunction(() => /Down for/.test($('wMsg').textContent));
+  await page.evaluate(() => $('wDlg').close());
+  ok(await page.evaluate(() => !$('wOngoing').textContent && D.downtime.some(w => w.status === 'Restored' && w.hours >= 1.4) && /uptime/.test($('wTiles').textContent)), 'It is back now closes the outage and the month shows the uptime');
+  const pr1 = await page.evaluate(() => window.__printed || 0);
+  await page.click('#wPrint'); await page.waitForFunction(n => (window.__printed || 0) > n, pr1);
+  ok(await page.evaluate(() => /INTERNET DOWNTIME REPORT/.test($('printArea').innerHTML) && /E2E Fiber/.test($('printArea').innerHTML) && /Whole office without internet/.test($('printArea').innerHTML)), 'the monthly downtime report prints');
+  await page.screenshot({ path: path.join(shots, '28-internet-downtime.png'), fullPage: true });
+
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');
   await browser.close(); server.close();
