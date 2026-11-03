@@ -329,6 +329,9 @@
   .jtoast p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.45; }
   .jtoast p + p { margin-top: -6px; }
   @media (max-width: 899px) { .jtoast { right: 12px; left: 12px; width: auto; bottom: calc(76px + env(safe-area-inset-bottom)); } }
+  .elsewhere { position: fixed; inset: 0; z-index: 99; background: rgba(31,42,69,.72); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .elsewhere .panel { max-width: 440px; margin: 0; }
+  .elsewhere p { margin: 0 0 14px; }
   .slow { position: fixed; left: 50%; transform: translateX(-50%); top: 84px; z-index: 96; background: var(--navy); color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 14.5px; box-shadow: 0 10px 30px rgba(0,0,0,.25); max-width: calc(100vw - 24px); }
   /* roles: r1 Viewer, r2 Technician, r3 Head. need2 / need3 hide what a role cannot do. */
   body.r1 .need2, body.r1 .need3, body.r2 .need3 { display: none !important; }
@@ -956,6 +959,10 @@
 </nav>
 <div class="jtoast hidden" id="joToast" role="alert"><div class="jh"><span id="jtWhen">ICT Inventory and PMS · just now</span><button type="button" id="jtX" aria-label="Close">×</button></div>
   <b class="jt" id="jtTitle"></b><p id="jtBody"></p><div class="row"><button class="btn small" id="jtOpen" type="button">Open job order</button><button class="btn ghost small" id="jtLater" type="button">Later</button></div></div>
+<div class="elsewhere hidden" id="elsewhere" role="alertdialog" aria-labelledby="elsewhereT"><div class="panel">
+  <h3 id="elsewhereT">The app is open in another tab</h3>
+  <p>To keep one session, this tab stopped. You can close it, or keep working here instead.</p>
+  <div class="row"><button class="btn" id="useHere" type="button">Use the app in this tab</button></div></div></div>
 <div class="slow hidden" id="slowNote" role="status">Still saving. The Google Sheet is slow to answer, please don't close the page.</div>
 <div class="savebar hidden" id="pmBar"><div class="in"><div class="msg" id="pmMsg" role="status"></div><button class="btn ghost" id="pmReset" type="button">Clear</button><button class="btn" id="pmSave" type="button">Save PM record</button></div></div>
 </div>
@@ -1272,9 +1279,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.0";
+const APP_VERSION = "1.4.1";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.1", "Nov 3, 2026", ["Only one tab of the app stays active. Opening the app again, for example from the link in a job order email, takes over, and the older tab stops (and closes itself where the browser allows it)."]],
   ["1.4.0", "Nov 2, 2026", ["New job orders: while the app is open it checks every 2 minutes. A new request shows as \"N new\" on Job Orders, with a pop-up and a short sound (three notes when urgent).", "New job orders: desktop alerts, even when the browser is minimized. Turn them on from your name menu.", "New job orders: an email for each request from the request page. The Head sets the addresses under Accounts and can send a test email.", "Phones: Home, Inventory, Do PM and Job Orders sit in a bar at the bottom. More opens the rest.", "Phones: each unit in the masterlist shows as a small card, and the column names are bigger buttons for sorting.", "Dashboard: PM up to date says how many units never had a PM yet. Due for replacement says how many units have no date acquired, instead of only showing 0.", "A \"Still saving\" note when the Google Sheet is slow to answer, so the page is not closed halfway.", "Lists can be opened with the keyboard (Tab, then Enter). The page is lighter to load."]],
   ["1.3.9", "Oct 29, 2026", ["A What's new list (this one), in the menu and on the sign-in card."]],
   ["1.3.8", "Oct 29, 2026", ["PMS Schedule: Print calendar by section, one 12-month calendar page per section to hand to the section head, with Prepared by and Received by.", "PMS Schedule: Sort by section, equipment ID, name, type, next PM date or frequency."]],
@@ -1672,6 +1680,7 @@ function msg(id, t, cls) { const el = $(id); el.textContent = t || ""; el.classN
 
 const VIEWS = ["home", "dash", "inv", "sched", "pm", "recs", "tr", "stock", "net", "jo", "inc", "reports", "acc"];
 function openApp(j) {
+  claimTab();
   take(j);
   setMe(j.me || ME);
   $("lock").classList.add("hidden"); $("pub").classList.add("hidden"); $("app").classList.remove("hidden");
@@ -1812,6 +1821,25 @@ $("mAlert").onclick = async () => {
   if (notesOk()) { beep(false); try { new Notification("Desktop alerts are on", { body: "You will see new job orders here, even when the browser is minimized.", icon: PUBLIC_URL + "icons/icon-192.png" }); } catch (e) {} }
 };
 alertMenu();
+
+// ---------- one tab at a time ----------
+// The newest tab that opens the app (for example from the link in a job order email) takes over. Any other open
+// tab stops checking for new job orders, shows a note and closes itself where the browser allows it.
+const TAB_ID = Math.random().toString(36).slice(2);
+let tabChan = null;
+try {
+  tabChan = new BroadcastChannel("ictu-pms");
+  tabChan.onmessage = e => {
+    const m = e.data || {};
+    if (m.type !== "claim" || m.id === TAB_ID || $("app").classList.contains("hidden")) return;
+    stopPeek(); hideToast();
+    $("elsewhere").classList.remove("hidden");
+    // Never close a tab with a form still open or a PM in progress, so nothing typed is lost.
+    if (!document.querySelector("dialog[open]") && !pmItem) { try { window.close(); } catch (err) {} }
+  };
+} catch (e) {}
+function claimTab() { try { if (tabChan) tabChan.postMessage({ type: "claim", id: TAB_ID }); } catch (e) {} }
+$("useHere").onclick = () => { $("elsewhere").classList.add("hidden"); claimTab(); startPeek(); reload(); };
 
 // ---------- navigation ----------
 function show(v) {

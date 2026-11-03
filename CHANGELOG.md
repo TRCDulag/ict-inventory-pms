@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.1 (Nov 3, 2026)
+- Only one tab of the app stays active. Opening the app again, for example from the link in a job order email, takes over, and the older tab stops (and closes itself where the browser allows it).
+
 ## 1.4.0 (Nov 2, 2026)
 - New job orders: while the app is open it checks every 2 minutes. A new request shows as "N new" on Job Orders, with a pop-up and a short sound (three notes when urgent).
 - New job orders: desktop alerts, even when the browser is minimized. Turn them on from your name menu.
