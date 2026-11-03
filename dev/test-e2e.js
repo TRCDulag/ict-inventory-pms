@@ -508,19 +508,34 @@ const shots = path.join(__dirname, 'screenshots');
   await page.click('nav.tabs button[data-v="dash"]');
   ok(/never had a PM yet/.test(await page.textContent('#dTiles')), 'Dashboard says how many units never had a PM');
 
-  // one tab at a time: a second tab of the app (as from the email link) takes over
+  // one window at a time: the email link in a new tab hands the job order to the window that is already open
   await page.context().addInitScript(() => { new MutationObserver(() => { const f = document.getElementById('lockForm'); if (f && !f.classList.contains('hidden') && f.offsetParent) window.__sawSignIn = true; }).observe(document, { subtree: true, childList: true, attributes: true }); });
+  await page.click('nav.tabs button[data-v="home"]');
   const [tab2] = await Promise.all([page.waitForEvent('popup'), page.evaluate(no => window.open('/#jo=' + no, '_blank'), filed.jo)]);
-  await tab2.waitForSelector('#app:not(.hidden)');
-  await page.waitForSelector('#elsewhere:not(.hidden)');
-  ok(await tab2.evaluate(() => !!window.__sawSignIn) === false, 'a signed-in tab never shows the sign-in form while it opens');
-  ok(await tab2.evaluate(() => $('joDlg').open) && await tab2.inputValue('#jDesc') === 'Printer shows paper jam but there is no paper stuck inside.', 'the email link opens the job order in the new tab');
-  ok(await page.evaluate(() => peekTimer === null), 'the older tab stops checking for new job orders');
-  await page.screenshot({ path: path.join(shots, '22-other-tab.png') });
-  await page.click('#useHere');
-  await Promise.race([tab2.waitForEvent('close'), tab2.waitForSelector('#elsewhere:not(.hidden)')]).catch(() => {});
-  ok(await page.isHidden('#elsewhere') && await page.evaluate(() => peekTimer !== null) && (tab2.isClosed() || await tab2.isVisible('#elsewhere')), '"Use the app in this tab" takes it back, and the other tab closes or steps aside');
-  if (!tab2.isClosed()) await tab2.close();
+  await Promise.race([tab2.waitForEvent('close'), tab2.waitForSelector('#movedPane:not(.hidden)')]).catch(() => {});
+  await page.waitForFunction(() => $('joDlg').open);
+  ok(await page.inputValue('#jDesc') === 'Printer shows paper jam but there is no paper stuck inside.' && await page.isVisible('#v-jo'), 'the open window goes to Job Orders and opens the job order from the link');
+  ok(tab2.isClosed() || (await tab2.isHidden('#app') && /Job order .* is open in your app window/.test(await tab2.textContent('#movedT'))), 'the new tab does not open a second app: it closes, or only says the app is open in the other window');
+  if (!tab2.isClosed()) { ok(await tab2.evaluate(() => !!window.__sawSignIn) === false, 'the new tab never shows the sign-in form'); await page.screenshot({ path: path.join(shots, '22-handed-over.png') }); await tab2.close(); }
+  ok(await page.evaluate(() => peekTimer !== null), 'the open window keeps checking for new job orders');
+  await page.evaluate(() => $('joDlg').close());
+
+  // in the middle of a form: the link waits in a note instead of covering it
+  await page.evaluate(() => $('joDlg').showModal());
+  const [tab3] = await Promise.all([page.waitForEvent('popup'), page.evaluate(no => window.open('/#jo=' + no, '_blank'), filed.jo)]);
+  await page.waitForSelector('#joToast:not(.hidden)');
+  ok(/Job order/.test(await page.textContent('#jtTitle')) && await page.getAttribute('#jtOpen', 'data-jo') === filed.jo, 'with a form open, the job order waits in a note');
+  if (!tab3.isClosed()) await tab3.close();
+  await page.evaluate(() => $('joDlg').close()); await page.click('#jtX');
+
+  // no app running: the link opens the app in that tab as usual
+  await page.evaluate(() => { tabChan.onmessage = null; });
+  const [p2] = await Promise.all([page.waitForEvent('popup'), page.evaluate(no => window.open('/#jo=' + no, '_blank'), filed.jo)]);
+  await p2.waitForSelector('#app:not(.hidden)');
+  ok(await p2.evaluate(() => $('joDlg').open) && await p2.evaluate(() => !!window.__sawSignIn) === false, 'with no app window running, the link opens the app and the job order without the sign-in form');
+  await p2.close();
+  await page.evaluate(() => { location.reload(); });
+  await page.waitForSelector('#app:not(.hidden)');
 
   await page.evaluate(() => { location.hash = 'jo=ICTU-0000-TEST'; });
   await page.waitForSelector('#joToast:not(.hidden)');

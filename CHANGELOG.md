@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.3 (Nov 3, 2026)
+- If the app is already open in a window, the "Open in the app" link in a job order email goes straight to that window and opens the job order. The extra tab closes itself, and the old "open in another tab" box is gone. A new window opens only when the app is not running.
+- If you are in the middle of a form or a PM when the link comes in, the job order waits in a small note so nothing you typed is lost.
+- The installed app (Edge or Chrome) is set to reuse its open window for links.
+
 ## 1.4.2 (Nov 3, 2026)
 - Opening the app when already signed in (for example from the job order email) shows "Opening the app…" instead of the sign-in form while the data loads.
 - The link in the test email now says it is a test, instead of opening an empty list.
