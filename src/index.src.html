@@ -1286,9 +1286,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.4";
+const APP_VERSION = "1.4.5";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.5", "Nov 3, 2026", ["Import from Excel: a unit with no serial no. and no ICT ID (as from a paper PM report) is not added twice. When the same type, brand, office and end user is already in the masterlist, its PM records go to that unit."]],
   ["1.4.4", "Nov 3, 2026", ["Job order request: the type of request now comes first, and the form only asks what fits it. Network and ICTU service requests (data request, ID printing, layout, event support) no longer show the equipment fields.", "Event support asks for the venue. The Section / Unit Head line shows only for items marked *, and the data privacy consent only when a device is involved.", "The same applies when ICTU logs a job order in the app. Fields that already have something in them stay shown."]],
   ["1.4.3", "Nov 3, 2026", ["If the app is already open in a window, the \"Open in the app\" link in a job order email goes straight to that window and opens the job order. The extra tab closes itself, and the old \"open in another tab\" box is gone. A new window opens only when the app is not running.", "If you are in the middle of a form or a PM when the link comes in, the job order waits in a small note so nothing you typed is lost.", "The installed app (Edge or Chrome) is set to reuse its open window for links."]],
   ["1.4.2", "Nov 3, 2026", ["Opening the app when already signed in (for example from the job order email) shows \"Opening the app\u2026\" instead of the sign-in form while the data loads.", "The link in the test email now says it is a test, instead of opening an empty list."]],

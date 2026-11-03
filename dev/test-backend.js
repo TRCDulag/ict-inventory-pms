@@ -289,6 +289,16 @@ ok(got.pms.some(p => p.ref === 'PM-2025-099' && p.personnel === 'James Adrian M.
 ok(call(imp).added.length === 0, 'importing the same file again adds nothing');
 const i1 = got.inventory.find(i => i.id === 'ICT-0001');
 ok(call({ action: 'importRows', inventory: [{ 'Equipment ID': 'ICT-0001', 'Equipment Type': i1.type, 'Brand / Model': i1.brand }] }).skipped.join() === 'ICT-0001', 'same ID, type and brand without a serial no. is skipped');
+// a paper PM report: units with no serial no. and no ICT ID, matched by type, brand, office and end user
+const paper = { action: 'importRows', file: 'report.xlsx',
+  inventory: [{ 'Equipment ID': 'NEW-01', 'Equipment Type': 'Desktop Computer', 'Brand / Model': 'Acer', 'Office / Section': 'Budget Section', 'End User': 'Test User', 'Last PM': '2024-11-13' }],
+  pms: [{ 'PM Ref No.': 'PM-2024-001', 'Date': '2024-11-13', 'Equipment Type': 'Desktop Computer', 'Status': 'Resolved', 'Equipment ID': 'NEW-01' }] };
+r = call(paper);
+const paperId = r.renumbered['NEW-01'];
+ok(r.added.length === 1 && /^ICT-\d{4}$/.test(paperId) && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-001').equipmentId === paperId, 'a unit from a paper report gets an ID and its PM record follows it');
+paper.pms[0]['PM Ref No.'] = 'PM-2024-002'; paper.inventory[0]['End User'] = ' test  user ';
+r = call(paper);
+ok(r.added.length === 0 && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-002').equipmentId === paperId, 'the same unit from the same office and end user is not added twice, and its PM goes to the unit already there');
 
 // reading a property sticker photo (Gemini stand-in)
 ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');

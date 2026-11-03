@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.4.4';
+const VERSION = '1.4.5';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -1460,6 +1460,10 @@ function importRows_(req) {
       const id = row[I['Equipment ID']], sn = String(row[I['Serial No.']]).toLowerCase();
       // Already there: the same serial no., or (with no serial no.) the same ID for the same type and brand.
       if ((sn && serials[sn]) || (!sn && id && ids[id] && same(ids[id], row))) { out.skipped.push(id || row[I['Serial No.']]); return; }
+      // No serial no. and no ID of ours (as from a paper PM report): the same type, brand, office and end user is the same unit.
+      // Its PM records go to the unit already in the masterlist.
+      const twin = !sn && !ids[id] ? rows.concat(newRows).find(r => !String(r[I['Serial No.']]).trim() && same(r, row) && userKey_(r) && userKey_(r) === userKey_(row)) : null;
+      if (twin) { out.skipped.push(id || twin[I['Equipment ID']]); if (id) moved[id] = twin[I['Equipment ID']]; return; }
       // A different unit already uses this ID, so this one gets the next free ID.
       if (!/^ICT-\d{4,}$/.test(id) || ids[id]) { row[I['Equipment ID']] = nextEquipmentId_(rows.concat(newRows)); if (id) moved[id] = row[I['Equipment ID']]; }
       row[I['Unit Cost']] = toNum_(row[I['Unit Cost']]);
@@ -1506,6 +1510,12 @@ function importRows_(req) {
     }
     return out;
   });
+}
+
+// Office and end user of a masterlist row, to spot the same unit typed twice.
+function userKey_(r) {
+  const u = String(r[I['End User']]).trim().toLowerCase().replace(/\s+/g, ' ');
+  return u ? String(r[I['Office / Section']]).trim().toLowerCase() + '|' + u : '';
 }
 
 function saveTransfer_(req) {

@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.5 (Nov 3, 2026)
+- Import from Excel: a unit with no serial no. and no ICT ID (as from a paper PM report) is not added twice. When the same type, brand, office and end user is already in the masterlist, its PM records go to that unit.
+
 ## 1.4.4 (Nov 3, 2026)
 - Job order request: the type of request now comes first, and the form only asks what fits it. Network and ICTU service requests (data request, ID printing, layout, event support) no longer show the equipment fields.
 - Event support asks for the venue. The Section / Unit Head line shows only for items marked *, and the data privacy consent only when a device is involved.
