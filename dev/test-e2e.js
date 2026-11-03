@@ -591,9 +591,27 @@ const shots = path.join(__dirname, 'screenshots');
   await page.click('#cOff g.go');
   await page.waitForSelector('#v-inv:not(.hidden)');
   ok(await page.inputValue('#iOffice') === firstSec && await page.evaluate(s => [...document.querySelectorAll('#iTable tbody tr[data-id]')].every(tr => byId(tr.dataset.id).office === s), firstSec), 'clicking a section on the dashboard lists only its equipment: ' + firstSec);
-  page.on('dialog', () => {});
-  await page.click('#iTidy');
-  await page.waitForTimeout(500);
+
+  // due for replacement tile opens the list with specs
+  await page.click('nav.tabs button[data-v="dash"]');
+  await page.click('#dTiles [data-go="due"]');
+  await page.waitForSelector('#dueDlg[open]');
+  ok(/Due for replacement/.test(await page.textContent('#dueT')) && await page.evaluate(() => $('dueTable').tBodies[0].rows.length === Math.max(1, dueRows().length)), 'Due for replacement opens the list of those units');
+  await page.screenshot({ path: path.join(shots, '25-due-replacement.png') });
+  await page.evaluate(() => $('dueDlg').close());
+  // Do PM marks
+  await page.click('nav.tabs button[data-v="pm"]');
+  ok(await page.evaluate(() => [...document.querySelectorAll('#pmList button')].length > 0 && [...document.querySelectorAll('#pmList button')].every(b => b.querySelector('.pmk'))), 'Do PM shows an overdue, planned or done mark on each unit');
+  await page.screenshot({ path: path.join(shots, '26-do-pm-marks.png') });
+  // Tick all overdue follows the search
+  await page.click('nav.tabs button[data-v="sched"]');
+  await page.click('#sRound'); await page.waitForSelector('#roundDlg[open]');
+  await page.evaluate(() => D.inventory.forEach(it => { if (freqM(it)) it.nextDue = '2025-01-01'; }));
+  await page.fill('#rdQ', 'printer'); await page.click('#rdLate');
+  ok(await page.evaluate(() => roundTicked.size > 0 && [...roundTicked].every(id => /printer/i.test(byId(id).type + byId(id).brand))), 'Tick all overdue with a search ticks only the matching units');
+  await page.evaluate(() => roundTicked.clear()); await page.fill('#rdQ', 'zzzz-nothing'); await page.click('#rdLate');
+  ok(await page.evaluate(() => roundTicked.size === D.inventory.filter(it => pmState(it) === 'late' && freqM(it) && active(it) && it.condition !== 'Unserviceable').length), 'with no match it ticks all overdue units');
+  await page.evaluate(() => { $('roundDlg').close(); }); await page.evaluate(() => reload());
 
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');

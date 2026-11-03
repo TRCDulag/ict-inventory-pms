@@ -241,6 +241,11 @@
   .picklist button b { color: var(--head); font-weight: 600; }
   .picklist button:hover { background: var(--mint); }
   .picklist button span { display: block; font-size: 14px; color: var(--muted); }
+  .picklist button { position: relative; padding-left: 50px; }
+  .picklist .pmk { position: absolute; left: 13px; top: 13px; }
+  .mk.none { border: 1.5px solid var(--line); color: var(--muted); }
+  .pmlegend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .pmlegend span { display: inline-flex; align-items: center; gap: 6px; }
   .ck-sec { margin-top: 14px; }
   .ck-sec h4 { margin: 0 0 4px; font-size: 14px; font-weight: 700; letter-spacing: .02em; color: var(--navy); }
   .ck { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-2); }
@@ -270,6 +275,7 @@
   /* dialogs */
   dialog { border: 0; border-radius: 16px; padding: 0; width: min(860px, calc(100vw - 24px)); max-height: calc(100vh - 24px); background: #fff; color: var(--ink); box-shadow: 0 20px 60px rgba(31,42,69,.3); }
   dialog.small { width: min(480px, calc(100vw - 24px)); }
+  dialog.wide { width: min(1240px, calc(100vw - 24px)); }
   dialog::backdrop { background: rgba(31, 42, 69, .5); }
   dialog .dh { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line-2); position: sticky; top: 0; background: #fff; z-index: 1; }
   dialog .dh h3 { margin: 0; font-size: 19px; font-weight: 600; flex: 1; }
@@ -653,7 +659,6 @@
         <button class="btn ghost small" id="iLabels" type="button">Print QR labels</button>
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
-        <button class="btn ghost small need3" id="iTidy" type="button">Tidy section names</button>
         <button class="btn ghost small need3" id="iRen" type="button">Rename a section</button>
         <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
@@ -705,6 +710,7 @@
         <h3>Equipment</h3>
         <div id="pmPick">
           <label class="f">Find the unit<input id="pmQ" type="search" placeholder="Type the brand, serial, property tag, office or end user"></label>
+          <div class="pmlegend"><span><i class="mk late">!</i> Overdue</span><span><i class="mk plan">P</i> Planned this month or soon</span><span><i class="mk done">✓</i> PM done, up to date</span></div>
           <div class="picklist" id="pmList"></div>
         </div>
         <div id="pmSel" class="eqcard hidden"><div class="t"><b id="pmSelT"></b><span id="pmSelS"></span></div><button class="btn ghost small" id="pmChange" type="button">Change</button></div>
@@ -1137,6 +1143,16 @@
     <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="empSave">Add employee</button></div>
   </form>
 </dialog>
+<!-- units due for replacement, with their specs -->
+<dialog id="dueDlg" class="wide">
+  <div class="dh"><h3 id="dueT">Due for replacement</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db">
+    <p class="hint" style="margin:0 0 10px">Past the useful life of its type (date acquired plus useful life), or marked Unserviceable. Click a unit to open its record.</p>
+    <div class="tablewrap"><table class="list" id="dueTable"></table></div>
+    <p class="hint" id="dueNote"></p>
+  </div>
+  <div class="df"><button class="btn ghost" type="button" id="dueCsv">Download for Excel</button><span class="spacer"></span><button class="btn" type="button" id="duePrint">Print replacement plan</button></div>
+</dialog>
 <!-- rename a section in the masterlist -->
 <dialog id="renDlg">
   <form id="renForm" method="dialog" autocomplete="off">
@@ -1167,7 +1183,7 @@
         <label class="f wide">Remarks<input id="rdRem"></label>
       </div>
       <div class="row" style="margin:14px 0 6px"><b id="rdCount">0 ticked</b><span class="spacer"></span>
-        <button class="btn ghost small" type="button" id="rdLate">Tick all overdue</button><button class="btn ghost small" type="button" id="rdNone">Clear</button></div>
+        <button class="btn ghost small" type="button" id="rdLate" title="Only the overdue units that match the search, when there is one">Tick all overdue</button><button class="btn ghost small" type="button" id="rdNone">Clear</button></div>
       <input id="rdQ" placeholder="Search by ID, name, section or end user" style="width:100%;margin-bottom:6px">
       <div id="rdList" class="rdlist"></div>
       <div class="msg" id="rdMsg" role="status"></div>
@@ -1335,9 +1351,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.5.0";
+const APP_VERSION = "1.5.1";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.5.1", "Nov 3, 2026", ["Record a PM round: Tick all overdue only ticks the overdue units that match the search (for example only printers). With no match, it ticks all overdue units.", "Do PM: each unit in the list has a colored mark, red for overdue, blue for planned this month or soon, green for PM done and up to date.", "Dashboard: Due for replacement opens the list of those units with their specs, serial, section, age, useful life and costs. Click a unit to open it, or download it for Excel.", "The Tidy section names button is removed. Imports still use the agreed section names."]],
   ["1.5.0", "Nov 3, 2026", ["Dashboard: click a bar in Equipment by section (or Condition) to open the inventory list for that section (or condition).", "Inventory: \"Tidy section names\" (Head) merges sections that are the same under two names, after showing the list first. For example RITD CHPO into Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division), MSS into Medical Social Work Section, Cash Unit into Cash Operations Section, CAO into Office of the Chief Administrative Officer, and Main Office, IDTOMIS/IDADIN and ICTU into IDADIN/ICTU.", "Import from Excel uses the same section names, so imported units land in the merged sections."]],
   ["1.4.9", "Nov 3, 2026", ["Inventory: \"Rename a section\" (Head) gives every unit under a section a new name at once, for example Main Office to IDADIN/ICTU. Saved PM records and job orders keep the name they had."]],
   ["1.4.8", "Nov 3, 2026", ["Import from Excel: an end user who is not in the employee masterlist is left out, and the unit stays under its section. Short names like \"L. Panopio\", \"Girlie P.\" or a first name alone are matched too when only one employee fits."]],
@@ -2475,20 +2492,6 @@ $("renForm").onsubmit = async e => {
   finally { $("renSave").disabled = false; }
 };
 
-// Tidy section names: shows the merges first, then applies them on OK.
-$("iTidy").onclick = async () => {
-  try {
-    const p = await api({ action: "tidyOffices" });
-    if (!p.ok) return alert(p.error);
-    if (!p.plan.length) return alert("The section names are already tidy. Nothing to merge.");
-    if (!confirm("These sections will be merged or renamed:\n\n" + p.plan.map(x => `${x[0]} (${units(x[2], ["unit", "units"])})  →  ${x[1]}`).join("\n") + "\n\nSaved PM records and job orders keep the name they had. Go ahead?")) return;
-    const j = await api({ action: "tidyOffices", apply: true });
-    if (!j.ok) return alert(j.error);
-    await reload();
-    alert("Done. " + units(j.plan.length, ["section was", "sections were"]) + " merged or renamed.");
-  } catch (err) { alert(errText(err)); }
-};
-
 // ---------- PM round and catch-up schedule ----------
 const roundTicked = new Set();
 function roundUnits() { return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && freqM(it)).sort((a, b) => String(a.office).localeCompare(String(b.office)) || a.id.localeCompare(b.id, undefined, { numeric: true })); }
@@ -2507,7 +2510,12 @@ $("sRound").onclick = () => {
   renderRound(); $("roundDlg").showModal();
 };
 $("rdQ").addEventListener("input", renderRound);
-$("rdLate").onclick = () => { roundUnits().filter(it => pmState(it) === "late").forEach(it => roundTicked.add(it.id)); renderRound(); };
+// Ticks the overdue units that match the search (all overdue units when nothing matches or the search is empty).
+$("rdLate").onclick = () => {
+  const q = $("rdQ").value.trim().toLowerCase(), late = roundUnits().filter(it => pmState(it) === "late");
+  const hit = q ? late.filter(it => [it.id, it.brand, it.type, it.office, it.endUser].join(" ").toLowerCase().includes(q)) : late;
+  (hit.length || !q ? hit : late).forEach(it => roundTicked.add(it.id)); renderRound();
+};
 $("rdNone").onclick = () => { roundTicked.clear(); renderRound(); };
 $("roundForm").onsubmit = async e => {
   e.preventDefault();
@@ -2545,12 +2553,18 @@ function renderPick() {
   const q = $("pmQ").value.trim().toLowerCase();
   const list = D.inventory.filter(it => active(it) && (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => { const r = s => ({ late: 0, due: 1, soon: 2, ok: 3, ns: 4, off: 5 })[pmState(s)]; return r(a) - r(b) || a.id.localeCompare(b.id); });
-  $("pmList").innerHTML = list.length ? list.slice(0, 60).map(it => `<button type="button" data-id="${esc(it.id)}"><b>${esc(it.id)}  ${esc(eqName(it))}</b>
+  $("pmList").innerHTML = list.length ? list.slice(0, 60).map(it => `<button type="button" data-id="${esc(it.id)}">${pmMark(it)}<b>${esc(it.id)}  ${esc(eqName(it))}</b>
     <span>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}${it.nextDue ? ". Next PM " + esc(nice(it.nextDue)) : ""}</span></button>`).join("")
     : '<div class="empty">No equipment matches. Add it first on the Inventory tab.</div>';
   $("pmList").querySelectorAll("button").forEach(b => b.onclick = () => pickPM(b.dataset.id));
 }
 $("pmQ").addEventListener("input", renderPick);
+// The same marks as the PMS schedule: red overdue, blue outline planned (due this month or soon), green done (up to date).
+function pmMark(it) {
+  const s = pmState(it);
+  const m = { late: ["late", "!", "Overdue"], due: ["plan", "P", "Planned this month"], soon: ["plan", "P", "Planned soon"], ok: ["done", "✓", "PM done, up to date"] }[s];
+  return m ? `<i class="mk ${m[0]} pmk" title="${m[2]}" aria-label="${m[2]}">${m[1]}</i>` : `<i class="mk pmk none" title="Not scheduled" aria-label="Not scheduled">–</i>`;
+}
 function startPM(id) { show("pm"); pickPM(id); }
 function pickPM(id) {
   const it = byId(id); if (!it) return;
@@ -4006,9 +4020,28 @@ function renderDash() {
     <div class="tile"><div class="lb">JOs within target</div><div class="val">${pct(met, closed90.length)}</div><div class="sm">${met} of ${closed90.length} closed in 90 days. Target 90%</div></div>
     <div class="tile"><div class="lb">Client satisfaction</div><div class="val">${pct(happy, rated.length)}</div><div class="sm">${rated.length} ratings in 12 months</div></div>
     <button class="tile${openInc ? " bad" : ""}" data-go="inc"><div class="lb">Open incidents</div><div class="val">${openInc}</div><div class="sm">not yet resolved</div></button>
-    <button class="tile${now.rows.length || nod ? " warn" : ""}" data-go="reports"><div class="lb">Due for replacement</div><div class="val">${now.rows.length}</div><div class="sm">${now.rows.length ? esc(peso(now.cost) || "") + (nod ? ". " : "") : ""}${nod ? nod + " unit" + (nod === 1 ? " has" : "s have") + " no date acquired, so not counted" : (now.rows.length ? "" : "None past its useful life")}</div></button>`;
-  $("dTiles").querySelectorAll("[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+    <button class="tile${now.rows.length || nod ? " warn" : ""}" data-go="due"><div class="lb">Due for replacement</div><div class="val">${now.rows.length}</div><div class="sm">${now.rows.length ? esc(peso(now.cost) || "") + (nod ? ". " : "") : ""}${nod ? nod + " unit" + (nod === 1 ? " has" : "s have") + " no date acquired, so not counted" : (now.rows.length ? "" : "None past its useful life")}</div></button>`;
+  $("dTiles").querySelectorAll("[data-go]").forEach(b => b.onclick = () => b.dataset.go === "due" ? showDue() : show(b.dataset.go));
 }
+// The units past their useful life (or unserviceable), with everything the masterlist has on them.
+function dueRows() { const y = new Date().getFullYear(); return D.inventory.filter(active).map(it => Object.assign({ it }, replOf(it))).filter(r => r.it.condition === "Unserviceable" || (r.year && r.year < y)).sort((a, b) => (b.age || 0) - (a.age || 0)); }
+function showDue() {
+  const rows = dueRows(), total = rows.reduce((s, r) => s + r.cost, 0);
+  $("dueT").textContent = "Due for replacement: " + units(rows.length, ["unit", "units"]) + (total ? ", about " + peso(total) : "");
+  $("dueTable").innerHTML = `<thead><tr><th>ID</th><th>Equipment</th><th>Serial / property no.</th><th>Section / end user</th><th>Specs</th><th>Acquired</th><th class="money">Age</th><th class="money">Useful life</th><th>Condition</th><th class="money">Unit cost</th><th class="money">Est. replacement</th></tr></thead><tbody>` +
+    (rows.length ? rows.map(r => { const it = r.it; return `<tr data-id="${esc(it.id)}" style="cursor:pointer"><td class="num"><b>${esc(it.id)}</b></td><td>${esc(it.brand)}<div class="s">${esc(it.type)}</div></td>
+      <td>${esc(it.serial)}${it.tag ? '<div class="s">Tag ' + esc(it.tag) + "</div>" : ""}</td><td>${esc(it.office)}${it.endUser ? '<div class="s">' + esc(it.endUser) + "</div>" : ""}</td>
+      <td class="s">${esc([it.desc, it.os, it.msOffice, it.compName].filter(Boolean).join(". "))}</td><td>${esc(nice(it.acquired))}</td>
+      <td class="money">${r.age != null ? r.age.toFixed(1) + " yrs" : ""}</td><td class="money">${r.life} yrs</td><td>${esc(it.condition)}</td>
+      <td class="money">${esc(peso(Number(it.cost) || 0))}</td><td class="money">${esc(peso(r.cost))}</td></tr>`; }).join("") : '<tr><td colspan="11" class="empty">No unit is past its useful life.</td></tr>') + "</tbody>";
+  $("dueTable").querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => { $("dueDlg").close(); show("inv"); openEq(tr.dataset.id); });
+  const nod = D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && !parse(it.acquired)).length;
+  $("dueNote").textContent = nod ? units(nod, ["unit has", "units have"]) + " no date acquired, so they cannot be checked yet. Add the date in the masterlist to include them." : "";
+  $("dueDlg").showModal();
+}
+$("dueCsv").onclick = () => csv("ICT Due for Replacement " + todayStr() + ".csv", ["Equipment ID", "Type", "Brand / Model", "Specs", "Serial No.", "Property Tag No.", "Section", "End User", "OS", "MS Office", "Computer Name / IP", "Date Acquired", "Age (years)", "Useful Life", "Condition", "Unit Cost", "Estimated Replacement Cost", "Remarks"],
+  dueRows().map(r => { const it = r.it; return [it.id, it.type, it.brand, it.desc, it.serial, it.tag, it.office, it.endUser, it.os, it.msOffice, it.compName, it.acquired, r.age != null ? r.age.toFixed(1) : "", r.life, it.condition, it.cost, r.cost, it.remarks]; }));
+$("duePrint").onclick = () => { $("rpFrom").value = String(new Date().getFullYear()); $("rpPrint").onclick(); };
 
 // ---------- CSV ----------
 function csv(name, head, rows) {
