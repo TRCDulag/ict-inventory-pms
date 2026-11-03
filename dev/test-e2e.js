@@ -555,6 +555,28 @@ const shots = path.join(__dirname, 'screenshots');
   ok(/test email/.test(await page.textContent('#jtBody')) && await page.isHidden('#jtOpen'), 'the test email link says it is a test');
   await page.click('#jtX');
 
+  // PM round and catch-up schedule on the PMS schedule page
+  await page.click('nav.tabs button[data-v="sched"]');
+  await page.click('#sRound');
+  await page.waitForSelector('#roundDlg[open]');
+  await page.click('#rdLate');
+  const ticked = await page.evaluate(() => roundTicked.size);
+  await page.screenshot({ path: path.join(shots, '23-pm-round.png') });
+  await page.evaluate(() => { roundTicked.clear(); renderRound(); });
+  await page.locator('#rdList input').first().check(); await page.selectOption('#rdBy', { index: 1 });
+  await page.click('#rdSave');
+  await page.waitForFunction(() => /Saved 1 PM record/.test($('rdMsg').textContent));
+  ok(ticked > 0, 'Record a PM round ticks all overdue units at once, and saves a record for each ticked unit');
+  await page.evaluate(() => $('roundDlg').close());
+  const lateBefore = await page.evaluate(() => D.inventory.filter(it => pmState(it) === 'late').length);
+  const seen = []; const onSeen = d => seen.push(d.message()); page.on('dialog', onSeen);
+  await page.click('#sCatch');
+  await page.waitForFunction(() => !D.inventory.some(it => pmState(it) === 'late'));
+  await page.waitForTimeout(300); page.off('dialog', onSeen);
+  const said = seen.join(' | ');
+  ok(lateBefore > 0 && /planned from/.test(said) && await page.evaluate(() => D.inventory.filter(it => pmState(it) === 'late').length) === 0, 'Catch-up schedule leaves no unit overdue: ' + said);
+  await page.screenshot({ path: path.join(shots, '24-after-catch-up.png'), fullPage: true });
+
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');
   await browser.close(); server.close();

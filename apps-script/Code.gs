@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.4.6';
+const VERSION = '1.4.7';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -130,7 +130,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
-  voidPM: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -226,6 +226,8 @@ function handle_(req) {
       case 'importRows':    return importRows_(req);
       case 'readSticker':   return readSticker_(req);
       case 'savePM':        return savePM_(req);
+      case 'savePMRound':   return savePMRound_(req);
+      case 'catchUp':       return catchUp_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
       case 'addOffice':     return addOffice_(req);
@@ -408,6 +410,62 @@ function savePM_(req) {
     audit_(ref, 'PM RECORDED', clean_(p.personnel), item[I['Equipment ID']] + ' ' + item[I['Brand / Model']] + ', ' +
       p.overall + ', next PM ' + (due ? fmtDate_(due) : 'not scheduled') + (moved.length ? '. Masterlist updated: ' + moved.join('; ') : ''), req.device);
     return { ok: true, ref: ref, pm: toPM_(row), item: toItem_(item) };
+  });
+}
+
+// One PM round for many units: the same date, result and work for each, one PM record per unit.
+// Only for a round that was done (the date cannot be in the future); every record names who logged it.
+function savePMRound_(req) {
+  const ids = (Array.isArray(req.ids) ? req.ids : []).map(x => clean_(x).toUpperCase()).filter(Boolean);
+  const p = req.pm || {};
+  if (!ids.length) throw new Error('Tick at least one unit.');
+  if (ids.length > 100) throw new Error('Up to 100 units at a time.');
+  const d = toDate_(p.date);
+  if (!d) throw new Error('Date is required.');
+  if (fmtDate_(d) > fmtDate_(new Date())) throw new Error('The date of a PM round cannot be in the future.');
+  const out = { ok: true, refs: [], failed: [] };
+  ids.forEach(id => {
+    try {
+      const r = savePM_({ pm: Object.assign({}, p, { equipmentId: id, endUser: '', office: '', nextDue: '',
+        remarks: [clean_(p.remarks), 'Logged as part of a PM round by ' + clean_(req.by) + '.'].filter(Boolean).join(' ') }), device: req.device });
+      out.refs.push(r.ref);
+    } catch (err) { out.failed.push(id + ': ' + err.message); }
+  });
+  return out;
+}
+
+// Catch-up schedule: every overdue unit (or one with no next PM date) gets a new next PM date on the working days
+// from `start`, `perDay` units a day, oldest first. It adds no PM record, it only plans the PMs still to do.
+function catchUp_(req) {
+  const perDay = Math.max(1, Math.min(40, Math.floor(+req.perDay || 8)));
+  return withLock_(() => {
+    const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
+    const today = toDate_(fmtDate_(new Date()));
+    let start = toDate_(req.start) || today;
+    if (start < today) start = today;
+    const late = [];
+    rows.forEach((r, i) => {
+      if (!FREQ_MONTHS[r[I['PM Frequency']]] || ['Disposed', 'Unserviceable'].indexOf(r[I['Condition']]) >= 0) return;
+      const due = r[I['Next PM Due']];
+      if (!(due instanceof Date) || due < today) late.push({ i: i, due: due instanceof Date ? due.getTime() : 0, id: r[I['Equipment ID']] });
+    });
+    late.sort((a, b) => a.due - b.due || String(a.id).localeCompare(String(b.id)));
+    const day = new Date(start.getTime()), now = new Date(), plan = [];
+    const nextWorkDay = () => { while (day.getDay() === 0 || day.getDay() === 6) day.setDate(day.getDate() + 1); };
+    nextWorkDay();
+    late.forEach((x, n) => {
+      if (n && n % perDay === 0) { day.setDate(day.getDate() + 1); nextWorkDay(); }
+      const r = rows[x.i];
+      r[I['Next PM Due']] = new Date(day.getTime());
+      r[I['Updated At']] = now; r[I['Updated By']] = clean_(req.by);
+      const row = findRow_(sh, x.id); if (!row) return;
+      sh.getRange(row, I['Next PM Due'] + 1, 1, 1).setValue(r[I['Next PM Due']]);
+      sh.getRange(row, I['Updated At'] + 1, 1, 2).setValues([[now, clean_(req.by)]]);
+      plan.push(x.id);
+    });
+    if (plan.length) audit_(plan[0] + (plan.length > 1 ? ' to ' + plan[plan.length - 1] : ''), 'CATCH-UP SCHEDULE', clean_(req.by),
+      plan.length + ' overdue unit(s) planned from ' + fmtDate_(start) + ' to ' + fmtDate_(day) + ', ' + perDay + ' a day. No PM record was added.', req.device);
+    return { ok: true, count: plan.length, from: plan.length ? fmtDate_(start) : '', to: plan.length ? fmtDate_(day) : '' };
   });
 }
 

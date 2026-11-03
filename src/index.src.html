@@ -329,6 +329,12 @@
   .jtoast p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.45; }
   .jtoast p + p { margin-top: -6px; }
   @media (max-width: 899px) { .jtoast { right: 12px; left: 12px; width: auto; bottom: calc(76px + env(safe-area-inset-bottom)); } }
+  .rdlist { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .rdlist label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .rdlist label:last-child { border-bottom: 0; }
+  .rdlist input[type=checkbox] { width: 18px; height: 18px; min-height: 0; flex: 0 0 18px; margin: 3px 0 0; padding: 0; }
+  .rdlist label > span { flex: 1; text-align: left; }
+  .rdlist small { display: block; color: var(--muted); }
   .opening { text-align: center; padding-top: 34px; padding-bottom: 38px; }
   .opening h2 { margin: 14px 0 4px; }
   .spin { display: inline-block; width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--brand); animation: spin .8s linear infinite; }
@@ -673,6 +679,8 @@
         <span><i class="mk done">✓</i> PM done</span><span><i class="mk plan">P</i> Planned</span><span><i class="mk late">!</i> Planned but not done (overdue)</span>
       </div>
       <div class="row"><span class="hint" id="sCount" style="margin:0"></span><span class="spacer"></span>
+        <button class="btn ghost small need3" id="sCatch" type="button">Catch-up schedule</button>
+        <button class="btn ghost small need2" id="sRound" type="button">Record a PM round</button>
         <button class="btn ghost small" id="sPrint" type="button">Print schedule (A4)</button>
         <button class="btn small" id="sPrintSec" type="button">Print calendar by section</button></div>
     </div>
@@ -1126,6 +1134,29 @@
     <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="empSave">Add employee</button></div>
   </form>
 </dialog>
+<!-- PM round: the same PM result for many units at once -->
+<dialog id="roundDlg">
+  <form id="roundForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Record a PM round</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <p class="hint" style="margin:0 0 10px">For a PM round that was done: tick the units, then enter the date and what was done. Each unit gets its own PM record and its next PM is set from its frequency. Units with an issue are better done one at a time in Do PM.</p>
+      <div class="grid g3">
+        <label class="f"><span class="req">Date done</span><input id="rdDate" type="date"></label>
+        <label class="f"><span class="req">Performed by</span><select id="rdBy"></select></label>
+        <label class="f">Main work done<select id="rdAct"></select></label>
+        <label class="f"><span class="req">Overall status</span><select id="rdOverall"><option>Functional</option><option>Functional, for monitoring</option></select></label>
+        <label class="f span2">Action taken<input id="rdAction" value="Cleaned unit; checked system; cleaned peripherals"></label>
+        <label class="f wide">Remarks<input id="rdRem"></label>
+      </div>
+      <div class="row" style="margin:14px 0 6px"><b id="rdCount">0 ticked</b><span class="spacer"></span>
+        <button class="btn ghost small" type="button" id="rdLate">Tick all overdue</button><button class="btn ghost small" type="button" id="rdNone">Clear</button></div>
+      <input id="rdQ" placeholder="Search by ID, name, section or end user" style="width:100%;margin-bottom:6px">
+      <div id="rdList" class="rdlist"></div>
+      <div class="msg" id="rdMsg" role="status"></div>
+    </div>
+    <div class="df"><span class="spacer"></span><button class="btn" type="submit" id="rdSave">Save PM records</button></div>
+  </form>
+</dialog>
 <!-- transfer / turnover -->
 <dialog id="trDlg">
   <form id="trForm" method="dialog" autocomplete="off">
@@ -1286,9 +1317,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.6";
+const APP_VERSION = "1.4.7";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.7", "Nov 3, 2026", ["PMS schedule: \"Record a PM round\" saves one PM record for each ticked unit at once, with the same date and result. For PMs that were done; the date cannot be in the future.", "PMS schedule: \"Catch-up schedule\" (Head) gives every overdue unit a new PM date on the coming working days, a set number a day. It plans the PMs; it does not mark them as done."]],
   ["1.4.6", "Nov 3, 2026", ["Import from Excel: each end user is changed to the nearest name in the employee masterlist (for example \"ENGR. ORACION\" to the full name). The message after the import lists every name it changed and the ones it could not find."]],
   ["1.4.5", "Nov 3, 2026", ["Import from Excel: a unit with no serial no. and no ICT ID (as from a paper PM report) is not added twice. When the same type, brand, office and end user is already in the masterlist, its PM records go to that unit."]],
   ["1.4.4", "Nov 3, 2026", ["Job order request: the type of request now comes first, and the form only asks what fits it. Network and ICTU service requests (data request, ID printing, layout, event support) no longer show the equipment fields.", "Event support asks for the venue. The Section / Unit Head line shows only for items marked *, and the data privacy consent only when a device is involved.", "The same applies when ICTU logs a job order in the app. Fields that already have something in them stay shown."]],
@@ -2400,6 +2432,56 @@ function renderSched() {
   bindRowButtons($("sTable"));
 }
 ["sYear", "sOffice", "sType", "sShow", "sSort"].forEach(id => $(id).addEventListener("input", renderSched));
+
+// ---------- PM round and catch-up schedule ----------
+const roundTicked = new Set();
+function roundUnits() { return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && freqM(it)).sort((a, b) => String(a.office).localeCompare(String(b.office)) || a.id.localeCompare(b.id, undefined, { numeric: true })); }
+function renderRound() {
+  const q = $("rdQ").value.trim().toLowerCase();
+  const list = roundUnits().filter(it => !q || [it.id, it.brand, it.type, it.office, it.endUser].join(" ").toLowerCase().includes(q));
+  $("rdList").innerHTML = list.length ? list.map(it => `<label><input type="checkbox" value="${esc(it.id)}"${roundTicked.has(it.id) ? " checked" : ""}><span><b>${esc(it.id)}</b> ${esc(eqName(it))}
+    <small>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}. ${it.nextDue ? "Next PM " + esc(nice(it.nextDue)) : "No PM date yet"}${pmState(it) === "late" ? " (overdue)" : ""}</small></span></label>`).join("") : '<div class="empty">No units match.</div>';
+  $("rdList").querySelectorAll("input").forEach(c => c.onchange = () => { c.checked ? roundTicked.add(c.value) : roundTicked.delete(c.value); $("rdCount").textContent = roundTicked.size + " ticked"; });
+  $("rdCount").textContent = roundTicked.size + " ticked";
+}
+$("sRound").onclick = () => {
+  roundTicked.clear(); $("rdQ").value = ""; $("rdRem").value = ""; msg("rdMsg", "");
+  $("rdDate").value = todayStr(); $("rdDate").max = todayStr();
+  $("rdBy").innerHTML = opts(D.lists.staff.map(x => x[0]), "Pick a name"); $("rdAct").innerHTML = opts(D.lists.activities); $("rdAct").value = "Cleaning";
+  renderRound(); $("roundDlg").showModal();
+};
+$("rdQ").addEventListener("input", renderRound);
+$("rdLate").onclick = () => { roundUnits().filter(it => pmState(it) === "late").forEach(it => roundTicked.add(it.id)); renderRound(); };
+$("rdNone").onclick = () => { roundTicked.clear(); renderRound(); };
+$("roundForm").onsubmit = async e => {
+  e.preventDefault();
+  if (!roundTicked.size) return msg("rdMsg", "Tick at least one unit.", "err");
+  if (!$("rdBy").value) return msg("rdMsg", "Pick who performed the PM.", "err");
+  if (!$("rdDate").value || $("rdDate").value > todayStr()) return msg("rdMsg", "The date done cannot be empty or in the future.", "err");
+  if (!confirm("Save a PM record dated " + nice($("rdDate").value) + " for " + roundTicked.size + " unit(s)?\n\nOnly do this for PMs that were done on that date.")) return;
+  $("rdSave").disabled = true; msg("rdMsg", "Saving " + roundTicked.size + " PM records…");
+  try {
+    const j = await api({ action: "savePMRound", ids: [...roundTicked], pm: { date: $("rdDate").value, personnel: $("rdBy").value, activity: $("rdAct").value,
+      overall: $("rdOverall").value, action: $("rdAction").value, remarks: $("rdRem").value, findings: "", pmType: "Scheduled PM" } });
+    if (!j.ok) return msg("rdMsg", j.error, "err");
+    await reload();
+    msg("rdMsg", "Saved " + j.refs.length + " PM records" + (j.refs.length ? " (" + j.refs[0] + (j.refs.length > 1 ? " to " + j.refs[j.refs.length - 1] : "") + ")" : "") + "." + (j.failed.length ? " Not saved: " + j.failed.join("; ") : ""), j.failed.length ? "err" : "ok");
+    roundTicked.clear(); renderRound();
+  } catch (err) { msg("rdMsg", errText(err), "err"); }
+  finally { $("rdSave").disabled = false; }
+};
+$("sCatch").onclick = async () => {
+  const late = D.inventory.filter(it => pmState(it) === "late");
+  if (!late.length) return alert("No unit is overdue.");
+  const n = prompt(late.length + " unit(s) are overdue or have no PM date yet.\n\nThe catch-up schedule gives each one a new next PM date on working days starting today, oldest first. It does not mark any PM as done.\n\nHow many units a day can ICTU do?", "8");
+  if (!n) return;
+  try {
+    const j = await api({ action: "catchUp", perDay: +n || 8, start: todayStr() });
+    if (!j.ok) return alert(j.error);
+    await reload();
+    alert(j.count ? j.count + " unit(s) planned from " + nice(j.from) + " to " + nice(j.to) + ". Record each PM in Do PM (or Record a PM round) as it is done." : "No unit needed a new date.");
+  } catch (err) { alert(errText(err)); }
+};
 
 // ---------- do PM ----------
 let pmItem = null, ck = {}, nextTouched = false, lastSaved = null;

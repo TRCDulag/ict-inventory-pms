@@ -309,6 +309,24 @@ r = call({ action: 'importRows', file: 'report.xlsx', inventory: [
 const nm = Object.fromEntries(r.names);
 ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Maria Clara R. Santos' && nm['DR. REYES'] === 'Jose Mari S. Reyes Jr.' && r.unmatched.join() === 'Nobody Known' && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-003').endUser === 'Ana Liza M. Garcia', 'end users are matched to the employee masterlist: ' + JSON.stringify(r.names) + JSON.stringify(r.unmatched));
 
+// PM round and catch-up schedule
+{
+  const today = call({ action: 'load' }).today;
+  const sched = call({ action: 'load' }).inventory.filter(i => ['Quarterly', 'Semi-Annual', 'Annual', 'Monthly'].includes(i.freq) && !['Disposed', 'Unserviceable'].includes(i.condition));
+  ok(/role \(Technician\)/.test(asTech({ action: 'catchUp', perDay: 2 }).error), 'only the Head makes a catch-up schedule');
+  const pmsBefore = call({ action: 'load' }).pms.length;
+  const cu = call({ action: 'catchUp', perDay: 2 });
+  const after = call({ action: 'load' });
+  ok(cu.ok && cu.count > 0 && sched.every(i => { const x = after.inventory.find(y => y.id === i.id); return x.nextDue >= today; }) && after.pms.length === pmsBefore, 'catch-up gives every overdue unit a date from today and adds no PM record: ' + JSON.stringify(cu));
+  ok(after.inventory.every(i => !i.nextDue || ![0, 6].includes(new Date(i.nextDue + 'T12:00:00').getDay()) || i.nextDue < today || !cu.count), 'catch-up dates fall on working days');
+  ok(call({ action: 'catchUp', perDay: 2 }).count === 0, 'a second catch-up has nothing left to plan');
+  const two = sched.slice(0, 2).map(i => i.id);
+  ok(/future/.test(asTech({ action: 'savePMRound', ids: two, pm: { date: '2099-01-01', personnel: 'Argie R. Lopez', overall: 'Functional' } }).error), 'a PM round cannot be dated in the future');
+  const rd = asTech({ action: 'savePMRound', ids: two.concat(['ICT-9999']), pm: { date: today, personnel: 'Argie R. Lopez', overall: 'Functional', action: 'Cleaned unit' } });
+  const L2 = call({ action: 'load' });
+  ok(rd.ok && rd.refs.length === 2 && rd.failed.length === 1 && two.every(id => L2.inventory.find(i => i.id === id).lastPm === today) && /PM round/.test(L2.pms.find(p => p.ref === rd.refs[0]).remarks), 'a PM round saves one record per unit and moves their next PM: ' + JSON.stringify(rd));
+}
+
 // reading a property sticker photo (Gemini stand-in)
 ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');
 be.gas._props.GEMINI_API_KEY = 'test-key';
