@@ -171,6 +171,11 @@
   .types h4 { margin: 8px 0 2px; font-size: 13px; letter-spacing: .03em; color: var(--navy); }
   label.cb { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; padding: 4px 0; cursor: pointer; font-weight: 400; }
   label.cb input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; }
+  .shots { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+  .shots button { width: 120px; height: 80px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: #F6FBF9 center / cover no-repeat; cursor: zoom-in; position: relative; font: inherit; font-size: 12px; color: var(--muted); }
+  .shots button.new::after { content: "new"; position: absolute; top: 4px; left: 4px; background: var(--brand); color: #fff; border-radius: 6px; padding: 0 6px; font-size: 11px; }
+  .shots .rm { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: #fff; color: var(--bad); font-weight: 700; cursor: pointer; line-height: 1; }
+  #shotDlg img { max-width: 100%; display: block; margin: 0 auto; }
   .hist { white-space: pre-line; font-size: 13px; color: var(--muted); background: #F6FBF9; border-radius: 8px; padding: 10px 12px; max-height: 140px; overflow: auto; }
   /* public pages (no sign-in): request ICT help, equipment status from a QR label */
   #pub { min-height: 100vh; min-height: 100dvh; background: var(--navy) center / cover no-repeat fixed; padding: 0 0 32px; }
@@ -1420,10 +1425,19 @@
         <label class="f wide">Remarks<input id="wRem"></label>
       </div>
       <div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" id="wBackNow">It is back now</button><span class="hint" id="wHours" style="margin:0"></span></div>
+      <h4 style="margin:16px 0 2px">Screenshots</h4>
+      <p class="hint" style="margin:0">Proof of the outage, such as the router interface list, a speed test or the ISP's text. Press <b>Ctrl+V</b> here to paste a screenshot, or choose files. Up to 10 per entry.</p>
+      <div class="shots" id="wShots"></div>
+      <label class="btn ghost small need2" style="display:inline-flex">Add screenshots<input type="file" id="wFile" accept="image/*" multiple hidden></label>
       <div id="wHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="wHist"></div></div>
       <div class="msg" id="wMsg" role="status"></div></div>
     <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="wSave">Save</button></div>
   </form>
+</dialog>
+<!-- a downtime screenshot, full size -->
+<dialog id="shotDlg" class="wide">
+  <div class="dh"><h3 id="shotT">Screenshot</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db"><img id="shotImg" alt="Screenshot of the internet downtime"></div>
 </dialog>
 <!-- user account (Head) -->
 <dialog id="uDlg" class="small">
@@ -1477,9 +1491,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.3";
+const APP_VERSION = "1.6.4";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.4", "Nov 3, 2026", ["Internet Downtime: attach screenshots to each entry as proof, such as the router interface list, a speed test or the ISP's text. Press Ctrl+V in the form to paste one, or choose files. Up to 10 per entry.", "The screenshots are kept in a Drive folder \"ICT PMS Downtime Screenshots\". Click one to see it full size, and the monthly report shows how many each entry has.", "Run setup once in Apps Script so the Internet Downtime tab gets its new Screenshots column."]],
   ["1.6.3", "Nov 3, 2026", ["Internet Downtime: since PLDT is the main line and the router switches to Starlink by itself, the office is now counted as without internet only while both lines are down at the same time. Each line still shows its own uptime.", "New scope choice \"Backup line took over\". It is picked by default when you record one line, and \"Whole office\" is picked when you choose All internet lines."]],
   ["1.6.2", "Nov 3, 2026", ["Internet Downtime: the PLDT line (router ether6, ISP IN) and the Starlink line (router ether7) are now in the list from the start, so you can pick them right away. They show under Network and IP, where you can add the bandwidth, account no. and monthly cost."]],
   ["1.6.1", "Nov 3, 2026", ["New Internet Downtime page: record each time the internet goes down, with the line, the time it went down and came back, the cause and the ISP ticket. The app works out the hours.", "Each month shows the uptime of every line and how long the whole office had no internet. Print the monthly report for ISO or for a rebate request to the ISP.", "While a line is down, a red note and a count on the menu stay up until someone presses \"It is back now\".", "Run setup once in Apps Script to add the Internet Downtime tab. List your internet lines under Network and IP (Kind: Internet Line) first."]],
@@ -4241,7 +4256,7 @@ function renderDown() {
   const list = downFiltered();
   $("wCount").textContent = list.length + " of " + D.downtime.length + " entries";
   $("wTable").tBodies[0].innerHTML = list.length ? list.map(w => `<tr data-w="${esc(w.no)}"><td><b>${esc(w.no)}</b></td><td>${esc(lineLabel(w.line))}<div class="s">${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</div></td>
-      <td class="num">${esc(niceDt(w.down))}</td><td class="num">${esc(w.up ? niceDt(w.up) : "")}</td><td class="num">${w.up ? esc(hm(Number(w.hours) || 0)) : ""}</td><td class="hide-m">${esc(w.cause)}${w.ticket ? '<div class="s">Ticket ' + esc(w.ticket) + "</div>" : ""}</td><td>${downChip(w.status)}</td></tr>`).join("")
+      <td class="num">${esc(niceDt(w.down))}</td><td class="num">${esc(w.up ? niceDt(w.up) : "")}</td><td class="num">${w.up ? esc(hm(Number(w.hours) || 0)) : ""}</td><td class="hide-m">${esc(w.cause)}${w.ticket ? '<div class="s">Ticket ' + esc(w.ticket) + "</div>" : ""}</td><td>${downChip(w.status)}${shotIds(w).length ? '<div class="s">' + shotIds(w).length + " screenshot(s)</div>" : ""}</td></tr>`).join("")
     : '<tr><td colspan="7" class="empty">' + (D.downtime.length ? "Nothing in this month." : "No downtime recorded.") + "</td></tr>";
   $("wTable").querySelectorAll("tbody tr[data-w]").forEach(tr => tr.onclick = () => openDown(tr.dataset.w));
 }
@@ -4261,8 +4276,40 @@ function openDown(no) {
   $("wDown").max = $("wUp").max = $("wIspAt").max = isoDate(new Date()) + "T23:59";
   $("wTitle").textContent = wCur ? wCur.no + "  " + lineLabel(wCur.line) : "Record internet downtime";
   $("wHistWrap").classList.toggle("hidden", !wCur); $("wHist").textContent = wCur ? wCur.history : "";
-  downHours(); msg("wMsg", ""); $("wDlg").showModal();
+  wPending = []; renderShots(); downHours(); msg("wMsg", ""); $("wDlg").showModal();
 }
+// ---- screenshots on a downtime entry ----
+let wPending = [];
+const shotCache = {};
+function shotIds(w) { return w && w.shots ? String(w.shots).split(/\s+/).filter(Boolean) : []; }
+async function shotSrc(no, id) {
+  if (!shotCache[id]) shotCache[id] = api({ action: "downtimeShot", no, id }).then(j => { if (!j.ok) throw new Error(j.error); return j.image; }).catch(e => { delete shotCache[id]; throw e; });
+  return shotCache[id];
+}
+function showShot(src, title) { $("shotImg").src = src; $("shotT").textContent = title; $("shotDlg").showModal(); }
+function renderShots() {
+  const saved = shotIds(wCur), box = $("wShots");
+  box.innerHTML = saved.map((id, i) => `<button type="button" data-sid="${esc(id)}" title="Screenshot ${i + 1}">Loading…</button>`).join("") +
+    wPending.map((u, i) => `<button type="button" class="new" data-pi="${i}" style="background-image:url('${u}')" title="Not saved yet"><span class="rm" data-rm="${i}" role="button" aria-label="Remove">×</span></button>`).join("") ||
+    '<span class="hint" style="margin:0">None yet.</span>';
+  box.querySelectorAll("[data-sid]").forEach(b => {
+    shotSrc(wCur.no, b.dataset.sid).then(src => { b.textContent = ""; b.style.backgroundImage = "url('" + src + "')"; b.onclick = () => showShot(src, wCur.no + " screenshot"); })
+      .catch(() => { b.textContent = "Could not load"; });
+  });
+  box.querySelectorAll("[data-pi]").forEach(b => b.onclick = e => {
+    if (e.target.dataset.rm != null) { wPending.splice(+e.target.dataset.rm, 1); renderShots(); return; }
+    showShot(wPending[+b.dataset.pi], "New screenshot (not saved yet)");
+  });
+}
+async function addShots(files) {
+  const imgs = [...files].filter(f => /^image\//.test(f.type));
+  if (!imgs.length) return;
+  if (shotIds(wCur).length + wPending.length + imgs.length > 10) { msg("wMsg", "An entry can keep up to 10 screenshots.", "err"); return; }
+  try { for (const f of imgs) wPending.push("data:image/jpeg;base64," + await shrinkPhoto(f)); renderShots(); msg("wMsg", wPending.length + " screenshot(s) ready. Press Save to keep them.", "ok"); }
+  catch (err) { msg("wMsg", err.message, "err"); }
+}
+$("wFile").onchange = () => { addShots($("wFile").files); $("wFile").value = ""; };
+$("wDlg").addEventListener("paste", e => { const f = [...(e.clipboardData || {}).files || []]; if (f.length && can("Technician")) { e.preventDefault(); addShots(f); } });
 function downHours() {
   const a = dtOf($("wDown").value), b = dtOf($("wUp").value);
   $("wHours").textContent = a && b ? (b < a ? "The time it came back is before the time it went down." : "Down for " + hm((b - a) / 3600e3) + ".") : a ? "Still down (" + hm(Math.max(0, new Date() - a) / 3600e3) + " so far)." : "";
@@ -4279,11 +4326,13 @@ $("wForm").onsubmit = async e => {
   if (item.up && item.up < item.down) { msg("wMsg", "The time it came back must be after the time it went down.", "err"); return; }
   $("wSave").disabled = true; msg("wMsg", "Saving…");
   try {
-    const j = await api({ action: "saveDowntime", item });
+    const j = await api({ action: "saveDowntime", item, images: wPending });
     if (!j.ok) { msg("wMsg", j.error, "err"); return; }
+    const added = wPending.length; wPending = [];
     const i = D.downtime.findIndex(x => x.no === j.item.no); if (i >= 0) D.downtime[i] = j.item; else D.downtime.push(j.item);
     wCur = j.item; renderDown(); $("wTitle").textContent = wCur.no + "  " + lineLabel(wCur.line); $("wHistWrap").classList.remove("hidden"); $("wHist").textContent = wCur.history;
-    msg("wMsg", j.unchanged ? "Nothing was changed." : (i >= 0 ? "Saved." : "Recorded as " + wCur.no + ".") + (wCur.up ? " Down for " + hm(Number(wCur.hours) || 0) + "." : ""), "ok");
+    renderShots();
+    msg("wMsg", j.unchanged ? "Nothing was changed." : (i >= 0 ? "Saved." : "Recorded as " + wCur.no + ".") + (wCur.up ? " Down for " + hm(Number(wCur.hours) || 0) + "." : "") + (added ? " " + added + " screenshot(s) added." : ""), "ok");
   } catch (err) { msg("wMsg", errText(err), "err"); }
   finally { $("wSave").disabled = false; }
 };
@@ -4295,9 +4344,9 @@ $("wPrint").onclick = () => {
     <tr><td><b>Office without internet (both lines down at the same time)</b></td><td class="c">${S.whole.events}</td><td>${esc(hm(S.whole.down))}</td><td class="c">${esc(hrs(S.whole.down))}</td><td class="c">${S.whole.uptime.toFixed(2)}%</td></tr>
     ${S.lines.map(l => `<tr><td>${esc(l.label)}</td><td class="c">${l.events}</td><td>${esc(hm(l.down))}</td><td class="c">${esc(hrs(l.down))}</td><td class="c">${l.uptime.toFixed(2)}%</td></tr>`).join("")}
     </tbody></table>
-    <table><thead><tr><th>No.</th><th>Line</th><th>Went Down</th><th>Came Back</th><th>Hours</th><th>Scope / Areas</th><th>Cause</th><th>Reported to ISP</th><th>Ticket No.</th><th>Actions Taken</th></tr></thead><tbody>
+    <table><thead><tr><th>No.</th><th>Line</th><th>Went Down</th><th>Came Back</th><th>Hours</th><th>Scope / Areas</th><th>Cause</th><th>Reported to ISP</th><th>Ticket No.</th><th>Actions Taken</th><th>Screenshots</th></tr></thead><tbody>
     ${list.map(w => `<tr><td>${esc(w.no)}</td><td>${esc(lineLabel(w.line))}</td><td>${esc(niceDt(w.down))}</td><td>${esc(w.up ? niceDt(w.up) : "Still down")}</td><td class="c">${w.up ? esc(hrs(Number(w.hours) || 0)) : ""}</td>
-      <td>${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</td><td>${esc(w.cause)}</td><td>${esc(niceDt(w.ispAt))}</td><td>${esc(w.ticket)}</td><td>${esc(w.actions)}</td></tr>`).join("") || '<tr><td colspan="10" class="c">No downtime recorded this month.</td></tr>'}
+      <td>${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</td><td>${esc(w.cause)}</td><td>${esc(niceDt(w.ispAt))}</td><td>${esc(w.ticket)}</td><td>${esc(w.actions)}</td><td class="c">${shotIds(w).length || ""}</td></tr>`).join("") || '<tr><td colspan="11" class="c">No downtime recorded this month.</td></tr>'}
     </tbody></table>${signs()}</div>`, true);
 };
 

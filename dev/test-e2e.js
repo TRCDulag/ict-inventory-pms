@@ -648,6 +648,18 @@ const shots = path.join(__dirname, 'screenshots');
   await page.waitForFunction(() => /Down for/.test($('wMsg').textContent));
   await page.evaluate(() => $('wDlg').close());
   ok(await page.evaluate(() => !$('wOngoing').textContent && D.downtime.some(w => w.status === 'Restored' && w.hours >= 1.4) && /uptime/.test($('wTiles').textContent)), 'It is back now closes the outage and the month shows the uptime');
+  // screenshots on the entry
+  const dtNo = await page.evaluate(() => D.downtime.find(w => w.status === 'Restored').no);
+  await page.click('#wTable tbody tr[data-w="' + dtNo + '"]'); await page.waitForSelector('#wDlg[open]');
+  await page.setInputFiles('#wFile', path.join(shots, '27-internet-down.png'));
+  await page.waitForFunction(() => wPending.length === 1 && document.querySelector('#wShots button.new'));
+  await page.click('#wSave');
+  await page.waitForFunction(() => /screenshot\(s\) added/.test($('wMsg').textContent));
+  await page.waitForFunction(() => { const b = document.querySelector('#wShots [data-sid]'); return b && /url\(/.test(b.style.backgroundImage); });
+  await page.click('#wShots [data-sid]'); await page.waitForSelector('#shotDlg[open]');
+  ok(await page.evaluate(no => /^data:image\/jpeg/.test($('shotImg').src) && /1 screenshot/.test(document.querySelector('#wTable tr[data-w="' + no + '"]').textContent), dtNo), 'a screenshot is attached to the downtime entry and opens full size');
+  await page.screenshot({ path: path.join(shots, '29-downtime-screenshot.png') });
+  await page.evaluate(() => { $('shotDlg').close(); $('wDlg').close(); });
   const pr1 = await page.evaluate(() => window.__printed || 0);
   await page.click('#wPrint'); await page.waitForFunction(n => (window.__printed || 0) > n, pr1);
   ok(await page.evaluate(() => /INTERNET DOWNTIME REPORT/.test($('printArea').innerHTML) && /E2E Fiber/.test($('printArea').innerHTML) && /both lines down/.test($('printArea').innerHTML)), 'the monthly downtime report prints');

@@ -422,6 +422,15 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   ok(w.ok && w.item.status === 'Restored' && w.item.hours === 0.75 && /Restored/.test(w.item.history), 'marking it back up closes it: ' + JSON.stringify(w.item));
   ok(call({ action: 'load' }).downtime.length === 2 && call({ action: 'load' }).choices.downCause.includes('ISP outage'), 'the downtime log loads with its choices');
   ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'INTERNET DOWNTIME ADDED'), 'downtime is in the Audit Trail');
+  const png = 'data:image/png;base64,' + Buffer.from('x'.repeat(200)).toString('base64');
+  ok(/could not be read/.test(asTech({ action: 'saveDowntime', item: { no, line: 'ALL', down: '2026-10-05 13:00', up: '2026-10-05 13:45', cause: 'Power interruption' }, images: ['data:text/html;base64,' + 'A'.repeat(200)] }).error), 'only images are taken as screenshots');
+  w = asTech({ action: 'saveDowntime', item: { no, line: 'ALL', down: '2026-10-05 13:00', up: '2026-10-05 13:45', cause: 'Power interruption', shots: 'fake-id' }, images: [png, png] });
+  const sids = String(w.item.shots).split(/\s+/).filter(Boolean);
+  ok(w.ok && sids.length === 2 && !sids.includes('fake-id') && sids.every(id => be.gas._files[id]), 'two screenshots saved to Drive and listed on the entry: ' + JSON.stringify(w.item.shots));
+  let sh = asTech({ action: 'downtimeShot', no, id: sids[0] });
+  ok(sh.ok && /^data:image\/png;base64,/.test(sh.image), 'the entry screenshot can be opened');
+  ok(/not on/.test(call({ action: 'downtimeShot', no, id: 'SHEETID' }).error), 'files not listed on the entry cannot be read');
+  ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'DOWNTIME SCREENSHOT ADDED'), 'screenshots are in the Audit Trail');
 }
 
 // reading a property sticker photo (Gemini stand-in)

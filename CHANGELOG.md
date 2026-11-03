@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.4 (Nov 3, 2026)
+- Internet Downtime: attach screenshots to each entry as proof, such as the router interface list, a speed test or the ISP's text. Press Ctrl+V in the form to paste one, or choose files. Up to 10 per entry.
+- The screenshots are kept in a Drive folder "ICT PMS Downtime Screenshots". Click one to see it full size, and the monthly report shows how many each entry has.
+- Run setup once in Apps Script so the Internet Downtime tab gets its new Screenshots column.
+
 ## 1.6.3 (Nov 3, 2026)
 - Internet Downtime: since PLDT is the main line and the router switches to Starlink by itself, the office is now counted as without internet only while both lines are down at the same time. Each line still shows its own uptime.
 - New scope choice "Backup line took over". It is picked by default when you record one line, and "Whole office" is picked when you choose All internet lines.
