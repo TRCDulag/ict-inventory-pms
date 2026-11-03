@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.4.7';
+const VERSION = '1.4.8';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -1511,7 +1511,8 @@ function importRows_(req) {
     const fixName = (n, office) => {
       const m = nearestEmployee_(n, office, emps);
       if (m && m !== n && !out.names.some(x => x[0] === n)) out.names.push([n, m]);
-      if (!m && emps.length && out.unmatched.indexOf(n) < 0) out.unmatched.push(n);
+      // Not in the employee masterlist: the name is left out and the unit stays under its section.
+      if (!m && emps.length) { if (out.unmatched.indexOf(n) < 0) out.unmatched.push(n); return ''; }
       return m || n;
     };
     const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
@@ -2045,11 +2046,21 @@ function nearestEmployee_(typed, office, emps) {
   const sur = w[w.length - 1], first = w.length > 1 ? w[0] : '';
   const off = nameKey_(office);
   let best = '', top = 0, tie = false;
+  function take(e, score) {
+    const o = off && e.office && (nameKey_(e.office).indexOf(off) >= 0 || off.indexOf(nameKey_(e.office)) >= 0) ? 3 : 0;
+    score += o;
+    if (score > top) { top = score; best = e.name; tie = false; } else if (score === top && e.name !== best) tie = true;
+  }
   emps.forEach(e => {
     const ew = words(e.name); if (ew.length < 1) return;
     // the surname can be two words (Dela Cruz): compare the joined last words too
     const es = ew[ew.length - 1], es2 = ew.slice(-2).join('');
-    if (!near(sur, es) && !(w.length > 1 && near(w.slice(-2).join(''), es2))) return;
+    // "Girlie P.": a first name and the initial of the surname
+    if (sur.length === 1 && first) { if (ew[0] === first && (es.charAt(0) === sur || (ew.length > 2 && ew[ew.length - 2].charAt(0) === sur))) { take(e, 12); } return; }
+    if (!near(sur, es) && !(w.length > 1 && near(w.slice(-2).join(''), es2))) {
+      if (w.length === 1 && ew[0] === sur) take(e, 8);   // one word that is a first name ("Majella")
+      return;
+    }
     let score = 10;
     if (first) {
       const ef = ew[0];
@@ -2058,8 +2069,7 @@ function nearestEmployee_(typed, office, emps) {
       else if (ew.slice(0, -1).some(x => x === first)) score += 4;
       else return;
     }
-    if (off && e.office && (nameKey_(e.office).indexOf(off) >= 0 || off.indexOf(nameKey_(e.office)) >= 0)) score += 3;
-    if (score > top) { top = score; best = e.name; tie = false; } else if (score === top && e.name !== best) tie = true;
+    take(e, score);
   });
   return tie ? '' : best;
 }

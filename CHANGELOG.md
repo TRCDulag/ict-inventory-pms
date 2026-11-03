@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.8 (Nov 3, 2026)
+- Import from Excel: an end user who is not in the employee masterlist is left out, and the unit stays under its section. Short names like "L. Panopio", "Girlie P." or a first name alone are matched too when only one employee fits.
+
 ## 1.4.7 (Nov 3, 2026)
 - PMS schedule: "Record a PM round" saves one PM record for each ticked unit at once, with the same date and result. For PMs that were done; the date cannot be in the future.
 - PMS schedule: "Catch-up schedule" (Head) gives every overdue unit a new PM date on the coming working days, a set number a day. It plans the PMs; it does not mark them as done.

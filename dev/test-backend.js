@@ -291,12 +291,12 @@ const i1 = got.inventory.find(i => i.id === 'ICT-0001');
 ok(call({ action: 'importRows', inventory: [{ 'Equipment ID': 'ICT-0001', 'Equipment Type': i1.type, 'Brand / Model': i1.brand }] }).skipped.join() === 'ICT-0001', 'same ID, type and brand without a serial no. is skipped');
 // a paper PM report: units with no serial no. and no ICT ID, matched by type, brand, office and end user
 const paper = { action: 'importRows', file: 'report.xlsx',
-  inventory: [{ 'Equipment ID': 'NEW-01', 'Equipment Type': 'Desktop Computer', 'Brand / Model': 'Acer', 'Office / Section': 'Budget Section', 'End User': 'Test User', 'Last PM': '2024-11-13' }],
+  inventory: [{ 'Equipment ID': 'NEW-01', 'Equipment Type': 'Desktop Computer', 'Brand / Model': 'Acer', 'Office / Section': 'Accounting Section', 'End User': 'ANA GARCIA', 'Last PM': '2024-11-13' }],
   pms: [{ 'PM Ref No.': 'PM-2024-001', 'Date': '2024-11-13', 'Equipment Type': 'Desktop Computer', 'Status': 'Resolved', 'Equipment ID': 'NEW-01' }] };
 r = call(paper);
 const paperId = r.renumbered['NEW-01'];
 ok(r.added.length === 1 && /^ICT-\d{4}$/.test(paperId) && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-001').equipmentId === paperId, 'a unit from a paper report gets an ID and its PM record follows it');
-paper.pms[0]['PM Ref No.'] = 'PM-2024-002'; paper.inventory[0]['End User'] = ' test  user ';
+paper.pms[0]['PM Ref No.'] = 'PM-2024-002'; paper.inventory[0]['End User'] = ' ana   garcia ';
 r = call(paper);
 ok(r.added.length === 0 && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-002').equipmentId === paperId, 'the same unit from the same office and end user is not added twice, and its PM goes to the unit already there');
 // hand-typed end users become the masterlist name
@@ -304,10 +304,12 @@ r = call({ action: 'importRows', file: 'report.xlsx', inventory: [
   { 'Equipment ID': 'NEW-02', 'Equipment Type': 'Laptop', 'Office / Section': 'ACCOUNTING SECTION', 'End User': 'ANA GARCIA' },
   { 'Equipment ID': 'NEW-03', 'Equipment Type': 'Laptop', 'Office / Section': 'Budget Section', 'End User': 'Ma. Clara Santoz' },
   { 'Equipment ID': 'NEW-04', 'Equipment Type': 'Laptop', 'Office / Section': 'Cash Unit', 'End User': 'DR. REYES' },
-  { 'Equipment ID': 'NEW-05', 'Equipment Type': 'Laptop', 'Office / Section': 'HIMS', 'End User': 'Nobody Known' }],
+  { 'Equipment ID': 'NEW-05', 'Equipment Type': 'Laptop', 'Office / Section': 'HIMS', 'End User': 'Nobody Known' },
+  { 'Equipment ID': 'NEW-06', 'Equipment Type': 'Printer', 'Office / Section': 'Accounting Section', 'End User': 'Juan D.' },
+  { 'Equipment ID': 'NEW-07', 'Equipment Type': 'Printer', 'Office / Section': 'Budget Section', 'End User': 'Maria' }],
   pms: [{ 'PM Ref No.': 'PM-2024-003', 'Date': '2024-11-13', 'Equipment Type': 'Laptop', 'End User': 'ANA GARCIA', 'Office / Section': 'ACCOUNTING SECTION', 'Equipment ID': 'NEW-02' }] });
 const nm = Object.fromEntries(r.names);
-ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Maria Clara R. Santos' && nm['DR. REYES'] === 'Jose Mari S. Reyes Jr.' && r.unmatched.join() === 'Nobody Known' && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-003').endUser === 'Ana Liza M. Garcia', 'end users are matched to the employee masterlist: ' + JSON.stringify(r.names) + JSON.stringify(r.unmatched));
+ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Maria Clara R. Santos' && nm['DR. REYES'] === 'Jose Mari S. Reyes Jr.' && r.unmatched.join() === 'Nobody Known' && nm['Juan D.'] === 'Juan P. Dela Cruz' && nm['Maria'] === 'Maria Clara R. Santos' && call({ action: 'load' }).inventory.some(i => i.office === 'HIMS' && i.type === 'Laptop' && i.endUser === '') && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-003').endUser === 'Ana Liza M. Garcia', 'end users are matched to the employee masterlist: ' + JSON.stringify(r.names) + JSON.stringify(r.unmatched));
 
 // PM round and catch-up schedule
 {

@@ -1317,9 +1317,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.7";
+const APP_VERSION = "1.4.8";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.8", "Nov 3, 2026", ["Import from Excel: an end user who is not in the employee masterlist is left out, and the unit stays under its section. Short names like \"L. Panopio\", \"Girlie P.\" or a first name alone are matched too when only one employee fits."]],
   ["1.4.7", "Nov 3, 2026", ["PMS schedule: \"Record a PM round\" saves one PM record for each ticked unit at once, with the same date and result. For PMs that were done; the date cannot be in the future.", "PMS schedule: \"Catch-up schedule\" (Head) gives every overdue unit a new PM date on the coming working days, a set number a day. It plans the PMs; it does not mark them as done."]],
   ["1.4.6", "Nov 3, 2026", ["Import from Excel: each end user is changed to the nearest name in the employee masterlist (for example \"ENGR. ORACION\" to the full name). The message after the import lists every name it changed and the ones it could not find."]],
   ["1.4.5", "Nov 3, 2026", ["Import from Excel: a unit with no serial no. and no ICT ID (as from a paper PM report) is not added twice. When the same type, brand, office and end user is already in the masterlist, its PM records go to that unit."]],
@@ -1466,7 +1467,7 @@ $("iImpFile").onchange = async () => {
       (j.skipped.length + j.pmSkipped.length ? `\nSkipped, already there: ${j.skipped.concat(j.pmSkipped).slice(0, 30).join(", ")}${j.skipped.length + j.pmSkipped.length > 30 ? "…" : ""}` : "") +
       (Object.entries(j.renumbered || {}).filter(([a]) => /^ICT-/.test(a)).length ? `\nGiven a new ID because a different unit already had the old one: ${Object.entries(j.renumbered).filter(([a]) => /^ICT-/.test(a)).slice(0, 30).map(([a, b]) => a + " is now " + b).join(", ")}` : "") +
       ((j.names || []).length ? `\nEnd users changed to the name in the employee masterlist (${j.names.length}): ${j.names.slice(0, 40).map(([a, b]) => a + " → " + b).join(", ")}${j.names.length > 40 ? "…" : ""}` : "") +
-      (j.unmatched && j.unmatched.length ? `\nNot found in the employee masterlist, kept as typed: ${j.unmatched.slice(0, 40).join(", ")}` : ""));
+      (j.unmatched && j.unmatched.length ? `\nNot in the employee masterlist, so the name was left out and the unit stays under its section: ${j.unmatched.slice(0, 40).join(", ")}` : ""));
   } catch (e) { alert(errText(e)); }
 };
 
