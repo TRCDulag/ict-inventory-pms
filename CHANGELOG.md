@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.5.2 (Nov 3, 2026)
+- Inventory: "For disposal" (Head) lists every Unserviceable unit with its serial, section, age and last job order or TIR. Tick units, print the list to attach to the IIRUP, then mark them Disposed in one go with the IIRUP no. and date. Disposed units stay in the masterlist for the record.
+
 ## 1.5.1 (Nov 3, 2026)
 - Record a PM round: Tick all overdue only ticks the overdue units that match the search (for example only printers). With no match, it ticks all overdue units.
 - Do PM: each unit in the list has a colored mark, red for overdue, blue for planned this month or soon, green for PM done and up to date.

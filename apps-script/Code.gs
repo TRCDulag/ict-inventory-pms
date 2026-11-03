@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.5.1';
+const VERSION = '1.5.2';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -130,7 +130,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
-  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -230,6 +230,7 @@ function handle_(req) {
       case 'catchUp':       return catchUp_(req);
       case 'renameOffice':  return renameOffice_(req);
       case 'tidyOffices':   return tidyOffices_(req);
+      case 'disposeUnits':  return disposeUnits_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
       case 'addOffice':     return addOffice_(req);
@@ -468,6 +469,36 @@ function catchUp_(req) {
     if (plan.length) audit_(plan[0] + (plan.length > 1 ? ' to ' + plan[plan.length - 1] : ''), 'CATCH-UP SCHEDULE', clean_(req.by),
       plan.length + ' overdue unit(s) planned from ' + fmtDate_(start) + ' to ' + fmtDate_(day) + ', ' + perDay + ' a day. No PM record was added.', req.device);
     return { ok: true, count: plan.length, from: plan.length ? fmtDate_(start) : '', to: plan.length ? fmtDate_(day) : '' };
+  });
+}
+
+// Disposal: Unserviceable units become Disposed, with the disposal document (IIRUP or similar) and date in Remarks.
+// They stay in the masterlist for the record.
+function disposeUnits_(req) {
+  const ids = (Array.isArray(req.ids) ? req.ids : []).map(x => clean_(x).toUpperCase()).filter(Boolean);
+  const doc = clean_(req.doc), d = toDate_(req.date);
+  if (!ids.length) throw new Error('Tick at least one unit.');
+  if (!doc) throw new Error('Type the IIRUP or disposal document no.');
+  if (!d) throw new Error('Date of disposal is required.');
+  if (fmtDate_(d) > fmtDate_(new Date())) throw new Error('The date of disposal cannot be in the future.');
+  return withLock_(() => {
+    const sh = sheet_(INV), now = new Date(), done = [], skipped = [];
+    ids.forEach(id => {
+      const r = findRow_(sh, id);
+      if (!r) { skipped.push(id + ': not found'); return; }
+      const row = sh.getRange(r, 1, 1, INV_HEADERS.length).getValues()[0];
+      if (row[I['Condition']] !== 'Unserviceable') { skipped.push(id + ': not Unserviceable'); return; }
+      const note = 'Disposed ' + fmtDate_(d) + ', ' + doc + (clean_(req.remarks) ? ', ' + clean_(req.remarks) : '') + '.';
+      row[I['Condition']] = 'Disposed';
+      row[I['Next PM Due']] = '';
+      row[I['Remarks']] = [clean_(row[I['Remarks']]), note].filter(Boolean).join(' ');
+      row[I['Updated At']] = now; row[I['Updated By']] = clean_(req.by);
+      formatInvRow_(sh, r);
+      sh.getRange(r, 1, 1, INV_HEADERS.length).setValues([row]);
+      done.push(id);
+    });
+    if (done.length) audit_(done.join(', ').slice(0, 300), 'UNITS DISPOSED', clean_(req.by), done.length + ' unit(s) marked Disposed under ' + doc + ' dated ' + fmtDate_(d) + '.', req.device);
+    return { ok: true, done: done, skipped: skipped };
   });
 }
 

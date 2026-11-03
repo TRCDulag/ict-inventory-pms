@@ -613,6 +613,24 @@ const shots = path.join(__dirname, 'screenshots');
   ok(await page.evaluate(() => roundTicked.size === D.inventory.filter(it => pmState(it) === 'late' && freqM(it) && active(it) && it.condition !== 'Unserviceable').length), 'with no match it ticks all overdue units');
   await page.evaluate(() => { $('roundDlg').close(); }); await page.evaluate(() => reload());
 
+  // for disposal: tick, print the IIRUP list, mark Disposed
+  const dispId = await page.evaluate(async () => (await api({ action: 'saveEquipment', item: { type: 'Laptop', brand: 'E2E Old Laptop', serial: 'E2E-DISP-1', office: 'IDADIN/ICTU', condition: 'Unserviceable', acquired: '2014-05-01' } })).id);
+  await page.evaluate(() => reload());
+  await page.click('nav.tabs button[data-v="inv"]');
+  await page.click('#iDisp'); await page.waitForSelector('#dispDlg[open]');
+  ok(await page.evaluate(id => dispUnits().some(it => it.id === id) && dispUnits().every(it => it.condition === 'Unserviceable'), dispId), 'For disposal lists only Unserviceable units');
+  await page.check('#dispList input[value="' + dispId + '"]');
+  const pr0 = await page.evaluate(() => window.__printed || 0);
+  await page.click('#dispPrint');
+  await page.waitForFunction(n => (window.__printed || 0) > n, pr0);
+  ok(await page.evaluate(id => /FOR DISPOSAL/.test($('printArea').innerHTML) && $('printArea').innerHTML.includes(id) && /IIRUP/.test($('printArea').innerHTML), dispId), 'the list for the IIRUP prints with the ticked unit');
+  await page.screenshot({ path: path.join(shots, '26-for-disposal.png') });
+  await page.fill('#dispDoc', 'IIRUP-2026-001');
+  await page.click('#dispSave');
+  await page.waitForFunction(() => /Disposed/.test($('dispMsg').textContent) && !$('dispSave').disabled);
+  ok(await page.evaluate(id => D.inventory.find(i => i.id === id).condition === 'Disposed' && !dispUnits().some(i => i.id === id), dispId), 'the ticked unit is marked Disposed and leaves the list: ' + await page.textContent('#dispMsg'));
+  await page.evaluate(() => $('dispDlg').close());
+
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');
   await browser.close(); server.close();

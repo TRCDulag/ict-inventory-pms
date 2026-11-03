@@ -659,6 +659,7 @@
         <button class="btn ghost small" id="iLabels" type="button">Print QR labels</button>
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
+        <button class="btn ghost small need3" id="iDisp" type="button">For disposal</button>
         <button class="btn ghost small need3" id="iRen" type="button">Rename a section</button>
         <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
@@ -1153,6 +1154,26 @@
   </div>
   <div class="df"><button class="btn ghost" type="button" id="dueCsv">Download for Excel</button><span class="spacer"></span><button class="btn" type="button" id="duePrint">Print replacement plan</button></div>
 </dialog>
+<!-- for disposal: the Unserviceable units, printed for the IIRUP and marked Disposed once approved -->
+<dialog id="dispDlg" class="wide">
+  <form id="dispForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>For disposal</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <p class="hint" style="margin:0 0 10px">All units marked Unserviceable. Tick the units, print the list to attach to the IIRUP, and once the disposal is approved, mark them Disposed. Disposed units stay in the masterlist for the record (Condition filter "Everything, with disposed").</p>
+      <div class="row" style="margin:0 0 6px"><b id="dispCount">0 ticked</b><span class="spacer"></span>
+        <button class="btn ghost small" type="button" id="dispAll">Tick all</button><button class="btn ghost small" type="button" id="dispNone">Clear</button></div>
+      <div id="dispList" class="rdlist"></div>
+      <h4 style="margin:16px 0 8px">When the disposal is approved</h4>
+      <div class="grid g3">
+        <label class="f"><span class="req">IIRUP / disposal document no.</span><input id="dispDoc" placeholder="For example IIRUP 2026-11-001"></label>
+        <label class="f"><span class="req">Date approved</span><input id="dispDate" type="date"></label>
+        <label class="f">Remarks<input id="dispRem" placeholder="For example sold as scrap, turned over to MMU"></label>
+      </div>
+      <div class="msg" id="dispMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost" type="button" id="dispPrint">Print list for the IIRUP</button><span class="spacer"></span><button class="btn" type="submit" id="dispSave">Mark ticked units Disposed</button></div>
+  </form>
+</dialog>
 <!-- rename a section in the masterlist -->
 <dialog id="renDlg">
   <form id="renForm" method="dialog" autocomplete="off">
@@ -1351,9 +1372,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.5.1";
+const APP_VERSION = "1.5.2";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.5.2", "Nov 3, 2026", ["Inventory: \"For disposal\" (Head) lists every Unserviceable unit with its serial, section, age and last job order or TIR. Tick units, print the list to attach to the IIRUP, then mark them Disposed in one go with the IIRUP no. and date. Disposed units stay in the masterlist for the record."]],
   ["1.5.1", "Nov 3, 2026", ["Record a PM round: Tick all overdue only ticks the overdue units that match the search (for example only printers). With no match, it ticks all overdue units.", "Do PM: each unit in the list has a colored mark, red for overdue, blue for planned this month or soon, green for PM done and up to date.", "Dashboard: Due for replacement opens the list of those units with their specs, serial, section, age, useful life and costs. Click a unit to open it, or download it for Excel.", "The Tidy section names button is removed. Imports still use the agreed section names."]],
   ["1.5.0", "Nov 3, 2026", ["Dashboard: click a bar in Equipment by section (or Condition) to open the inventory list for that section (or condition).", "Inventory: \"Tidy section names\" (Head) merges sections that are the same under two names, after showing the list first. For example RITD CHPO into Office of the Chief Health Program Officer (Residential/Inpatient Treatment Division), MSS into Medical Social Work Section, Cash Unit into Cash Operations Section, CAO into Office of the Chief Administrative Officer, and Main Office, IDTOMIS/IDADIN and ICTU into IDADIN/ICTU.", "Import from Excel uses the same section names, so imported units land in the merged sections."]],
   ["1.4.9", "Nov 3, 2026", ["Inventory: \"Rename a section\" (Head) gives every unit under a section a new name at once, for example Main Office to IDADIN/ICTU. Saved PM records and job orders keep the name they had."]],
@@ -2470,6 +2492,49 @@ function renderSched() {
   bindRowButtons($("sTable"));
 }
 ["sYear", "sOffice", "sType", "sShow", "sSort"].forEach(id => $(id).addEventListener("input", renderSched));
+
+// ---------- for disposal ----------
+const dispTicked = new Set();
+function dispUnits() { return D.inventory.filter(it => it.condition === "Unserviceable").sort((a, b) => (a.type + a.id).localeCompare(b.type + b.id, undefined, { numeric: true })); }
+function lastJoOf(id) { return D.jos.filter(j => j.equipmentId === id && j.status !== "Cancelled").sort((a, b) => a.logged < b.logged ? 1 : -1)[0]; }
+function renderDisp() {
+  const list = dispUnits();
+  $("dispList").innerHTML = list.length ? list.map(it => { const r = replOf(it), j = lastJoOf(it.id); return `<label><input type="checkbox" value="${esc(it.id)}"${dispTicked.has(it.id) ? " checked" : ""}><span><b>${esc(it.id)}</b> ${esc(eqName(it))}
+    <small>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}${it.tag ? ". Tag " + esc(it.tag) : ""}${it.acquired ? ". Acquired " + esc(nice(it.acquired)) + (r.age != null ? " (" + r.age.toFixed(1) + " yrs)" : "") : ""}${j ? ". " + esc(j.jo) + (j.tirRec ? ", TIR: " + esc(j.tirRec) : "") : ". No job order or TIR yet"}</small></span></label>`; }).join("")
+    : '<div class="empty">No unit is marked Unserviceable. Mark a unit Unserviceable from its job order (Beyond Economical Repair) or by editing it.</div>';
+  $("dispList").querySelectorAll("input").forEach(c => c.onchange = () => { c.checked ? dispTicked.add(c.value) : dispTicked.delete(c.value); $("dispCount").textContent = dispTicked.size + " ticked"; });
+  $("dispCount").textContent = dispTicked.size + " ticked";
+}
+$("iDisp").onclick = () => { dispTicked.clear(); ["dispDoc", "dispRem"].forEach(id => $(id).value = ""); $("dispDate").value = todayStr(); $("dispDate").max = todayStr(); msg("dispMsg", ""); renderDisp(); $("dispDlg").showModal(); };
+$("dispAll").onclick = () => { dispUnits().forEach(it => dispTicked.add(it.id)); renderDisp(); };
+$("dispNone").onclick = () => { dispTicked.clear(); renderDisp(); };
+$("dispPrint").onclick = () => {
+  const rows = dispUnits().filter(it => dispTicked.has(it.id));
+  if (!rows.length) return msg("dispMsg", "Tick the units to put on the list.", "err");
+  const total = rows.reduce((s, it) => s + (Number(it.cost) || 0), 0);
+  doPrint(`<div class="sheet land">${header()}<h3>LIST OF UNSERVICEABLE ICT EQUIPMENT FOR DISPOSAL</h3>
+    <div class="sub">Attachment to the Inventory and Inspection Report of Unserviceable Property (IIRUP). As of ${esc(longDate(todayStr()))}. ${rows.length} unit(s)${total ? ", total acquisition cost " + esc(peso(total)) : ""}.</div>
+    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Type</th><th>Brand / Model</th><th>Serial No.</th><th>Property Tag No.</th><th>Section / End User</th><th>Date Acquired</th><th>Unit Cost</th><th>JO / TIR</th><th>Findings / Recommendation</th></tr></thead><tbody>
+    ${rows.map((it, i) => { const j = lastJoOf(it.id); return `<tr><td class="c">${i + 1}</td><td>${esc(it.id)}</td><td>${esc(it.type)}</td><td>${esc(it.brand)}</td><td>${esc(it.serial)}</td><td>${esc(it.tag)}</td>
+      <td>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}</td><td>${esc(nice(it.acquired))}</td><td style="text-align:right">${esc(peso(Number(it.cost) || 0))}</td>
+      <td>${j ? esc(j.jo) : ""}</td><td>${j ? esc([j.findings, j.tirRec].filter(Boolean).join(". ")) : esc(it.remarks)}</td></tr>`; }).join("")}
+    </tbody></table>${signs()}</div>`, true);
+};
+$("dispForm").onsubmit = async e => {
+  e.preventDefault();
+  if (!dispTicked.size) return msg("dispMsg", "Tick the units that were approved for disposal.", "err");
+  if (!$("dispDoc").value.trim()) return msg("dispMsg", "Type the IIRUP or disposal document no.", "err");
+  if (!$("dispDate").value || $("dispDate").value > todayStr()) return msg("dispMsg", "The date approved cannot be empty or in the future.", "err");
+  if (!confirm("Mark " + dispTicked.size + " unit(s) as Disposed under " + $("dispDoc").value.trim() + "?\n\nThey stay in the masterlist for the record but leave the normal list.")) return;
+  $("dispSave").disabled = true; msg("dispMsg", "Saving…");
+  try {
+    const j = await api({ action: "disposeUnits", ids: [...dispTicked], doc: $("dispDoc").value, date: $("dispDate").value, remarks: $("dispRem").value });
+    if (!j.ok) return msg("dispMsg", j.error, "err");
+    await reload(); dispTicked.clear(); renderDisp();
+    msg("dispMsg", units(j.done.length, ["unit", "units"]) + " marked Disposed." + (j.skipped.length ? " Not changed: " + j.skipped.join("; ") : ""), j.skipped.length ? "err" : "ok");
+  } catch (err) { msg("dispMsg", errText(err), "err"); }
+  finally { $("dispSave").disabled = false; }
+};
 
 // ---------- rename a section ----------
 $("iRen").onclick = () => {

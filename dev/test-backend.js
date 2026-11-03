@@ -361,6 +361,20 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   ok(ap.applied && L.inventory.find(i => i.brand === 'Tidy A').office === 'Budget Section' && L.inventory.find(i => i.brand === 'Tidy B').office === 'Medical Social Work Section' && call({ action: 'tidyOffices' }).plan.length === 0, 'tidy merges the look-alike sections, and a second run has nothing left');
 }
 
+// for disposal (IIRUP)
+{
+  const u1 = call({ action: 'saveEquipment', item: { type: 'Laptop', brand: 'Disp One', serial: 'DSP-001', office: 'ICTU', condition: 'Unserviceable', acquired: '2015-01-10' } }).id;
+  const u2 = call({ action: 'saveEquipment', item: { type: 'Desktop Computer', brand: 'Disp Two', serial: 'DSP-002', office: 'ICTU', condition: 'Serviceable' } }).id;
+  const today = call({ action: 'load' }).today;
+  ok(/role \(Technician\)/.test(asTech({ action: 'disposeUnits', ids: [u1], doc: 'IIRUP-2026-01', date: today }).error), 'only the Head marks units Disposed');
+  ok(/IIRUP/.test(call({ action: 'disposeUnits', ids: [u1], doc: '', date: today }).error), 'the IIRUP no. is required');
+  ok(/future/.test(call({ action: 'disposeUnits', ids: [u1], doc: 'IIRUP-2026-01', date: '2099-01-01' }).error), 'a disposal cannot be dated in the future');
+  const dz = call({ action: 'disposeUnits', ids: [u1, u2], doc: 'IIRUP-2026-01', date: today, remarks: 'Returned to MMU' });
+  const L = call({ action: 'load' }), a = L.inventory.find(i => i.id === u1), b = L.inventory.find(i => i.id === u2);
+  ok(dz.ok && dz.done.length === 1 && dz.skipped.length === 1 && a.condition === 'Disposed' && !a.nextDue && /IIRUP-2026-01/.test(a.remarks) && /Returned to MMU/.test(a.remarks) && b.condition === 'Serviceable', 'only Unserviceable units are marked Disposed, with the IIRUP no. in Remarks: ' + JSON.stringify(dz));
+  ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'UNITS DISPOSED'), 'disposal is in the Audit Trail');
+}
+
 // reading a property sticker photo (Gemini stand-in)
 ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');
 be.gas._props.GEMINI_API_KEY = 'test-key';
