@@ -577,6 +577,14 @@ const shots = path.join(__dirname, 'screenshots');
   ok(lateBefore > 0 && /planned from/.test(said) && await page.evaluate(() => D.inventory.filter(it => pmState(it) === 'late').length) === 0, 'Catch-up schedule leaves no unit overdue: ' + said);
   await page.screenshot({ path: path.join(shots, '24-after-catch-up.png'), fullPage: true });
 
+  // rename a section (Head)
+  await page.click('nav.tabs button[data-v="inv"]');
+  await page.click('#iRen'); await page.waitForSelector('#renDlg[open]');
+  await page.selectOption('#renFrom', 'ICTU'); await page.fill('#renTo', 'IDADIN/ICTU'); await page.click('#renSave');
+  await page.waitForFunction(() => /is now "IDADIN\/ICTU"/.test($('renMsg').textContent));
+  ok(await page.evaluate(() => D.inventory.some(i => i.office === 'IDADIN/ICTU') && !D.inventory.some(i => i.office === 'ICTU')), 'Rename a section renames every unit under it');
+  await page.evaluate(() => $('renDlg').close());
+
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');
   await browser.close(); server.close();

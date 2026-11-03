@@ -652,6 +652,7 @@
         <button class="btn ghost small" id="iLabels" type="button">Print QR labels</button>
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
+        <button class="btn ghost small need3" id="iRen" type="button">Rename a section</button>
         <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
     </div>
@@ -1134,6 +1135,21 @@
     <div class="df"><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn" type="submit" id="empSave">Add employee</button></div>
   </form>
 </dialog>
+<!-- rename a section in the masterlist -->
+<dialog id="renDlg">
+  <form id="renForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Rename a section</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <p class="hint" style="margin:0 0 10px">Every unit under the section gets the new name. Saved PM records and job orders keep the name they had.</p>
+      <div class="grid g3">
+        <label class="f"><span class="req">Section</span><select id="renFrom"></select></label>
+        <label class="f span2"><span class="req">New name</span><input id="renTo" placeholder="For example IDADIN/ICTU"></label>
+      </div>
+      <div class="msg" id="renMsg" role="status"></div>
+    </div>
+    <div class="df"><span class="spacer"></span><button class="btn" type="submit" id="renSave">Rename</button></div>
+  </form>
+</dialog>
 <!-- PM round: the same PM result for many units at once -->
 <dialog id="roundDlg">
   <form id="roundForm" method="dialog" autocomplete="off">
@@ -1317,9 +1333,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.4.8";
+const APP_VERSION = "1.4.9";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.4.9", "Nov 3, 2026", ["Inventory: \"Rename a section\" (Head) gives every unit under a section a new name at once, for example Main Office to IDADIN/ICTU. Saved PM records and job orders keep the name they had."]],
   ["1.4.8", "Nov 3, 2026", ["Import from Excel: an end user who is not in the employee masterlist is left out, and the unit stays under its section. Short names like \"L. Panopio\", \"Girlie P.\" or a first name alone are matched too when only one employee fits."]],
   ["1.4.7", "Nov 3, 2026", ["PMS schedule: \"Record a PM round\" saves one PM record for each ticked unit at once, with the same date and result. For PMs that were done; the date cannot be in the future.", "PMS schedule: \"Catch-up schedule\" (Head) gives every overdue unit a new PM date on the coming working days, a set number a day. It plans the PMs; it does not mark them as done."]],
   ["1.4.6", "Nov 3, 2026", ["Import from Excel: each end user is changed to the nearest name in the employee masterlist (for example \"ENGR. ORACION\" to the full name). The message after the import lists every name it changed and the ones it could not find."]],
@@ -2433,6 +2450,27 @@ function renderSched() {
   bindRowButtons($("sTable"));
 }
 ["sYear", "sOffice", "sType", "sShow", "sSort"].forEach(id => $(id).addEventListener("input", renderSched));
+
+// ---------- rename a section ----------
+$("iRen").onclick = () => {
+  const counts = {}; D.inventory.forEach(it => { if (it.office) counts[it.office] = (counts[it.office] || 0) + 1; });
+  $("renFrom").innerHTML = Object.keys(counts).sort().map(o => `<option value="${esc(o)}">${esc(o)} (${counts[o]})</option>`).join("");
+  $("renTo").value = ""; msg("renMsg", ""); $("renDlg").showModal(); $("renTo").focus();
+};
+$("renForm").onsubmit = async e => {
+  e.preventDefault();
+  const from = $("renFrom").value, to = $("renTo").value.trim();
+  if (!from || !to) return msg("renMsg", "Pick the section and type its new name.", "err");
+  $("renSave").disabled = true; msg("renMsg", "Renaming…");
+  try {
+    const j = await api({ action: "renameOffice", from, to });
+    if (!j.ok) return msg("renMsg", j.error, "err");
+    await reload();
+    msg("renMsg", `"${from}" is now "${j.to}" for ${units(j.count, ["unit", "units"])}.`, "ok");
+    $("iRen").onclick(); msg("renMsg", `"${from}" is now "${j.to}" for ${units(j.count, ["unit", "units"])}.`, "ok");
+  } catch (err) { msg("renMsg", errText(err), "err"); }
+  finally { $("renSave").disabled = false; }
+};
 
 // ---------- PM round and catch-up schedule ----------
 const roundTicked = new Set();

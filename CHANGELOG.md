@@ -2,6 +2,9 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.9 (Nov 3, 2026)
+- Inventory: "Rename a section" (Head) gives every unit under a section a new name at once, for example Main Office to IDADIN/ICTU. Saved PM records and job orders keep the name they had.
+
 ## 1.4.8 (Nov 3, 2026)
 - Import from Excel: an end user who is not in the employee masterlist is left out, and the unit stays under its section. Short names like "L. Panopio", "Girlie P." or a first name alone are matched too when only one employee fits.
 

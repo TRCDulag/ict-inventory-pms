@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.4.8';
+const VERSION = '1.4.9';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -130,7 +130,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician',
-  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -228,6 +228,7 @@ function handle_(req) {
       case 'savePM':        return savePM_(req);
       case 'savePMRound':   return savePMRound_(req);
       case 'catchUp':       return catchUp_(req);
+      case 'renameOffice':  return renameOffice_(req);
       case 'getPM':         return getPM_(req.ref);
       case 'voidPM':        return voidPM_(req);
       case 'addOffice':     return addOffice_(req);
@@ -525,6 +526,36 @@ function addOffice_(req) {
     appendOffice_(name);
     audit_('', 'OFFICE ADDED', clean_(req.by) || 'ICTU', name, req.device);
     return { ok: true, office: name };
+  });
+}
+
+// Renames a section in the masterlist and the Lists tab (for example "Main Office" to "IDADIN/ICTU").
+// Saved PM records and job orders keep the name they had, so their record hashes still check.
+function renameOffice_(req) {
+  const from = clean_(req.from), to = officeName_(clean_(req.to));
+  if (!from || !to) throw new Error('Pick the section and type its new name.');
+  if (nameKey_(from) === nameKey_(to)) throw new Error('The new name is the same as the old one.');
+  return withLock_(() => {
+    const sh = sheet_(INV), n = lastRow_(sh), c = I['Office / Section'] + 1, now = new Date();
+    let count = 0;
+    if (n >= 2) {
+      const vals = sh.getRange(2, c, n - 1, 1).getValues();
+      vals.forEach((v, i) => { if (nameKey_(v[0]) === nameKey_(from)) {
+        sh.getRange(i + 2, c).setValue(to);
+        sh.getRange(i + 2, I['Updated At'] + 1, 1, 2).setValues([[now, clean_(req.by)]]);
+        count++;
+      } });
+    }
+    const ls = SpreadsheetApp.getActive().getSheetByName(LISTS);
+    if (ls) {
+      const col = ls.getRange(1, 3, ls.getMaxRows(), 1).getValues();
+      const hasTo = col.some(v => nameKey_(v[0]) === nameKey_(to));
+      let renamed = false;
+      col.forEach((v, i) => { if (i > 0 && nameKey_(v[0]) === nameKey_(from)) { ls.getRange(i + 1, 3).setValue(hasTo || renamed ? '' : to); renamed = true; } });
+      if (!hasTo && !renamed) appendOffice_(to);
+    }
+    audit_('', 'SECTION RENAMED', clean_(req.by), '"' + from + '" is now "' + to + '" for ' + count + ' unit(s) in the masterlist.', req.device);
+    return { ok: true, count: count, to: to };
   });
 }
 

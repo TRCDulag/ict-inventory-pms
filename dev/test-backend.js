@@ -329,6 +329,19 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   ok(rd.ok && rd.refs.length === 2 && rd.failed.length === 1 && two.every(id => L2.inventory.find(i => i.id === id).lastPm === today) && /PM round/.test(L2.pms.find(p => p.ref === rd.refs[0]).remarks), 'a PM round saves one record per unit and moves their next PM: ' + JSON.stringify(rd));
 }
 
+// renaming a section
+{
+  const before = call({ action: 'load' });
+  const n = before.inventory.filter(i => i.office === 'ICTU').length;
+  const pmIctu = before.pms.filter(p => p.office === 'ICTU').length;
+  ok(/role \(Technician\)/.test(asTech({ action: 'renameOffice', from: 'ICTU', to: 'IDADIN/ICTU' }).error), 'only the Head renames a section');
+  const rn = call({ action: 'renameOffice', from: 'ICTU', to: 'idadin/ictu' });
+  const L = call({ action: 'load' });
+  ok(rn.ok && n > 0 && rn.count === n && rn.to === 'IDADIN/ICTU' && L.inventory.filter(i => i.office === 'IDADIN/ICTU').length === n && !L.inventory.some(i => i.office === 'ICTU')
+    && L.pms.filter(p => p.office === 'ICTU').length === pmIctu && L.lists.offices.includes('IDADIN/ICTU') && !L.lists.offices.includes('ICTU'), 'a section is renamed in the masterlist and the lists, PM records keep theirs: ' + JSON.stringify(rn));
+  ok(!call({ action: 'renameOffice', from: 'IDADIN/ICTU', to: 'IDADIN/ICTU' }).ok, 'the same name is refused');
+}
+
 // reading a property sticker photo (Gemini stand-in)
 ok(/GEMINI_API_KEY/.test(call({ action: 'readSticker', image: 'A'.repeat(200) }).error), 'sticker reading needs a key first');
 be.gas._props.GEMINI_API_KEY = 'test-key';
