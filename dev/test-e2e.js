@@ -650,8 +650,14 @@ const shots = path.join(__dirname, 'screenshots');
   ok(await page.evaluate(() => !$('wOngoing').textContent && D.downtime.some(w => w.status === 'Restored' && w.hours >= 1.4) && /uptime/.test($('wTiles').textContent)), 'It is back now closes the outage and the month shows the uptime');
   const pr1 = await page.evaluate(() => window.__printed || 0);
   await page.click('#wPrint'); await page.waitForFunction(n => (window.__printed || 0) > n, pr1);
-  ok(await page.evaluate(() => /INTERNET DOWNTIME REPORT/.test($('printArea').innerHTML) && /E2E Fiber/.test($('printArea').innerHTML) && /Whole office without internet/.test($('printArea').innerHTML)), 'the monthly downtime report prints');
+  ok(await page.evaluate(() => /INTERNET DOWNTIME REPORT/.test($('printArea').innerHTML) && /E2E Fiber/.test($('printArea').innerHTML) && /both lines down/.test($('printArea').innerHTML)), 'the monthly downtime report prints');
   await page.screenshot({ path: path.join(shots, '28-internet-downtime.png'), fullPage: true });
+  ok(await page.evaluate(() => { const keep = [D.network, D.downtime];
+    D.network = [{ id: 'N1', kind: 'Internet Line', name: 'Main', status: 'Active' }, { id: 'N2', kind: 'Internet Line', name: 'Backup', status: 'Active' }];
+    D.downtime = [{ no: 'A', line: 'N1', down: '2026-10-02 08:00', up: '2026-10-02 12:00' }, { no: 'B', line: 'N2', down: '2026-10-02 11:00', up: '2026-10-02 13:00' }, { no: 'C', line: 'N1', down: '2026-10-09 08:00', up: '2026-10-09 09:00' }];
+    const S = downMonth('2026-10'); [D.network, D.downtime] = keep;
+    return Math.abs(S.whole.down - 1) < 1e-9 && S.whole.events === 1 && Math.abs(S.lines.find(l => l.id === 'N1').down - 5) < 1e-9 && Math.abs(S.lines.find(l => l.id === 'N2').down - 2) < 1e-9; }),
+    'the office counts as without internet only while both lines are down');
 
   ok(!errors.length, 'no page errors: ' + errors.join(' | '));
   console.log('e2e: ' + n + ' checks passed');

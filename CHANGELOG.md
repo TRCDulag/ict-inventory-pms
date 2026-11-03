@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.3 (Nov 3, 2026)
+- Internet Downtime: since PLDT is the main line and the router switches to Starlink by itself, the office is now counted as without internet only while both lines are down at the same time. Each line still shows its own uptime.
+- New scope choice "Backup line took over". It is picked by default when you record one line, and "Whole office" is picked when you choose All internet lines.
+
 ## 1.6.2 (Nov 3, 2026)
 - Internet Downtime: the PLDT line (router ether6, ISP IN) and the Starlink line (router ether7) are now in the list from the start, so you can pick them right away. They show under Network and IP, where you can add the bandwidth, account no. and monthly cost.
 

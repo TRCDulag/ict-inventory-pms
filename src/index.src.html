@@ -974,7 +974,7 @@
   <!-- INTERNET DOWNTIME -->
   <section class="view hidden" id="v-down">
     <h2>Internet downtime log</h2>
-    <p class="lead">Every time the internet goes down: when it went down, when it came back, the cause and the ISP ticket. The app adds up the hours and the uptime for each month. The lines come from Network and IP (Kind: Internet Line).</p>
+    <p class="lead">Every time a line goes down: when it went down, when it came back, the cause and the ISP ticket. The app adds up the hours and the uptime of each line every month. PLDT is the main line and the router switches to Starlink by itself, so the office is counted as without internet only while both lines are down at the same time.</p>
     <div id="wOngoing"></div>
     <div class="panel"><div class="filters">
       <label class="f">Month<input id="wMonth" type="month"></label>
@@ -1477,9 +1477,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.2";
+const APP_VERSION = "1.6.3";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.3", "Nov 3, 2026", ["Internet Downtime: since PLDT is the main line and the router switches to Starlink by itself, the office is now counted as without internet only while both lines are down at the same time. Each line still shows its own uptime.", "New scope choice \"Backup line took over\". It is picked by default when you record one line, and \"Whole office\" is picked when you choose All internet lines."]],
   ["1.6.2", "Nov 3, 2026", ["Internet Downtime: the PLDT line (router ether6, ISP IN) and the Starlink line (router ether7) are now in the list from the start, so you can pick them right away. They show under Network and IP, where you can add the bandwidth, account no. and monthly cost."]],
   ["1.6.1", "Nov 3, 2026", ["New Internet Downtime page: record each time the internet goes down, with the line, the time it went down and came back, the cause and the ISP ticket. The app works out the hours.", "Each month shows the uptime of every line and how long the whole office had no internet. Print the monthly report for ISO or for a rebate request to the ISP.", "While a line is down, a red note and a count on the menu stay up until someone presses \"It is back now\".", "Run setup once in Apps Script to add the Internet Downtime tab. List your internet lines under Network and IP (Kind: Internet Line) first."]],
   ["1.6.0", "Nov 3, 2026", ["New ISO Documents page: every ICTU controlled document (procedures, forms, Context, ROA, APW) with its current revision, effectivity date and status, and the revisions and DRFs behind it. Marking a revision Approved updates the document by itself.", "Print the master list of documents, the DRF and revision log, the revision history of a document, and a copy of each form the app prints, for the audit.", "Setup adds the ISO Documents and ISO Revisions tabs with the ICTU documents known so far (COH-IDN-P-01, COH-IDN-F-01 to F-09, Context, ROA and APW). Codes F-03 to F-09 are proposed until the DCO confirms them."]],
@@ -4192,6 +4193,16 @@ function unionHours(iv) {
   if (ce !== null) total += ce - cs;
   return total / 3600e3;
 }
+function merged(iv) {
+  const out = [];
+  iv.filter(x => x[1] > x[0]).sort((a, b) => a[0] - b[0]).forEach(([a, b]) => { const l = out[out.length - 1]; if (l && a <= l[1]) l[1] = Math.max(l[1], b); else out.push([a, b]); });
+  return out;
+}
+function cross(x, y) {
+  const out = [];
+  x.forEach(([a, b]) => y.forEach(([c, d]) => { const s = Math.max(a, c), e = Math.min(b, d); if (e > s) out.push([s, e]); }));
+  return out;
+}
 function downMonth(month) {
   const [y, m] = month.split("-").map(Number), start = new Date(y, m - 1, 1), now = new Date();
   const end = new Date(Math.min(new Date(y, m, 1).getTime(), now.getTime()));
@@ -4201,8 +4212,11 @@ function downMonth(month) {
   const ids = [...new Set(netLines().map(n => n.id).concat(inMonth.map(w => w.line).filter(x => x !== "ALL")))];
   const lines = ids.map(id => { const ev = inMonth.filter(w => w.line === id || w.line === "ALL"), down = unionHours(ev.map(clip));
     return { id, label: lineLabel(id), events: ev.length, down, uptime: hours ? 100 * (1 - down / hours) : 100 }; });
-  const whole = inMonth.filter(w => w.scope === "Whole office"), wholeDown = unionHours(whole.map(clip));
-  return { start, end, hours, list: inMonth, lines, whole: { events: whole.length, down: wholeDown, uptime: hours ? 100 * (1 - wholeDown / hours) : 100 } };
+  // The office has no internet only while every line is down at the same time (the router switches lines by itself).
+  let both = ids.length ? merged(inMonth.filter(w => w.line === ids[0] || w.line === "ALL").map(clip)) : merged(inMonth.filter(w => w.line === "ALL").map(clip));
+  ids.slice(1).forEach(id => { both = cross(both, merged(inMonth.filter(w => w.line === id || w.line === "ALL").map(clip))); });
+  const wholeDown = both.reduce((t, x) => t + (x[1] - x[0]), 0) / 3600e3;
+  return { start, end, hours, list: inMonth, lines, whole: { events: both.length, down: wholeDown, uptime: hours ? 100 * (1 - wholeDown / hours) : 100 } };
 }
 function downFiltered() {
   const month = $("wMonth").value, line = $("wLine").value, q = $("wQ").value.trim().toLowerCase();
@@ -4222,7 +4236,7 @@ function renderDown() {
     '<button class="btn small need2" type="button" data-wback="' + esc(w.no) + '">It is back now</button></div>').join("");
   $("wOngoing").querySelectorAll("[data-wback]").forEach(b => b.onclick = () => { openDown(b.dataset.wback); $("wUp").value = isoDate(new Date()) + "T" + nowTime(); downHours(); });
   const month = $("wMonth").value, S = month ? downMonth(month) : null;
-  $("wTiles").innerHTML = S ? `<div class="tile"><div class="lb">Whole office without internet</div><div class="val">${esc(hm(S.whole.down))}</div><div class="sm">${S.whole.events} time(s), uptime ${S.whole.uptime.toFixed(2)}%</div></div>` +
+  $("wTiles").innerHTML = S ? `<div class="tile"><div class="lb">Office without internet (both lines down)</div><div class="val">${esc(hm(S.whole.down))}</div><div class="sm">${S.whole.events} time(s), uptime ${S.whole.uptime.toFixed(2)}%</div></div>` +
     S.lines.map(l => `<div class="tile"><div class="lb">${esc(l.label)}</div><div class="val">${l.uptime.toFixed(2)}%</div><div class="sm">uptime, ${esc(hm(l.down))} down, ${l.events} time(s)</div></div>`).join("") : "";
   const list = downFiltered();
   $("wCount").textContent = list.length + " of " + D.downtime.length + " entries";
@@ -4241,7 +4255,7 @@ function openDown(no) {
   $("wFLine").innerHTML = lines.map(n => '<option value="' + esc(n.id) + '">' + esc(lineLabel(n.id)) + "</option>").join("") + '<option value="ALL">All internet lines</option>' +
     (wCur && wCur.line !== "ALL" && !lines.some(n => n.id === wCur.line) ? '<option value="' + esc(wCur.line) + '">' + esc(lineLabel(wCur.line)) + "</option>" : "");
   $("wNoLine").classList.toggle("hidden", !!lines.length);
-  const w = wCur || { scope: "Whole office", cause: "Unknown", line: lines.length ? lines[0].id : "ALL" };
+  const w = wCur || { scope: lines.length > 1 ? "Backup line took over" : "Whole office", cause: "Unknown", line: lines.length ? lines[0].id : "ALL" };
   Object.keys(DOWN_FIELDS).forEach(k => $(k).value = w[DOWN_FIELDS[k]] == null ? "" : w[DOWN_FIELDS[k]]);
   $("wDown").value = toLocalInput(w.down) || isoDate(new Date()) + "T" + nowTime(); $("wUp").value = toLocalInput(w.up); $("wIspAt").value = toLocalInput(w.ispAt);
   $("wDown").max = $("wUp").max = $("wIspAt").max = isoDate(new Date()) + "T23:59";
@@ -4254,6 +4268,7 @@ function downHours() {
   $("wHours").textContent = a && b ? (b < a ? "The time it came back is before the time it went down." : "Down for " + hm((b - a) / 3600e3) + ".") : a ? "Still down (" + hm(Math.max(0, new Date() - a) / 3600e3) + " so far)." : "";
 }
 ["wDown", "wUp"].forEach(id => $(id).addEventListener("input", downHours));
+$("wFLine").addEventListener("change", () => { if (!wCur) $("wScope").value = $("wFLine").value === "ALL" || netLines().length < 2 ? "Whole office" : "Backup line took over"; });
 $("wBackNow").onclick = () => { $("wUp").value = isoDate(new Date()) + "T" + nowTime(); downHours(); };
 $("wForm").onsubmit = async e => {
   e.preventDefault();
@@ -4277,7 +4292,7 @@ $("wPrint").onclick = () => {
   const title = MONTHS_LONG[m - 1] + " " + y, list = S.list.slice().sort((a, b) => a.down < b.down ? -1 : 1);
   doPrint(`<div class="sheet land">${header()}<h3>INTERNET DOWNTIME REPORT</h3><div class="sub">For the month of ${esc(title)}${S.end < new Date(y, m, 1) ? " (as of " + esc(niceDt(isoDate(S.end) + " " + String(S.end.getHours()).padStart(2, "0") + ":" + String(S.end.getMinutes()).padStart(2, "0"))) + ")" : ""}. Hours in the period: ${esc(hrs(S.hours))}.</div>
     <table><thead><tr><th>Internet Line</th><th>Times Down</th><th>Total Downtime</th><th>Hours Down</th><th>Uptime</th></tr></thead><tbody>
-    <tr><td><b>Whole office without internet</b></td><td class="c">${S.whole.events}</td><td>${esc(hm(S.whole.down))}</td><td class="c">${esc(hrs(S.whole.down))}</td><td class="c">${S.whole.uptime.toFixed(2)}%</td></tr>
+    <tr><td><b>Office without internet (both lines down at the same time)</b></td><td class="c">${S.whole.events}</td><td>${esc(hm(S.whole.down))}</td><td class="c">${esc(hrs(S.whole.down))}</td><td class="c">${S.whole.uptime.toFixed(2)}%</td></tr>
     ${S.lines.map(l => `<tr><td>${esc(l.label)}</td><td class="c">${l.events}</td><td>${esc(hm(l.down))}</td><td class="c">${esc(hrs(l.down))}</td><td class="c">${l.uptime.toFixed(2)}%</td></tr>`).join("")}
     </tbody></table>
     <table><thead><tr><th>No.</th><th>Line</th><th>Went Down</th><th>Came Back</th><th>Hours</th><th>Scope / Areas</th><th>Cause</th><th>Reported to ISP</th><th>Ticket No.</th><th>Actions Taken</th></tr></thead><tbody>

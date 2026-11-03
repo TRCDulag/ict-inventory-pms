@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.6.2';
+const VERSION = '1.6.3';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -1441,7 +1441,7 @@ const INC_TYPES = ['Malware / virus', 'Phishing / suspicious email', 'Unauthoriz
   'Data sent to the wrong person / leak', 'System or network outage', 'Hardware failure', 'Fire, flood or power problem', 'Others'];
 const DOWN_CAUSES = ['ISP outage', 'Power interruption', 'Router / modem / equipment problem', 'Cable or fiber cut', 'Bad weather',
   'Billing / account problem', 'Maintenance by the ISP', 'Unknown', 'Others'];
-const DOWN_SCOPES = ['Whole office', 'Some sections / areas'];
+const DOWN_SCOPES = ['Backup line took over', 'Whole office', 'Some sections / areas'];
 const NET_KINDS = ['Router', 'Switch', 'Access Point', 'Firewall', 'Server', 'Network Printer', 'CCTV / NVR', 'IP Phone',
   'Workstation (fixed IP)', 'Internet Line', 'Others'];
 
@@ -1657,8 +1657,8 @@ function toObj_(spec, r) {
 // The two ICTU internet lines on the router. Added once (when there is no internet line yet);
 // if someone later removes or retires them, they are not added again.
 const NET_LINES = [
-  { kind: 'Internet Line', name: 'PLDT', location: 'Router ether6 (ISP IN)', provider: 'PLDT', status: 'Active' },
-  { kind: 'Internet Line', name: 'Starlink', location: 'Router ether7 (STARLINK)', provider: 'Starlink', status: 'Active' }];
+  { kind: 'Internet Line', name: 'PLDT', location: 'Router ether6 (ISP IN)', provider: 'PLDT', status: 'Active', remarks: 'Main line. When it is down the router switches to Starlink by itself.' },
+  { kind: 'Internet Line', name: 'Starlink', location: 'Router ether7 (STARLINK)', provider: 'Starlink', status: 'Active', remarks: 'Backup line (failover).' }];
 function seedNetLines_() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('NET_LINES_SEEDED') || !SpreadsheetApp.getActive().getSheetByName(NETWORK)) return;
