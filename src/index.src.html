@@ -171,11 +171,6 @@
   .types h4 { margin: 8px 0 2px; font-size: 13px; letter-spacing: .03em; color: var(--navy); }
   label.cb { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; padding: 4px 0; cursor: pointer; font-weight: 400; }
   label.cb input { width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; flex: none; }
-  .shots { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
-  .shots button { width: 120px; height: 80px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: #F6FBF9 center / cover no-repeat; cursor: zoom-in; position: relative; font: inherit; font-size: 12px; color: var(--muted); }
-  .shots button.new::after { content: "new"; position: absolute; top: 4px; left: 4px; background: var(--brand); color: #fff; border-radius: 6px; padding: 0 6px; font-size: 11px; }
-  .shots .rm { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: #fff; color: var(--bad); font-weight: 700; cursor: pointer; line-height: 1; }
-  #shotDlg img { max-width: 100%; display: block; margin: 0 auto; }
   .hist { white-space: pre-line; font-size: 13px; color: var(--muted); background: #F6FBF9; border-radius: 8px; padding: 10px 12px; max-height: 140px; overflow: auto; }
   /* public pages (no sign-in): request ICT help, equipment status from a QR label */
   #pub { min-height: 100vh; min-height: 100dvh; background: var(--navy) center / cover no-repeat fixed; padding: 0 0 32px; }
@@ -356,6 +351,7 @@
   body.r1 .need2, body.r1 .need3, body.r2 .need3 { display: none !important; }
   nav.tabs .grp { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 12px 14px 2px; }
   @media (max-width: 899px) { nav.tabs .grp { display: none; } }
+  .code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre; background: #0F1B2D; color: #E6EDF7; border-radius: 8px; padding: 10px 12px; overflow: auto; max-height: 260px; width: 100%; border: 0; resize: vertical; min-height: 120px; }
   .temp { font-family: ui-monospace, Consolas, monospace; font-size: 20px; font-weight: 700; letter-spacing: .08em; background: var(--warn-soft); color: var(--navy); padding: 4px 10px; border-radius: 8px; }
   .csmlink { display: flex; gap: 12px; align-items: center; background: var(--mint); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
   .csmlink svg { width: 84px; height: 84px; flex: none; }
@@ -985,7 +981,7 @@
       <label class="f">Month<input id="wMonth" type="month"></label>
       <label class="f">Line<select id="wLine"></select></label>
       <label class="f q">Search<input id="wQ" type="search" placeholder="Downtime no., cause, ticket, areas"></label></div>
-      <div class="row" style="margin-top:12px"><button class="btn need2" id="newDown" type="button">Record downtime</button><span class="hint" id="wCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="wPrint" type="button">Print monthly report</button></div></div>
+      <div class="row" style="margin-top:12px"><button class="btn need2" id="newDown" type="button">Record downtime</button><span class="hint" id="wCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small need3" id="wRouter" type="button">Router setup</button><button class="btn ghost small" id="wPrint" type="button">Print monthly report</button></div></div>
     <div class="tiles" id="wTiles"></div>
     <div class="tablewrap"><table class="list" id="wTable"><thead><tr><th>Downtime no.</th><th>Line</th><th>Went down</th><th>Came back</th><th>Hours</th><th class="hide-m">Cause</th><th>Status</th></tr></thead><tbody></tbody></table></div>
   </section>
@@ -1425,19 +1421,27 @@
         <label class="f wide">Remarks<input id="wRem"></label>
       </div>
       <div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" id="wBackNow">It is back now</button><span class="hint" id="wHours" style="margin:0"></span></div>
-      <h4 style="margin:16px 0 2px">Screenshots</h4>
-      <p class="hint" style="margin:0">Proof of the outage, such as the router interface list, a speed test or the ISP's text. Press <b>Ctrl+V</b> here to paste a screenshot, or choose files. Up to 10 per entry.</p>
-      <div class="shots" id="wShots"></div>
-      <label class="btn ghost small need2" style="display:inline-flex">Add screenshots<input type="file" id="wFile" accept="image/*" multiple hidden></label>
       <div id="wHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="wHist"></div></div>
       <div class="msg" id="wMsg" role="status"></div></div>
     <div class="df"><span class="spacer"></span><button class="btn need2" type="submit" id="wSave">Save</button></div>
   </form>
 </dialog>
-<!-- a downtime screenshot, full size -->
-<dialog id="shotDlg" class="wide">
-  <div class="dh"><h3 id="shotT">Screenshot</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
-  <div class="db"><img id="shotImg" alt="Screenshot of the internet downtime"></div>
+<!-- automatic downtime reports from the router (Head) -->
+<dialog id="rtDlg" class="wide">
+  <div class="dh"><h3>Router setup: automatic downtime log</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db">
+    <p class="hint" style="margin:0 0 8px">The MikroTik router checks each line every 30 seconds and tells the app when one goes down or comes back. It sends through whichever line still works. If both are down, it keeps the report and sends it with the right time once a line is back. Lines switched off on the router (disabled) are not logged.</p>
+    <div id="rtLast" class="hint" style="margin:0 0 10px"></div>
+    <h4 style="margin:10px 0 4px">1. In Winbox, open New Terminal and paste this (one time)</h4>
+    <p class="hint" style="margin:0 0 4px">It adds a check address for each line and the 1-minute schedule. Check the Starlink gateway (192.168.1.1) with ICTU before pasting.</p>
+    <textarea class="code" id="rtSetup" readonly></textarea>
+    <div class="row" style="margin:4px 0 10px"><button class="btn ghost small" type="button" data-copy="rtSetup">Copy</button></div>
+    <h4 style="margin:10px 0 4px">2. System, Scripts, + : name it <b>trcd-downtime</b>, tick read, write, test, then paste this as the Source</h4>
+    <p class="hint" style="margin:0 0 4px">It has the app's link and the secret key. Do not share it outside ICTU.</p>
+    <textarea class="code" id="rtScript" readonly></textarea>
+    <div class="row" style="margin:4px 0 0"><button class="btn ghost small" type="button" data-copy="rtScript">Copy</button><span class="spacer"></span><button class="btn ghost small danger" type="button" id="rtNewKey">Make a new key</button></div>
+    <div class="msg" id="rtMsg" role="status"></div>
+  </div>
 </dialog>
 <!-- user account (Head) -->
 <dialog id="uDlg" class="small">
@@ -1491,9 +1495,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.4";
+const APP_VERSION = "1.6.5";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.5", "Nov 3, 2026", ["Internet Downtime is now logged by the MikroTik router by itself. It checks PLDT and Starlink every 30 seconds and tells the app the minute a line goes down or comes back, even at night. If both lines are down, it sends the report with the right time once a line is back.", "Router setup (Head) on the Internet Downtime page gives the commands and the script to paste in Winbox, with the app's link and a secret key already filled in.", "The screenshot upload from 1.6.4 was taken out, since the router now keeps the record. Entries logged by the router say so in the list."]],
   ["1.6.4", "Nov 3, 2026", ["Internet Downtime: attach screenshots to each entry as proof, such as the router interface list, a speed test or the ISP's text. Press Ctrl+V in the form to paste one, or choose files. Up to 10 per entry.", "The screenshots are kept in a Drive folder \"ICT PMS Downtime Screenshots\". Click one to see it full size, and the monthly report shows how many each entry has.", "Run setup once in Apps Script so the Internet Downtime tab gets its new Screenshots column."]],
   ["1.6.3", "Nov 3, 2026", ["Internet Downtime: since PLDT is the main line and the router switches to Starlink by itself, the office is now counted as without internet only while both lines are down at the same time. Each line still shows its own uptime.", "New scope choice \"Backup line took over\". It is picked by default when you record one line, and \"Whole office\" is picked when you choose All internet lines."]],
   ["1.6.2", "Nov 3, 2026", ["Internet Downtime: the PLDT line (router ether6, ISP IN) and the Starlink line (router ether7) are now in the list from the start, so you can pick them right away. They show under Network and IP, where you can add the bandwidth, account no. and monthly cost."]],
@@ -4256,7 +4261,7 @@ function renderDown() {
   const list = downFiltered();
   $("wCount").textContent = list.length + " of " + D.downtime.length + " entries";
   $("wTable").tBodies[0].innerHTML = list.length ? list.map(w => `<tr data-w="${esc(w.no)}"><td><b>${esc(w.no)}</b></td><td>${esc(lineLabel(w.line))}<div class="s">${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</div></td>
-      <td class="num">${esc(niceDt(w.down))}</td><td class="num">${esc(w.up ? niceDt(w.up) : "")}</td><td class="num">${w.up ? esc(hm(Number(w.hours) || 0)) : ""}</td><td class="hide-m">${esc(w.cause)}${w.ticket ? '<div class="s">Ticket ' + esc(w.ticket) + "</div>" : ""}</td><td>${downChip(w.status)}${shotIds(w).length ? '<div class="s">' + shotIds(w).length + " screenshot(s)</div>" : ""}</td></tr>`).join("")
+      <td class="num">${esc(niceDt(w.down))}</td><td class="num">${esc(w.up ? niceDt(w.up) : "")}</td><td class="num">${w.up ? esc(hm(Number(w.hours) || 0)) : ""}</td><td class="hide-m">${esc(w.cause)}${w.ticket ? '<div class="s">Ticket ' + esc(w.ticket) + "</div>" : ""}</td><td>${downChip(w.status)}${/^Router/.test(w.reportedBy) ? '<div class="s">Logged by the router</div>' : ""}</td></tr>`).join("")
     : '<tr><td colspan="7" class="empty">' + (D.downtime.length ? "Nothing in this month." : "No downtime recorded.") + "</td></tr>";
   $("wTable").querySelectorAll("tbody tr[data-w]").forEach(tr => tr.onclick = () => openDown(tr.dataset.w));
 }
@@ -4276,40 +4281,8 @@ function openDown(no) {
   $("wDown").max = $("wUp").max = $("wIspAt").max = isoDate(new Date()) + "T23:59";
   $("wTitle").textContent = wCur ? wCur.no + "  " + lineLabel(wCur.line) : "Record internet downtime";
   $("wHistWrap").classList.toggle("hidden", !wCur); $("wHist").textContent = wCur ? wCur.history : "";
-  wPending = []; renderShots(); downHours(); msg("wMsg", ""); $("wDlg").showModal();
+  downHours(); msg("wMsg", ""); $("wDlg").showModal();
 }
-// ---- screenshots on a downtime entry ----
-let wPending = [];
-const shotCache = {};
-function shotIds(w) { return w && w.shots ? String(w.shots).split(/\s+/).filter(Boolean) : []; }
-async function shotSrc(no, id) {
-  if (!shotCache[id]) shotCache[id] = api({ action: "downtimeShot", no, id }).then(j => { if (!j.ok) throw new Error(j.error); return j.image; }).catch(e => { delete shotCache[id]; throw e; });
-  return shotCache[id];
-}
-function showShot(src, title) { $("shotImg").src = src; $("shotT").textContent = title; $("shotDlg").showModal(); }
-function renderShots() {
-  const saved = shotIds(wCur), box = $("wShots");
-  box.innerHTML = saved.map((id, i) => `<button type="button" data-sid="${esc(id)}" title="Screenshot ${i + 1}">Loading…</button>`).join("") +
-    wPending.map((u, i) => `<button type="button" class="new" data-pi="${i}" style="background-image:url('${u}')" title="Not saved yet"><span class="rm" data-rm="${i}" role="button" aria-label="Remove">×</span></button>`).join("") ||
-    '<span class="hint" style="margin:0">None yet.</span>';
-  box.querySelectorAll("[data-sid]").forEach(b => {
-    shotSrc(wCur.no, b.dataset.sid).then(src => { b.textContent = ""; b.style.backgroundImage = "url('" + src + "')"; b.onclick = () => showShot(src, wCur.no + " screenshot"); })
-      .catch(() => { b.textContent = "Could not load"; });
-  });
-  box.querySelectorAll("[data-pi]").forEach(b => b.onclick = e => {
-    if (e.target.dataset.rm != null) { wPending.splice(+e.target.dataset.rm, 1); renderShots(); return; }
-    showShot(wPending[+b.dataset.pi], "New screenshot (not saved yet)");
-  });
-}
-async function addShots(files) {
-  const imgs = [...files].filter(f => /^image\//.test(f.type));
-  if (!imgs.length) return;
-  if (shotIds(wCur).length + wPending.length + imgs.length > 10) { msg("wMsg", "An entry can keep up to 10 screenshots.", "err"); return; }
-  try { for (const f of imgs) wPending.push("data:image/jpeg;base64," + await shrinkPhoto(f)); renderShots(); msg("wMsg", wPending.length + " screenshot(s) ready. Press Save to keep them.", "ok"); }
-  catch (err) { msg("wMsg", err.message, "err"); }
-}
-$("wFile").onchange = () => { addShots($("wFile").files); $("wFile").value = ""; };
-$("wDlg").addEventListener("paste", e => { const f = [...(e.clipboardData || {}).files || []]; if (f.length && can("Technician")) { e.preventDefault(); addShots(f); } });
 function downHours() {
   const a = dtOf($("wDown").value), b = dtOf($("wUp").value);
   $("wHours").textContent = a && b ? (b < a ? "The time it came back is before the time it went down." : "Down for " + hm((b - a) / 3600e3) + ".") : a ? "Still down (" + hm(Math.max(0, new Date() - a) / 3600e3) + " so far)." : "";
@@ -4326,13 +4299,11 @@ $("wForm").onsubmit = async e => {
   if (item.up && item.up < item.down) { msg("wMsg", "The time it came back must be after the time it went down.", "err"); return; }
   $("wSave").disabled = true; msg("wMsg", "Saving…");
   try {
-    const j = await api({ action: "saveDowntime", item, images: wPending });
+    const j = await api({ action: "saveDowntime", item });
     if (!j.ok) { msg("wMsg", j.error, "err"); return; }
-    const added = wPending.length; wPending = [];
     const i = D.downtime.findIndex(x => x.no === j.item.no); if (i >= 0) D.downtime[i] = j.item; else D.downtime.push(j.item);
     wCur = j.item; renderDown(); $("wTitle").textContent = wCur.no + "  " + lineLabel(wCur.line); $("wHistWrap").classList.remove("hidden"); $("wHist").textContent = wCur.history;
-    renderShots();
-    msg("wMsg", j.unchanged ? "Nothing was changed." : (i >= 0 ? "Saved." : "Recorded as " + wCur.no + ".") + (wCur.up ? " Down for " + hm(Number(wCur.hours) || 0) + "." : "") + (added ? " " + added + " screenshot(s) added." : ""), "ok");
+    msg("wMsg", j.unchanged ? "Nothing was changed." : (i >= 0 ? "Saved." : "Recorded as " + wCur.no + ".") + (wCur.up ? " Down for " + hm(Number(wCur.hours) || 0) + "." : ""), "ok");
   } catch (err) { msg("wMsg", errText(err), "err"); }
   finally { $("wSave").disabled = false; }
 };
@@ -4344,11 +4315,76 @@ $("wPrint").onclick = () => {
     <tr><td><b>Office without internet (both lines down at the same time)</b></td><td class="c">${S.whole.events}</td><td>${esc(hm(S.whole.down))}</td><td class="c">${esc(hrs(S.whole.down))}</td><td class="c">${S.whole.uptime.toFixed(2)}%</td></tr>
     ${S.lines.map(l => `<tr><td>${esc(l.label)}</td><td class="c">${l.events}</td><td>${esc(hm(l.down))}</td><td class="c">${esc(hrs(l.down))}</td><td class="c">${l.uptime.toFixed(2)}%</td></tr>`).join("")}
     </tbody></table>
-    <table><thead><tr><th>No.</th><th>Line</th><th>Went Down</th><th>Came Back</th><th>Hours</th><th>Scope / Areas</th><th>Cause</th><th>Reported to ISP</th><th>Ticket No.</th><th>Actions Taken</th><th>Screenshots</th></tr></thead><tbody>
+    <table><thead><tr><th>No.</th><th>Line</th><th>Went Down</th><th>Came Back</th><th>Hours</th><th>Scope / Areas</th><th>Cause</th><th>Reported to ISP</th><th>Ticket No.</th><th>Actions Taken</th></tr></thead><tbody>
     ${list.map(w => `<tr><td>${esc(w.no)}</td><td>${esc(lineLabel(w.line))}</td><td>${esc(niceDt(w.down))}</td><td>${esc(w.up ? niceDt(w.up) : "Still down")}</td><td class="c">${w.up ? esc(hrs(Number(w.hours) || 0)) : ""}</td>
-      <td>${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</td><td>${esc(w.cause)}</td><td>${esc(niceDt(w.ispAt))}</td><td>${esc(w.ticket)}</td><td>${esc(w.actions)}</td><td class="c">${shotIds(w).length || ""}</td></tr>`).join("") || '<tr><td colspan="11" class="c">No downtime recorded this month.</td></tr>'}
+      <td>${esc(w.scope === "Whole office" ? "Whole office" : w.areas || w.scope)}</td><td>${esc(w.cause)}</td><td>${esc(niceDt(w.ispAt))}</td><td>${esc(w.ticket)}</td><td>${esc(w.actions)}</td></tr>`).join("") || '<tr><td colspan="10" class="c">No downtime recorded this month.</td></tr>'}
     </tbody></table>${signs()}</div>`, true);
 };
+
+// ---- automatic reports from the MikroTik router (Head sets it up) ----
+const RT_IF = { PLDT: "ISP IN", Starlink: "ether7 - STARLINK" };
+function routerScripts(url, key, lines) {
+  const map = lines.map(n => '"' + n + '"="' + (RT_IF[n] || n) + '"').join(";");
+  const setup = [
+    '/ip route add dst-address=1.0.0.1/32 gateway="ISP IN" scope=10 comment="TRCD check PLDT"',
+    '/ip route add dst-address=1.0.0.1/32 blackhole distance=250 comment="TRCD check PLDT"',
+    '/ip route add dst-address=8.8.4.4/32 gateway=192.168.1.1 scope=10 comment="TRCD check Starlink"',
+    '/ip route add dst-address=8.8.4.4/32 blackhole distance=250 comment="TRCD check Starlink"',
+    '/tool netwatch add host=1.0.0.1 interval=30s timeout=3s comment="PLDT"',
+    '/tool netwatch add host=8.8.4.4 interval=30s timeout=3s comment="Starlink"',
+    '/system ntp client set enabled=yes servers=time.google.com',
+    '/system clock set time-zone-name=Asia/Manila',
+    '/system scheduler add name=trcd-downtime interval=1m on-event=trcd-downtime comment="TRCD ICT downtime log"'].join("\n");
+  const script = `# DOH TRC Dulag ICTU: tells the ICT Inventory and PMS app when an internet line goes down or comes back.
+:local url "${url}"
+:local key "${key}"
+:local lines {${map}}
+:global trcdState
+:global trcdQueue
+:if ([:typeof $trcdState] != "array") do={ :set trcdState [:toarray ""] }
+:if ([:typeof $trcdQueue] != "array") do={ :set trcdQueue [:toarray ""] }
+:local d [/system clock get date]
+:local t [/system clock get time]
+:foreach name,ifname in=$lines do={
+  :local st "off"
+  :local i [/interface find name=$ifname]
+  :if ([:len $i] > 0) do={ :if (![/interface get $i disabled]) do={ :set st [/tool netwatch get [find comment=$name] status] } }
+  :local old ($trcdState->$name)
+  :if ($st != "unknown" && $st != $old) do={
+    :if ($st = "down" && ($old = "up" || [:len $old] = 0)) do={ :set trcdQueue ($trcdQueue, ("line=" . $name . "&state=down&date=" . $d . "&time=" . $t)) }
+    :if ($st = "up" && ($old = "down" || [:len $old] = 0)) do={ :set trcdQueue ($trcdQueue, ("line=" . $name . "&state=up&date=" . $d . "&time=" . $t)) }
+    :set ($trcdState->$name) $st
+  }
+}
+:while ([:len $trcdQueue] > 20) do={ :set trcdQueue [:pick $trcdQueue 1 [:len $trcdQueue]] }
+:local left [:toarray ""]
+:local failed false
+:foreach q in=$trcdQueue do={
+  :if ($failed) do={ :set left ($left, $q) } else={
+    :do { /tool fetch url=($url . "?router=1&key=" . $key . "&" . $q) http-method=get http-max-redirect-count=5 output=none } on-error={ :set failed true; :set left ($left, $q) }
+  }
+}
+:set trcdQueue $left`;
+  return { setup, script };
+}
+async function openRouter(newKey) {
+  msg("rtMsg", newKey ? "Making a new key…" : "Loading…");
+  if (!$("rtDlg").open) $("rtDlg").showModal();
+  try {
+    const j = await api({ action: "routerSetup", newKey: !!newKey });
+    if (!j.ok) return msg("rtMsg", j.error, "err");
+    const url = j.url || "PASTE-THE-APP-/exec-LINK-HERE";
+    const lines = j.lines.filter(n => RT_IF[n]).length ? j.lines.filter(n => RT_IF[n]) : j.lines;
+    const sc = routerScripts(url, j.key, lines);
+    $("rtSetup").value = sc.setup; $("rtScript").value = sc.script;
+    const L = j.last || {};
+    $("rtLast").innerHTML = L.at ? "Last report from the router: <b>" + esc(L.line) + " " + esc(L.state) + "</b> at " + esc(niceDt(L.when)) + " (received " + esc(niceDt(L.at)) + ")." : "No report from the router yet.";
+    msg("rtMsg", newKey ? "New key made. Paste the new script on the router, because the old one will stop working." : "", "ok");
+  } catch (err) { msg("rtMsg", errText(err), "err"); }
+}
+$("wRouter").onclick = () => openRouter(false);
+$("rtNewKey").onclick = () => { if (confirm("Make a new key? The script on the router stops working until you paste the new one.")) openRouter(true); };
+document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const el = $(b.dataset.copy); el.select(); try { navigator.clipboard.writeText(el.value); } catch (e) { document.execCommand("copy"); } b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1500); });
 
 // ---------- accounts and backup (Head only) ----------
 let USERS = [];

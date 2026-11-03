@@ -648,18 +648,24 @@ const shots = path.join(__dirname, 'screenshots');
   await page.waitForFunction(() => /Down for/.test($('wMsg').textContent));
   await page.evaluate(() => $('wDlg').close());
   ok(await page.evaluate(() => !$('wOngoing').textContent && D.downtime.some(w => w.status === 'Restored' && w.hours >= 1.4) && /uptime/.test($('wTiles').textContent)), 'It is back now closes the outage and the month shows the uptime');
-  // screenshots on the entry
-  const dtNo = await page.evaluate(() => D.downtime.find(w => w.status === 'Restored').no);
-  await page.click('#wTable tbody tr[data-w="' + dtNo + '"]'); await page.waitForSelector('#wDlg[open]');
-  await page.setInputFiles('#wFile', path.join(shots, '27-internet-down.png'));
-  await page.waitForFunction(() => wPending.length === 1 && document.querySelector('#wShots button.new'));
-  await page.click('#wSave');
-  await page.waitForFunction(() => /screenshot\(s\) added/.test($('wMsg').textContent));
-  await page.waitForFunction(() => { const b = document.querySelector('#wShots [data-sid]'); return b && /url\(/.test(b.style.backgroundImage); });
-  await page.click('#wShots [data-sid]'); await page.waitForSelector('#shotDlg[open]');
-  ok(await page.evaluate(no => /^data:image\/jpeg/.test($('shotImg').src) && /1 screenshot/.test(document.querySelector('#wTable tr[data-w="' + no + '"]').textContent), dtNo), 'a screenshot is attached to the downtime entry and opens full size');
-  await page.screenshot({ path: path.join(shots, '29-downtime-screenshot.png') });
-  await page.evaluate(() => { $('shotDlg').close(); $('wDlg').close(); });
+  // router setup (Head): the commands and the script with the link and key filled in
+  await page.click('#wRouter'); await page.waitForSelector('#rtDlg[open]');
+  await page.waitForFunction(() => /trcdQueue/.test($('rtScript').value));
+  ok(await page.evaluate(() => /:local key "[a-f0-9]{40}"/.test($('rtScript').value) && /"PLDT"="ISP IN"/.test($('rtScript').value) && /netwatch add host=1\.0\.0\.1/.test($('rtSetup').value)), 'Router setup gives the router script with the key and the PLDT and Starlink checks');
+  await page.screenshot({ path: path.join(shots, '29-router-setup.png') });
+  await page.evaluate(() => $('rtDlg').close());
+  // picture for the guide: how entries logged by the router look (shown only, not saved)
+  await page.evaluate(() => { window.__keepDown = D.downtime; window.__keepNet = D.network;
+    D.network = D.network.filter(n => n.name === 'PLDT' || n.name === 'Starlink');
+    const pl = D.network.find(n => n.name === 'PLDT').id, st = D.network.find(n => n.name === 'Starlink').id, R = 'Router (automatic)', t = todayStr();
+    D.downtime = [
+      { no: 'DT-2026-004', line: pl, lineName: 'PLDT', down: t + ' 06:12', up: '', hours: '', scope: 'Backup line took over', cause: 'Unknown', status: 'Ongoing', reportedBy: R },
+      { no: 'DT-2026-003', line: st, lineName: 'Starlink', down: t.slice(0, 8) + '02 14:03', up: t.slice(0, 8) + '02 14:21', hours: 0.3, scope: 'Backup line took over', cause: 'Unknown', status: 'Restored', reportedBy: R },
+      { no: 'DT-2026-002', line: pl, lineName: 'PLDT', down: t.slice(0, 8) + '02 13:55', up: t.slice(0, 8) + '02 14:40', hours: 0.75, scope: 'Backup line took over', cause: 'ISP outage', ticket: 'PLDT-118842', status: 'Restored', reportedBy: R },
+      { no: 'DT-2026-001', line: pl, lineName: 'PLDT', down: t.slice(0, 8) + '01 22:10', up: t.slice(0, 8) + '02 01:40', hours: 3.5, scope: 'Backup line took over', cause: 'Power interruption', status: 'Restored', reportedBy: R }];
+    renderDown(); });
+  await page.screenshot({ path: path.join(shots, '30-router-log.png'), fullPage: true });
+  await page.evaluate(() => { D.downtime = window.__keepDown; D.network = window.__keepNet; renderDown(); });
   const pr1 = await page.evaluate(() => window.__printed || 0);
   await page.click('#wPrint'); await page.waitForFunction(n => (window.__printed || 0) > n, pr1);
   ok(await page.evaluate(() => /INTERNET DOWNTIME REPORT/.test($('printArea').innerHTML) && /E2E Fiber/.test($('printArea').innerHTML) && /both lines down/.test($('printArea').innerHTML)), 'the monthly downtime report prints');

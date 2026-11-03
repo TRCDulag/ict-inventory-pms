@@ -107,7 +107,7 @@ function createGas() {
     Utilities: {
       formatDate,
       parseDate: (s, tz, f) => { const m = s.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})$/); return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - TZ_OFFSET); },
-      newBlob: (bytes, type, name) => ({ bytes: Buffer.from(bytes), type, name, getBytes: function () { return [...this.bytes]; }, getContentType: function () { return this.type; } }),
+      newBlob: (bytes, type, name) => ({ bytes: Buffer.from(bytes), type, name, getBytes: function () { return [...this.bytes]; } }),
       base64Decode: s => [...Buffer.from(s, 'base64')],
       base64Encode: b => Buffer.from(b).toString('base64'),
       computeDigest: (alg, text) => [...crypto.createHash('sha256').update(text, 'utf8').digest()].map(b => b > 127 ? b - 256 : b),

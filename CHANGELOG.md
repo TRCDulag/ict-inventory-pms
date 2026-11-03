@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.5 (Nov 3, 2026)
+- Internet Downtime is now logged by the MikroTik router by itself. It checks PLDT and Starlink every 30 seconds and tells the app the minute a line goes down or comes back, even at night. If both lines are down, it sends the report with the right time once a line is back.
+- Router setup (Head) on the Internet Downtime page gives the commands and the script to paste in Winbox, with the app's link and a secret key already filled in.
+- The screenshot upload from 1.6.4 was taken out, since the router now keeps the record. Entries logged by the router say so in the list.
+
 ## 1.6.4 (Nov 3, 2026)
 - Internet Downtime: attach screenshots to each entry as proof, such as the router interface list, a speed test or the ISP's text. Press Ctrl+V in the form to paste one, or choose files. Up to 10 per entry.
 - The screenshots are kept in a Drive folder "ICT PMS Downtime Screenshots". Click one to see it full size, and the monthly report shows how many each entry has.

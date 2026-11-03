@@ -64,8 +64,8 @@
  */
 
 const TZ = 'Asia/Manila';
-const SIG_FOLDER = 'ICT PMS Signatures', SHOT_FOLDER = 'ICT PMS Downtime Screenshots';
-const VERSION = '1.6.4';
+const SIG_FOLDER = 'ICT PMS Signatures';
+const VERSION = '1.6.5';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -125,7 +125,7 @@ const INCIDENT_HEADERS = ['Incident No.', 'Discovered At', 'Type', 'Personal Dat
   'Updated At', 'Updated By', 'Action History'];
 const DOWN_HEADERS = ['Downtime No.', 'Internet Line', 'Line Name', 'Provider / ISP', 'Down From', 'Back Up At', 'Hours Down', 'Scope',
   'Areas Affected', 'Cause', 'Reported to ISP At', 'ISP Ticket No.', 'Reported By', 'Actions Taken', 'Status', 'Remarks',
-  'Recorded By', 'Recorded At', 'Updated At', 'Updated By', 'Action History', 'Screenshots'];
+  'Recorded By', 'Recorded At', 'Updated At', 'Updated By', 'Action History'];
 const NET_HEADERS = ['Net ID', 'Kind', 'Name / Label', 'Location', 'IP Address', 'MAC Address', 'VLAN / Subnet',
   'Brand / Model', 'Equipment ID', 'Provider / ISP', 'Account / Circuit No.', 'Bandwidth', 'Contract End',
   'Monthly Cost', 'Status', 'Remarks', 'Updated At', 'Updated By'];
@@ -146,7 +146,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 // The lowest role that may do each action. Anything not listed is refused.
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
-  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', downtimeShot: 'Viewer',
+  saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
   savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
@@ -187,6 +187,7 @@ const DEFAULT_LISTS = {
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.ping) return json_({ ok: true, message: 'ICT Inventory and PMS script is running.', version: VERSION });
+  if (e && e.parameter && e.parameter.router) return json_(routerEvent_(e.parameter));
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('ICT Inventory and PMS')
     .setFaviconUrl('https://trcdulag.github.io/ict-inventory-pms/icons/icon-192.png')
@@ -234,8 +235,8 @@ function handle_(req) {
       case 'saveStockItem': return saveReg_(REG.stock, req.item, req);
       case 'saveMove':      return saveMove_(req);
       case 'saveIncident':  return saveReg_(REG.incident, req.item, req);
-      case 'saveDowntime':  return saveDowntime_(req);
-      case 'downtimeShot':  return downtimeShot_(req);
+      case 'saveDowntime':  return saveReg_(REG.downtime, req.item, req);
+      case 'routerSetup':   return routerSetup_(req);
       case 'saveNetwork':   return saveReg_(REG.network, req.item, req);
       case 'saveIsoDoc':    return saveReg_(REG.isoDoc, req.item, req);
       case 'saveIsoRev':    return saveIsoRev_(req);
@@ -1506,7 +1507,7 @@ const REG = {
     map: { no: 'Downtime No.', line: 'Internet Line', lineName: 'Line Name', provider: 'Provider / ISP', down: 'Down From', up: 'Back Up At',
       hours: 'Hours Down', scope: 'Scope', areas: 'Areas Affected', cause: 'Cause', ispAt: 'Reported to ISP At', ticket: 'ISP Ticket No.',
       reportedBy: 'Reported By', actions: 'Actions Taken', status: 'Status', remarks: 'Remarks', recordedBy: 'Recorded By', recordedAt: 'Recorded At',
-      updatedAt: 'Updated At', updatedBy: 'Updated By', history: 'Action History', shots: 'Screenshots' },
+      updatedAt: 'Updated At', updatedBy: 'Updated By', history: 'Action History' },
     dts: ['down', 'up', 'ispAt'], nums: ['hours'], required: ['line', 'down', 'scope', 'cause'],
     choices: { cause: DOWN_CAUSES, scope: DOWN_SCOPES, status: ['Ongoing', 'Restored'] }, defaults: { scope: 'Whole office', cause: 'Unknown' },
     next: (sh, now) => nextNo_(sh, 1, 'DT-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
@@ -1668,51 +1669,76 @@ function seedNetLines_() {
   props.setProperty('NET_LINES_SEEDED', '1');
 }
 
-// Saves a downtime entry, then adds the screenshots sent with it (router screen, speed test, ISP text)
-// to a Drive folder. The Screenshots cell keeps one Drive file id per line; the page never sets it.
-function saveDowntime_(req) {
-  const it = Object.assign({}, req.item || {});
-  delete it.shots;
-  const imgs = (Array.isArray(req.images) ? req.images : []).map(String);
-  if (imgs.length > 5) throw new Error('Up to 5 screenshots at a time.');
-  imgs.forEach(u => { if (!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/=]{100,}$/.test(u) || u.length > 3e6) throw new Error('One of the screenshots could not be read. Please add it again.'); });
-  const res = saveReg_(REG.downtime, it, req);
-  if (!imgs.length) return res;
-  return withLock_(() => {
-    const sh = sheet_(DOWNTIME), H = idx_(DOWN_HEADERS), r = findCol_(sh, 1, res.item.no);
-    const row = sh.getRange(r, 1, 1, DOWN_HEADERS.length).getValues()[0];
-    const ids = String(row[H['Screenshots']] || '').split(/\s+/).filter(Boolean);
-    if (ids.length + imgs.length > 10) throw new Error('An entry can keep up to 10 screenshots.');
-    const folder = shotFolder_(), stamp = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HHmm');
-    imgs.forEach((u, i) => {
-      const type = u.slice(5, u.indexOf(';'));
-      const blob = Utilities.newBlob(Utilities.base64Decode(u.split(',')[1]), type, res.item.no + ' - ' + stamp + ' - ' + (ids.length + 1) + (type === 'image/png' ? '.png' : '.jpg'));
-      ids.push(folder.createFile(blob).getId());
-    });
-    row[H['Screenshots']] = ids.join('\n');
-    sh.getRange(r, H['Screenshots'] + 1).setValue(row[H['Screenshots']]);
-    audit_(res.item.no, 'DOWNTIME SCREENSHOT ADDED', req.by, imgs.length + ' screenshot(s) added, ' + ids.length + ' in all.', req.device);
-    return { ok: true, item: toObj_(REG.downtime, row), unchanged: false };
-  });
-}
+// ---- automatic downtime reports from the MikroTik router ----
+// The router calls the /exec link with ?router=1&key=...&line=PLDT&state=down|up&date=...&time=...
+// It sends through whichever line still works, and keeps the report until it goes through,
+// so date and time are the router's own clock (when the change happened), not when it arrived.
+const ROUTER_BY = 'Router (automatic)';
 
-// One screenshot of a downtime entry, as a data link. Only files listed on that entry can be read.
-function downtimeShot_(req) {
-  const H = idx_(DOWN_HEADERS), row = readRows_(DOWNTIME, DOWN_HEADERS).find(x => x[0] === clean_(req.no));
-  if (!row) throw new Error(clean_(req.no) + ' was not found.');
-  const id = clean_(req.id);
-  if (!id || String(row[H['Screenshots']]).split(/\s+/).indexOf(id) < 0) throw new Error('That screenshot is not on ' + row[0] + '.');
-  const blob = DriveApp.getFileById(id).getBlob();
-  return { ok: true, id: id, image: 'data:' + (blob.getContentType ? blob.getContentType() : 'image/jpeg') + ';base64,' + Utilities.base64Encode(blob.getBytes()) };
-}
-
-function shotFolder_() {
+function routerSetup_(req) {
   const props = PropertiesService.getScriptProperties();
-  const id = props.getProperty('SHOT_FOLDER_ID');
-  if (id) { try { return DriveApp.getFolderById(id); } catch (err) {} }
-  const f = DriveApp.createFolder(SHOT_FOLDER);
-  props.setProperty('SHOT_FOLDER_ID', f.getId());
-  return f;
+  let key = props.getProperty('ROUTER_KEY');
+  if (!key || req.newKey) {
+    key = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '').slice(0, 8);
+    props.setProperty('ROUTER_KEY', key);
+    audit_('ROUTER', 'ROUTER KEY ' + (req.newKey ? 'CHANGED' : 'MADE'), req.by, 'Key for the automatic downtime reports.', req.device);
+  }
+  let last = {}; try { last = JSON.parse(props.getProperty('ROUTER_LAST') || '{}'); } catch (err) {}
+  const NH = idx_(NET_HEADERS);
+  const lines = readRows_(NETWORK, NET_HEADERS).filter(x => x[NH['Kind']] === 'Internet Line' && x[NH['Status']] !== 'Retired').map(x => String(x[NH['Name / Label']]));
+  return { ok: true, key: key, url: appUrl_(), lines: lines, last: last };
+}
+
+function routerTime_(d, t) {
+  d = String(d || '').trim().toLowerCase(); t = String(t || '').trim();
+  const mo = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  let m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/), ymd = '';
+  if (m) ymd = m[1] + '-' + m[2] + '-' + m[3];
+  m = d.match(/^([a-z]{3})\/(\d{2})\/(\d{4})$/);
+  if (m && mo.indexOf(m[1]) >= 0) ymd = m[3] + '-' + ('0' + (mo.indexOf(m[1]) + 1)).slice(-2) + '-' + m[2];
+  const tm = t.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  return ymd && tm ? ymd + ' ' + ('0' + tm[1]).slice(-2) + ':' + tm[2] : '';
+}
+
+function routerEvent_(p) {
+  try {
+    const props = PropertiesService.getScriptProperties(), want = props.getProperty('ROUTER_KEY');
+    const key = String(p.key || '');
+    const dg = t => Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t), a = dg(key), b = want ? dg(want) : [];
+    if (!want || a.length !== b.length || a.some((x, i) => x !== b[i])) return { ok: false, error: 'Wrong key.' };
+    const cache = CacheService.getScriptCache(), hits = Number(cache.get('router-hits') || 0);
+    if (hits > 120) return { ok: false, error: 'Too many reports in an hour.' };
+    cache.put('router-hits', String(hits + 1), 3600);
+    const state = String(p.state || '').toLowerCase();
+    if (['down', 'up'].indexOf(state) < 0) return { ok: false, error: 'State should be down or up.' };
+    const NH = idx_(NET_HEADERS), name = clean_(p.line).toLowerCase();
+    const net = readRows_(NETWORK, NET_HEADERS).find(x => x[NH['Kind']] === 'Internet Line' && (String(x[NH['Name / Label']]).toLowerCase() === name || String(x[0]).toLowerCase() === name));
+    if (!net) return { ok: false, error: 'No internet line named "' + clean_(p.line) + '" in Network and IP.' };
+    const now = dt_(new Date());
+    let at = routerTime_(p.date, p.time) || now;
+    if (at > now) at = now;   // the router clock is a little ahead
+    const week = dt_(new Date(Date.now() - 7 * 864e5));
+    if (at < week) return { ok: false, error: 'That report is more than 7 days old. Check the router clock.' };
+    props.setProperty('ROUTER_LAST', JSON.stringify({ at: now, line: String(net[NH['Name / Label']]), state: state, when: at }));
+    const H = idx_(DOWN_HEADERS), rows = readRows_(DOWNTIME, DOWN_HEADERS).filter(x => String(x[H['Internet Line']]) === String(net[0]));
+    const open = rows.find(x => x[H['Status']] === 'Ongoing');
+    const req = { by: ROUTER_BY, device: 'MikroTik router' };
+    if (state === 'down') {
+      if (open) return { ok: true, note: 'Already recorded as down in ' + open[0] + '.' };
+      if (rows.some(x => dtText_(x[H['Down From']]) <= at && at < (dtText_(x[H['Back Up At']]) || '9999'))) return { ok: true, note: 'Already recorded.' };
+      const others = readRows_(NETWORK, NET_HEADERS).filter(x => x[NH['Kind']] === 'Internet Line' && x[NH['Status']] === 'Active' && x[0] !== net[0]).length;
+      const r = saveReg_(REG.downtime, { line: net[0], down: at, scope: others ? 'Backup line took over' : 'Whole office', cause: 'Unknown',
+        reportedBy: ROUTER_BY, remarks: 'Logged by the router.' }, req);
+      return { ok: true, no: r.item.no, note: 'Recorded as down.' };
+    }
+    if (!open) return { ok: true, note: 'No open downtime on this line.' };
+    const o = toObj_(REG.downtime, open);
+    const up = at < o.down ? o.down : at;
+    const r = saveReg_(REG.downtime, Object.assign(o, { up: up }), req);
+    return { ok: true, no: r.item.no, note: 'Recorded as back up.' };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message || err) };
+  }
 }
 
 // An internet downtime entry: the line must be an Internet Line in the Network list (or ALL),
@@ -1757,7 +1783,7 @@ function saveReg_(spec, it, req) {
     if (it[key] && !r0) throw new Error(it[key] + ' was not found.');
     const row = r0 ? sh.getRange(r0, 1, 1, spec.h.length).getValues()[0] : new Array(spec.h.length).fill('');
     const old = row.slice();
-    const auto = [key, 'recordedBy', 'recordedAt', 'updatedAt', 'updatedBy', 'history', 'shots'];
+    const auto = [key, 'recordedBy', 'recordedAt', 'updatedAt', 'updatedBy', 'history'];
     Object.keys(spec.map).forEach(k => {
       if (auto.indexOf(k) >= 0) return;
       let v = it[k];

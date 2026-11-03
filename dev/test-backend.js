@@ -422,15 +422,27 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   ok(w.ok && w.item.status === 'Restored' && w.item.hours === 0.75 && /Restored/.test(w.item.history), 'marking it back up closes it: ' + JSON.stringify(w.item));
   ok(call({ action: 'load' }).downtime.length === 2 && call({ action: 'load' }).choices.downCause.includes('ISP outage'), 'the downtime log loads with its choices');
   ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'INTERNET DOWNTIME ADDED'), 'downtime is in the Audit Trail');
-  const png = 'data:image/png;base64,' + Buffer.from('x'.repeat(200)).toString('base64');
-  ok(/could not be read/.test(asTech({ action: 'saveDowntime', item: { no, line: 'ALL', down: '2026-10-05 13:00', up: '2026-10-05 13:45', cause: 'Power interruption' }, images: ['data:text/html;base64,' + 'A'.repeat(200)] }).error), 'only images are taken as screenshots');
-  w = asTech({ action: 'saveDowntime', item: { no, line: 'ALL', down: '2026-10-05 13:00', up: '2026-10-05 13:45', cause: 'Power interruption', shots: 'fake-id' }, images: [png, png] });
-  const sids = String(w.item.shots).split(/\s+/).filter(Boolean);
-  ok(w.ok && sids.length === 2 && !sids.includes('fake-id') && sids.every(id => be.gas._files[id]), 'two screenshots saved to Drive and listed on the entry: ' + JSON.stringify(w.item.shots));
-  let sh = asTech({ action: 'downtimeShot', no, id: sids[0] });
-  ok(sh.ok && /^data:image\/png;base64,/.test(sh.image), 'the entry screenshot can be opened');
-  ok(/not on/.test(call({ action: 'downtimeShot', no, id: 'SHEETID' }).error), 'files not listed on the entry cannot be read');
-  ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'DOWNTIME SCREENSHOT ADDED'), 'screenshots are in the Audit Trail');
+  // automatic reports from the router
+  const rget = p => JSON.parse(be.code.doGet({ parameter: Object.assign({ router: '1' }, p) }).text);
+  ok(/Wrong key/.test(rget({ key: 'x', line: 'PLDT', state: 'down' }).error), 'router reports need the key (none made yet)');
+  ok(/role \(Technician\)/.test(asTech({ action: 'routerSetup' }).error), 'only the Head sees the router key');
+  const rs = call({ action: 'routerSetup' });
+  ok(rs.ok && /^[a-f0-9]{40}$/.test(rs.key) && rs.lines.includes('PLDT') && rs.lines.includes('Starlink') && call({ action: 'routerSetup' }).key === rs.key, 'router setup makes one key and lists the lines');
+  ok(/Wrong key/.test(rget({ key: rs.key.slice(0, -1) + 'z', line: 'PLDT', state: 'down' }).error), 'a wrong key is refused');
+  ok(/No internet line/.test(rget({ key: rs.key, line: 'Globe', state: 'down' }).error), 'an unknown line is refused');
+  const today = call({ action: 'load' }).today;
+  const [yy, mm, dd] = today.split('-'), mon = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][+mm - 1];
+  let ev = rget({ key: rs.key, line: 'pldt', state: 'down', date: mon + '/' + dd + '/' + yy, time: '00:05:10' });
+  const L1 = call({ action: 'load' }).downtime.find(w => w.no === ev.no);
+  ok(ev.ok && L1 && L1.down === today + ' 00:05' && L1.status === 'Ongoing' && L1.scope === 'Backup line took over' && /^Router/.test(L1.reportedBy), 'the router logs PLDT down with its own time (old date format): ' + JSON.stringify(ev));
+  ok(/Already recorded/.test(rget({ key: rs.key, line: 'PLDT', state: 'down', date: today, time: '00:06:00' }).note), 'a repeated down report adds nothing');
+  ev = rget({ key: rs.key, line: 'PLDT', state: 'up', date: today, time: '00:35:59' });
+  const L2 = call({ action: 'load' }).downtime.find(w => w.no === ev.no);
+  ok(ev.ok && L2.up === today + ' 00:35' && L2.hours === 0.5 && L2.status === 'Restored', 'the router closes it when PLDT is back (new date format): ' + JSON.stringify(L2));
+  ok(/No open downtime/.test(rget({ key: rs.key, line: 'PLDT', state: 'up', date: today, time: '00:36:00' }).note), 'a repeated up report adds nothing');
+  ok(/7 days/.test(rget({ key: rs.key, line: 'Starlink', state: 'down', date: '2020-01-01', time: '10:00:00' }).error), 'very old reports are refused');
+  const k2 = call({ action: 'routerSetup', newKey: true }).key;
+  ok(k2 !== rs.key && /Wrong key/.test(rget({ key: rs.key, line: 'PLDT', state: 'down' }).error), 'a new key stops the old one');
 }
 
 // reading a property sticker photo (Gemini stand-in)
