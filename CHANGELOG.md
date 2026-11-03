@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.4.4 (Nov 3, 2026)
+- Job order request: the type of request now comes first, and the form only asks what fits it. Network and ICTU service requests (data request, ID printing, layout, event support) no longer show the equipment fields.
+- Event support asks for the venue. The Section / Unit Head line shows only for items marked *, and the data privacy consent only when a device is involved.
+- The same applies when ICTU logs a job order in the app. Fields that already have something in them stay shown.
+
 ## 1.4.3 (Nov 3, 2026)
 - If the app is already open in a window, the "Open in the app" link in a job order email goes straight to that window and opens the job order. The extra tab closes itself, and the old "open in another tab" box is gone. A new window opens only when the app is not running.
 - If you are in the middle of a form or a PM when the link comes in, the job order waits in a small note so nothing you typed is lost.
