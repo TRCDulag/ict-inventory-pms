@@ -423,6 +423,9 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   x = call({ action: 'saveEmployee', employee: { name: 'new hire q. person', office: 'HRMO', status: 'Inactive' } });
   ok(x.ok && call({ action: 'load' }).employees.filter(e => /New Hire/.test(e.name)).length === 1 && x.employee.status === 'Inactive', 'the same name updates, not duplicates');
   ok(!call({ action: 'saveEmployee', employee: { name: 'X', office: 'HRMO', status: 'Retired' } }).ok, 'unknown status refused');
+  x = call({ action: 'saveEmployee', employee: { name: 'Gip Trainee A. Uno', office: 'HRMO', employment: 'GIP' } });
+  ok(x.ok && x.employee.employment === 'GIP' && call({ action: 'saveEmployee', employee: { name: 'Jo Worker B. Dos', office: 'HRMO', employment: 'Job Order Employee' } }).employee.employment === 'Job Order Employee', 'GIP and Job Order employees can be added');
+  ok(!call({ action: 'saveEmployee', employee: { name: 'Y', office: 'HRMO', employment: 'Casual-ish' } }).ok, 'unknown employment refused');
 }
 
 // renaming a section

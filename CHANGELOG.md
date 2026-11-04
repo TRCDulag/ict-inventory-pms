@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.3 (Nov 4, 2026)
+
+- One-page forms fit the page at 100% scale on A4 or short bond (Letter): a sheet that runs up to 25% over is shrunk to fit, with a 5% allowance for printer margins. Long lists still run onto more pages.
+- Employee masterlist: Add a section / unit button (also inside the employee dialog), and Employment (plantilla / regular, Job Order Employee, GIP, Contract of Service), saved in a new Employment column of the Employee Changes tab.
+
 ## 1.7.2 (Nov 4, 2026)
 
 - Do PM shows the picked unit's next PM, last PM and job orders done this quarter.

@@ -117,10 +117,13 @@ const shots = path.join(__dirname, 'screenshots');
   await page.evaluate(() => document.body.classList.add('printing'));
   await page.emulateMedia({ media: 'print' });
   await page.pdf({ path: path.join(shots, 'sample-pm-form.pdf'), format: 'A4', preferCSSPageSize: true, printBackground: true });
+  { const letter = await page.pdf({ format: 'Letter', margin: { top: '8mm', bottom: '8mm', left: '10mm', right: '10mm' }, printBackground: true });
+    const n = (letter.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+    ok(n === 1, 'PM checklist prints on one page at 100%, even on short bond (Letter): ' + n + ' page(s)'); }
   const pages = await page.evaluate(() => { const el = document.querySelector('#printArea .sheet'); return el.getBoundingClientRect().height; });
   await page.emulateMedia({ media: 'screen' });
   await page.evaluate(() => document.body.classList.remove('printing'));
-  console.log('form height px', Math.round(pages));
+  console.log('form height mm', Math.round(pages * 25.4 / 96));
 
   // records
   await page.click('nav.tabs button[data-v="recs"]');
@@ -244,9 +247,12 @@ const shots = path.join(__dirname, 'screenshots');
   await page.evaluate(() => document.body.classList.add('printing'));
   await page.emulateMedia({ media: 'print' });
   await page.pdf({ path: path.join(shots, 'sample-job-order.pdf'), format: 'A4', preferCSSPageSize: true, printBackground: true });
+  { const letter = await page.pdf({ format: 'Letter', margin: { top: '8mm', bottom: '8mm', left: '10mm', right: '10mm' }, printBackground: true });
+    const n = (letter.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
+    ok(n === 1, 'job order form prints on one page at 100%, even on short bond (Letter): ' + n + ' page(s), zoom ' + await page.evaluate(() => document.querySelector('#printArea .sheet').style.zoom)); }
   const joH = await page.evaluate(() => document.querySelector('#printArea .sheet').getBoundingClientRect().height);
   await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
-  console.log('JO form height px', Math.round(joH));
+  console.log('JO form height px', Math.round(joH), 'mm', Math.round(joH * 25.4 / 96), 'zoom', await page.evaluate(() => document.querySelector('#printArea .sheet').style.zoom));
   await page.click('#joDlg [data-close]');
   ok(await page.locator('#jTable tbody tr').count() === 1 && +await page.textContent('#navJo') === 1, 'open job order listed and counted');
   await page.screenshot({ path: path.join(shots, '13-job-orders.png') });
@@ -612,11 +618,17 @@ const shots = path.join(__dirname, 'screenshots');
   await page.waitForSelector('#emDlg[open]');
   await page.selectOption('#edOffice', 'Budget Section');
   await page.locator('#emAlso input[value="Cash Unit"]').check();
+  await page.selectOption('#edEmp', 'Job Order Employee');
   await page.screenshot({ path: path.join(shots, '27-employee-edit.png') });
   await page.click('#emSave');
   await page.waitForFunction(() => !$('emDlg').open);
   ok(await page.evaluate(() => { const e = D.employees.find(x => x.name === 'Ana Liza M. Garcia'); return e.office === 'Budget Section' && e.also.includes('Cash Unit'); }), 'employee section and designation saved');
   await page.fill('#emQ', '');
+  ok(await page.evaluate(() => D.employees.find(x => x.name === 'Ana Liza M. Garcia').employment === 'Job Order Employee'), 'employment (Job Order) saved');
+  await page.click('#emAddSec'); await page.waitForSelector('#offDlg[open]');
+  await page.fill('#oName', 'Records Section'); await page.click('#offSave');
+  await page.waitForFunction(() => !$('offDlg').open);
+  ok(await page.evaluate(() => D.lists.offices.includes('Records Section')), 'a section / unit can be added from the employee masterlist');
   // backup email
   await page.fill('#bkEmail', 'argie@example.com'); await page.click('#bkSaveEmail');
   await page.waitForFunction(() => /Saved/.test($('bkMsg').textContent));

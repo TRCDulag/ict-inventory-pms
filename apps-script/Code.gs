@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.7.2';
+const VERSION = '1.7.3';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -97,7 +97,8 @@ const CHK_HEADERS = ['PM Ref No.', 'Section', 'Check Item', 'Result', 'Note'];
 const AUDIT_HEADERS = ['Timestamp', 'Reference', 'Action', 'By', 'Details', 'Device'];
 const ADDED_HEADERS = ['Name', 'Position', 'Office / Unit', 'Added By', 'Added At'];
 // Changes to the HR masterlist made in the app (the Masterlist tab itself stays as HR pasted it).
-const EMP_EDIT_HEADERS = ['Name', 'Position', 'Section', 'Also Assigned To', 'Status', 'Remarks', 'Updated At', 'Updated By'];
+const EMP_EDIT_HEADERS = ['Name', 'Position', 'Section', 'Also Assigned To', 'Status', 'Remarks', 'Updated At', 'Updated By', 'Employment'];
+const EMPLOYMENT = ['', 'Job Order Employee', 'GIP', 'Contract of Service'];   // blank = plantilla / regular
 // The PM schedule of each section for a quarter (2026-Q2): planned days, actual start and finish, who received it.
 const PLAN_HEADERS = ['Plan ID', 'Quarter', 'Section', 'Planned Start', 'Planned End', 'Actual Start', 'Actual Finish',
   'Received By', 'Position', 'Status', 'Remarks', 'Updated At', 'Updated By'];
@@ -733,6 +734,7 @@ function employees_() {
       e.status = String(r[4]).trim() || 'Active';
       e.remarks = String(r[5]).trim();
       e.edited = dtText_(r[6]) + (String(r[7]).trim() ? ' by ' + String(r[7]).trim() : '');
+      e.employment = String(r[8] == null ? '' : r[8]).trim();
     });
   }
   out.forEach(e => { if (!e.also) e.also = []; if (!e.status) e.status = 'Active'; });
@@ -2447,6 +2449,8 @@ function saveEmployee_(req) {
   if (!name) throw new Error('Type the name of the employee.');
   const status = clean_(e.status) || 'Active';
   if (['Active', 'Inactive'].indexOf(status) < 0) throw new Error('Status is Active or Inactive.');
+  const employment = clean_(e.employment);
+  if (EMPLOYMENT.indexOf(employment) < 0) throw new Error('Pick the employment from the list.');
   return withLock_(() => {
     const fix = o => { o = officeName_(clean_(o)); if (!o) return ''; const k = allOffices_().filter(x => nameKey_(x) === nameKey_(o))[0]; if (k) return k; appendOffice_(o); return o; };
     const office = fix(e.office);
@@ -2458,11 +2462,12 @@ function saveEmployee_(req) {
     });
     if (also.length > 5) throw new Error('Up to 5 other sections only.');
     const sh = ensureTab_(EMP_EDITS, EMP_EDIT_HEADERS);
+    if (sh.getRange(1, EMP_EDIT_HEADERS.length).getValue() !== 'Employment') sh.getRange(1, EMP_EDIT_HEADERS.length).setValue('Employment').setFontWeight('bold');   // tab from 1.7.0-1.7.2
     const n = lastRow_(sh);
     let r = 0;
     if (n >= 2) sh.getRange(2, 1, n - 1, 1).getValues().forEach((v, i) => { if (!r && nameKey_(v[0]) === nameKey_(name)) r = i + 2; });
     const before = employees_().list.filter(x => nameKey_(x.name) === nameKey_(name))[0];
-    const row = [before ? before.name : name, clean_(e.position), office, also.join('; '), status, clean_(e.remarks), dt_(new Date()), clean_(req.by)];
+    const row = [before ? before.name : name, clean_(e.position), office, also.join('; '), status, clean_(e.remarks), dt_(new Date()), clean_(req.by), employment];
     r = r || n + 1;
     sh.getRange(r, 1, 1, row.length).setNumberFormat('@');
     sh.getRange(r, 1, 1, row.length).setValues([row]);
@@ -2473,6 +2478,7 @@ function saveEmployee_(req) {
       if ((before.also || []).join('; ') !== also.join('; ')) what.push('also assigned to: ' + (also.join('; ') || 'none'));
       if (row[1] && before.position !== row[1]) what.push('position "' + before.position + '" to "' + row[1] + '"');
       if ((before.status || 'Active') !== status) what.push('status ' + status);
+      if ((before.employment || '') !== employment) what.push('employment ' + (employment || 'plantilla / regular'));
     }
     audit_('', before ? 'EMPLOYEE UPDATED' : 'EMPLOYEE ADDED', clean_(req.by), row[0] + ': ' + (what.join('; ') || 'no change'), req.device);
     const emp = employees_();
