@@ -310,6 +310,17 @@ const shots = path.join(__dirname, 'screenshots');
   await page.waitForSelector('#eqDlg[open]');
   ok(/ICT-0005/.test(await page.textContent('#eqTitle')), 'typed code opens the unit');
   await page.click('#eqDlg .x');
+  // a photo of the QR label opens the unit, also where the browser has no QR reader of its own (jsQR)
+  { const svg = await page.evaluate(() => qrSvg(PUBLIC_URL + '#eq=ICT-0007'));
+    const qp = await browser.newPage(); await qp.setContent('<body style="margin:0;background:#fff"><div id="q" style="width:300px;padding:30px;background:#fff">' + svg + '</div></body>');
+    const png = await qp.locator('#q').screenshot(); await qp.close();
+    await page.evaluate(() => { window.BarcodeDetector = undefined; delete window.BarcodeDetector; });
+    await page.click('#scanBtn'); await page.waitForSelector('#scanDlg[open]');
+    ok(!/cannot scan here/.test(await page.textContent('#scanHint')), 'no "cannot scan here" message: ' + await page.textContent('#scanHint'));
+    await page.setInputFiles('#scanPhoto', { name: 'label.png', mimeType: 'image/png', buffer: png });
+    await page.waitForSelector('#eqDlg[open]');
+    ok(/ICT-0007/.test(await page.textContent('#eqTitle')), 'a photo of the QR label opens the unit');
+    await page.click('#eqDlg .x'); }
 
   // monthly JO report
   await page.click('nav.tabs button[data-v="reports"]');

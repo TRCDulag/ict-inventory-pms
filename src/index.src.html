@@ -1173,6 +1173,8 @@
     <div class="db">
       <div class="scanbox hidden" id="scanBox"><video id="scanVid" playsinline muted></video><div class="aim"></div></div>
       <p class="hint" id="scanHint"></p>
+      <div class="row" style="margin:0 0 10px"><label class="btn ghost small" for="scanPhoto" style="cursor:pointer">Take or pick a photo of the QR label</label>
+        <input type="file" id="scanPhoto" accept="image/*" capture="environment" class="hidden"></div>
       <label class="f">Equipment code<input id="scanCode" placeholder="ICT-0001"></label>
       <div class="msg" id="scanMsg" role="status"></div>
     </div>
@@ -1571,6 +1573,7 @@
 <div id="printArea"></div>
 
 <script>%%QRCODE_LIB%%</script>
+<script>%%QRREAD_LIB%%</script>
 <script>
 // Paste the /exec URL here so the file works from a PC or web host without typing the link.
 const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbyZfBU_2nFesgP3UQRnoyDDf0ZXaLA_psBQwwNGXeuE-1RokPMd4SaEZWSWl7GUD6gDog/exec";
@@ -1585,9 +1588,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.7.4";
+const APP_VERSION = "1.7.5";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.7.5", "Nov 4, 2026", ["Scan code now opens the camera on Windows and Mac browsers and on iPhones too, not only on Android. If the camera is blocked, the window says how to allow it.", "Scan code also takes or picks a photo of the QR label and reads it."]],
   ["1.7.4", "Nov 4, 2026", ["Employee window: the section lists now show every section, including ones that so far only had equipment (like Dental Unit). Add a section / unit inside the window picks the section right away.", "Employee masterlist: Remove a section. Only a section with no equipment and no employee can be removed, and the app asks twice before removing it."]],
   ["1.7.3", "Nov 4, 2026", ["Printing: every one-page form (job order, PMS checklist, TIR, notices, result form and the rest) shrinks itself just enough to print whole at 100%, on A4 or short bond.", "Employee masterlist: Add a section / unit, and an Employment choice for each employee (plantilla / regular, Job Order Employee, GIP, Contract of Service)."]],
   ["1.7.2", "Nov 4, 2026", ["Do PM: the picked unit shows its next PM, its last PM and any job order done this quarter.", "PM by section: Clear this quarter's plan cancels the plans so you can plan again. Sections whose PM already started are kept.", "The quarter list starts at Jan-Mar of this year. A past quarter is planned inside that quarter, not from today.", "Blank forms and lists is one dropdown. The PMS checklist, the inventory masterlist and the PMS schedule are listed once, under their ISO form codes."]],
@@ -3583,25 +3587,59 @@ $("reqForm").onsubmit = async e => {
 
 // ---------- scan or type an equipment code ----------
 let scanStream = null, scanTimer = null;
+// Reads a QR code from a video frame or an image: the browser's own reader when it has one (Chrome on Android),
+// otherwise jsQR (Windows and Mac browsers, iPhone). Returns the text, or "".
+const qrCanvas = document.createElement("canvas");
+async function readQr(src, det) {
+  if (det) { try { const r = await det.detect(src); if (r.length) return r[0].rawValue; } catch (e) {} }
+  if (typeof jsQR !== "function") return "";
+  const w = src.videoWidth || src.naturalWidth || src.width, h = src.videoHeight || src.naturalHeight || src.height;
+  if (!w || !h) return "";
+  const k = Math.min(1, 1000 / Math.max(w, h));
+  qrCanvas.width = Math.round(w * k); qrCanvas.height = Math.round(h * k);
+  const ctx = qrCanvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0, qrCanvas.width, qrCanvas.height);
+  const r = jsQR(ctx.getImageData(0, 0, qrCanvas.width, qrCanvas.height).data, qrCanvas.width, qrCanvas.height, { inversionAttempts: "attemptBoth" });
+  return r ? r.data : "";
+}
 async function openScan() {
   $("scanCode").value = ""; msg("scanMsg", ""); $("scanDlg").showModal();
-  const can = "BarcodeDetector" in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
   $("scanBox").classList.add("hidden");
-  $("scanHint").textContent = can ? "Point the camera at the QR label on the equipment." :
-    "This browser cannot scan here. Use the phone's camera app on the QR label, or type the code below.";
-  if (!can) { $("scanCode").focus(); return; }
+  const cam = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if (!cam) { $("scanHint").textContent = "This browser cannot open the camera here. Take a photo of the QR label, or type the code below."; $("scanCode").focus(); return; }
+  $("scanHint").textContent = "Opening the camera…";
+  let det = null;
+  try { if ("BarcodeDetector" in window && (await BarcodeDetector.getSupportedFormats()).includes("qr_code")) det = new BarcodeDetector({ formats: ["qr_code"] }); } catch (e) {}
   try {
-    const det = new BarcodeDetector({ formats: ["qr_code"] });
     scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
     $("scanVid").srcObject = scanStream; await $("scanVid").play(); $("scanBox").classList.remove("hidden");
+    $("scanHint").textContent = "Point the camera at the QR label on the equipment.";
     const tick = async () => {
       if (!scanStream) return;
-      try { const r = await det.detect($("scanVid")); const c = r.length && codeOf(r[0].rawValue); if (c) { $("scanCode").value = c; return scanOpen(); } } catch (e) {}
+      const c = codeOf(await readQr($("scanVid"), det));
+      if (c) { $("scanCode").value = c; return scanOpen(); }
       scanTimer = setTimeout(tick, 250);
     };
     tick();
-  } catch (e) { $("scanHint").textContent = "The camera could not be opened. Type the code from the label instead."; }
+  } catch (e) {
+    $("scanHint").textContent = e && e.name === "NotAllowedError"
+      ? "The camera was blocked. Click the camera or lock icon in the address bar, allow the camera, then press Scan code again. You can also take a photo of the label, or type the code below."
+      : e && e.name === "NotFoundError" ? "No camera was found on this computer. Take or pick a photo of the label, or type the code below."
+      : "The camera could not be opened. Take or pick a photo of the label, or type the code below.";
+  }
 }
+$("scanPhoto").onchange = async () => {
+  const f = $("scanPhoto").files[0]; $("scanPhoto").value = "";
+  if (!f) return;
+  msg("scanMsg", "Reading the photo…");
+  try {
+    const img = new Image(), url = URL.createObjectURL(f);
+    await new Promise((ok, bad) => { img.onload = ok; img.onerror = bad; img.src = url; });
+    const c = codeOf(await readQr(img, null)); URL.revokeObjectURL(url);
+    if (!c) return msg("scanMsg", "No equipment QR code was found in the photo. Take it closer and straight on, or type the code.", "err");
+    $("scanCode").value = c; msg("scanMsg", ""); scanOpen();
+  } catch (e) { msg("scanMsg", "The photo could not be read. Type the code instead.", "err"); }
+};
 function scanStop() { clearTimeout(scanTimer); if (scanStream) scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
 $("scanDlg").addEventListener("close", scanStop);
 function scanOpen() {

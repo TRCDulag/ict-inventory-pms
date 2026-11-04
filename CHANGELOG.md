@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.5 (Nov 4, 2026)
+
+- Scan code works where the browser has no QR reader of its own (Windows and Mac browsers, iPhone): frames are read with jsQR 1.4.0 (Apache-2.0, inlined by the build). Clear messages when the camera is blocked or missing.
+- Scan code: take or pick a photo of the QR label.
+
 ## 1.7.4 (Nov 4, 2026)
 
 - Fix: the employee window's section lists left out sections that only the equipment list had, so adding one (Dental Unit) looked like it did nothing. They now use the same list as the rest of the app.

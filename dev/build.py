@@ -4,6 +4,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 logos = json.loads((root / "dev" / "logos.json").read_text())
 html = (root / "src" / "index.src.html").read_text()
 logos["QRCODE_LIB"] = (root / "dev" / "vendor" / "qrcode.min.js").read_text()   # QR Code Generator, Kazuhiko Arase, MIT
+logos["QRREAD_LIB"] = (root / "dev" / "vendor" / "jsQR.min.js").read_text()     # jsQR 1.4.0, Cosmo Wolfe, Apache-2.0 (reads QR codes where the browser cannot)
 for k, v in logos.items():
     html = html.replace("%%" + k + "%%", v)
 (root / "index.html").write_text(html)
