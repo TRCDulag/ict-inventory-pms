@@ -65,13 +65,13 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.6.6';
+const VERSION = '1.7.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
 
 const INV = 'Inventory', PM = 'PM Log', CHK = 'Checklist Results', AUDIT = 'Audit Trail', LISTS = 'Lists';
-const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log';
+const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log', PLAN = 'PM Plan', EMP_EDITS = 'Employee Changes';
 const USERS = 'Users', TRANSFERS = 'Transfers', STOCK = 'Stock Items', MOVES = 'Stock Movements', INCIDENTS = 'Incidents', NETWORK = 'Network';
 const BACKUP_FOLDER = 'ICT Inventory and PMS Backups';
 const ISO_DOCS = 'ISO Documents', ISO_REVS = 'ISO Revisions';
@@ -96,6 +96,12 @@ const PM_HEADERS = ['PM Ref No.', 'Date', 'Time Start', 'Time End', 'Quarter', '
 const CHK_HEADERS = ['PM Ref No.', 'Section', 'Check Item', 'Result', 'Note'];
 const AUDIT_HEADERS = ['Timestamp', 'Reference', 'Action', 'By', 'Details', 'Device'];
 const ADDED_HEADERS = ['Name', 'Position', 'Office / Unit', 'Added By', 'Added At'];
+// Changes to the HR masterlist made in the app (the Masterlist tab itself stays as HR pasted it).
+const EMP_EDIT_HEADERS = ['Name', 'Position', 'Section', 'Also Assigned To', 'Status', 'Remarks', 'Updated At', 'Updated By'];
+// The PM schedule of each section for a quarter (2026-Q2): planned days, actual start and finish, who received it.
+const PLAN_HEADERS = ['Plan ID', 'Quarter', 'Section', 'Planned Start', 'Planned End', 'Actual Start', 'Actual Finish',
+  'Received By', 'Position', 'Status', 'Remarks', 'Updated At', 'Updated By'];
+const PLAN_STATUS = ['Planned', 'Notice sent', 'In progress', 'Done', 'Moved', 'Cancelled'];
 
 // The first 33 columns are the ones of the old ICTU Job Order Log, in the same order, so its rows can be pasted in.
 const JO_HEADERS = ['Date/Time Logged', 'JO No.', 'Status', 'Priority', 'Date/Time of Request',
@@ -147,7 +153,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
-  savePMRound: 'Technician', voidPM: 'Head', catchUp: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -249,7 +255,10 @@ function handle_(req) {
       case 'readSticker':   return readSticker_(req);
       case 'savePM':        return savePM_(req);
       case 'savePMRound':   return savePMRound_(req);
-      case 'catchUp':       return catchUp_(req);
+      case 'savePmPlan':    ensureTab_(PLAN, PLAN_HEADERS); return saveReg_(REG.plan, req.item, req);
+      case 'makePmPlan':    return makePmPlan_(req);
+      case 'saveEmployee':  return saveEmployee_(req);
+      case 'saveBackupEmail': return saveBackupEmail_(req);
       case 'renameOffice':  return renameOffice_(req);
       case 'tidyOffices':   return tidyOffices_(req);
       case 'disposeUnits':  return disposeUnits_(req);
@@ -269,6 +278,7 @@ function handle_(req) {
 
 function load_() {
   normalizeInventory_();
+  pmRules_();
   seedNetLines_();
   const inv = readRows_(INV, INV_HEADERS).map(toItem_);
   const pms = readRows_(PM, PM_HEADERS).map(toPM_);
@@ -283,8 +293,10 @@ function load_() {
            incidents: tab(INCIDENTS, INCIDENT_HEADERS).map(r => toObj_(REG.incident, r)), network: tab(NETWORK, NET_HEADERS).map(r => toObj_(REG.network, r)),
            downtime: tab(DOWNTIME, DOWN_HEADERS).map(r => toObj_(REG.downtime, r)),
            isoDocs: tab(ISO_DOCS, ISO_DOC_HEADERS).map(r => toObj_(REG.isoDoc, r)), isoRevs: tab(ISO_REVS, ISO_REV_HEADERS).map(r => toObj_(REG.isoRev, r)),
-           backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '' }, tirRecs: TIR_RECS,
-           choices: { transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS, downCause: DOWN_CAUSES, downScope: DOWN_SCOPES,
+           plans: tab(PLAN, PLAN_HEADERS).map(r => toObj_(REG.plan, r)),
+           backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '', email: props.getProperty('BACKUP_EMAIL') || '',
+             emailed: props.getProperty('LAST_BACKUP_EMAIL') || '' }, tirRecs: TIR_RECS,
+           choices: { planStatus: PLAN_STATUS, transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS, downCause: DOWN_CAUSES, downScope: DOWN_SCOPES,
              isoKind: ISO_KINDS, isoDocStatus: ISO_DOC_STATUS, isoNature: ISO_NATURE, isoRevStatus: ISO_REV_STATUS } };
 }
 
@@ -292,7 +304,7 @@ function saveEquipment_(req) {
   const it = req.item || {};
   const by = clean_(req.by) || 'ICTU';
   if (!clean_(it.type)) throw new Error('Equipment type is required.');
-  if (!clean_(it.brand)) throw new Error('Brand / model is required.');
+  if (!clean_(it.brand)) it.brand = 'Generic';   // no brand / model known: Generic, so the unit can still be saved and edited
   if (!clean_(it.office)) throw new Error('Office / section is required.');
 
   return withLock_(() => {
@@ -320,11 +332,14 @@ function saveEquipment_(req) {
       'Source Document (RIS / PAR / ICS)': clean_(it.source), 'Date Acquired': toDate_(it.acquired) || '',
       'Unit Cost': toNum_(it.cost), 'Warranty Until': toDate_(it.warranty) || '',
       'Computer Name / IP': clean_(it.compName), 'OS Installed': clean_(it.os), 'MS Office Installed': clean_(it.office365 || it.msOffice),
-      'PM Frequency': clean_(it.freq) || defaultFreq_(clean_(it.type)), 'Condition': clean_(it.condition) || 'Serviceable',
+      'PM Frequency': pmFreq_(it.type, it.brand), 'Condition': clean_(it.condition) || 'Serviceable',
       'Remarks': clean_(it.remarks)
     };
     Object.keys(set).forEach(k => row[I[k]] = set[k]);
-    row[I['Next PM Due']] = nextDue_(row[I['Last PM']], row[I['PM Frequency']], row[I['Condition']]);
+    row[I['Next PM Due']] = nextDue_(row[I['Last PM']], row[I['PM Frequency']], row[I['Condition']], row[I['Date Acquired']] || null);
+    // A later window set by a job order with action taken stays.
+    if (old && row[I['Next PM Due']] instanceof Date && old[I['Next PM Due']] instanceof Date && old[I['PM Frequency']] === row[I['PM Frequency']] &&
+        fmtDate_(old[I['Next PM Due']]) > fmtDate_(row[I['Next PM Due']])) row[I['Next PM Due']] = old[I['Next PM Due']];
     row[I['Updated At']] = now;
     row[I['Updated By']] = by;
 
@@ -373,8 +388,11 @@ function savePM_(req) {
     const now = new Date(Math.floor(Date.now() / 1000) * 1000);   // whole seconds, so the hash re-checks exactly
     const d = toDate_(p.date) || now;
     const ref = nextPmRef_(log, d);
-    const freq = item[I['PM Frequency']];
-    const due = toDate_(p.nextDue) || nextDue_(d, freq, condFromOverall_(p.overall)) || '';
+    const freq = FREQ_MONTHS[item[I['PM Frequency']]] ? item[I['PM Frequency']] : pmFreq_(item[I['Equipment Type']], item[I['Brand / Model']]);
+    if (!FREQ_MONTHS[freq]) throw new Error(p.equipmentId + ' (' + item[I['Equipment Type']] + ') has no PM. PM is only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers.');
+    const cur = item[I['Next PM Due']] instanceof Date ? item[I['Next PM Due']] : null;
+    let due = toDate_(p.nextDue) || nextDue_(d, freq, condFromOverall_(p.overall)) || '';
+    if (!p.nextDue && due instanceof Date && cur && fmtDate_(cur) > fmtDate_(due)) due = cur;
     const warranty = item[I['Warranty Until']] instanceof Date && item[I['Warranty Until']] >= d ? 'Yes' : 'No';
     const issues = clean_(p.findings);
 
@@ -463,41 +481,6 @@ function savePMRound_(req) {
   return out;
 }
 
-// Catch-up schedule: every overdue unit (or one with no next PM date) gets a new next PM date on the working days
-// from `start`, `perDay` units a day, oldest first. It adds no PM record, it only plans the PMs still to do.
-function catchUp_(req) {
-  const perDay = Math.max(1, Math.min(40, Math.floor(+req.perDay || 8)));
-  return withLock_(() => {
-    const sh = sheet_(INV), rows = readRows_(INV, INV_HEADERS);
-    const today = toDate_(fmtDate_(new Date()));
-    let start = toDate_(req.start) || today;
-    if (start < today) start = today;
-    const late = [];
-    rows.forEach((r, i) => {
-      if (!FREQ_MONTHS[r[I['PM Frequency']]] || ['Disposed', 'Unserviceable'].indexOf(r[I['Condition']]) >= 0) return;
-      const due = r[I['Next PM Due']];
-      if (!(due instanceof Date) || due < today) late.push({ i: i, due: due instanceof Date ? due.getTime() : 0, id: r[I['Equipment ID']] });
-    });
-    late.sort((a, b) => a.due - b.due || String(a.id).localeCompare(String(b.id)));
-    const day = new Date(start.getTime()), now = new Date(), plan = [];
-    const nextWorkDay = () => { while (day.getDay() === 0 || day.getDay() === 6) day.setDate(day.getDate() + 1); };
-    nextWorkDay();
-    late.forEach((x, n) => {
-      if (n && n % perDay === 0) { day.setDate(day.getDate() + 1); nextWorkDay(); }
-      const r = rows[x.i];
-      r[I['Next PM Due']] = new Date(day.getTime());
-      r[I['Updated At']] = now; r[I['Updated By']] = clean_(req.by);
-      const row = findRow_(sh, x.id); if (!row) return;
-      sh.getRange(row, I['Next PM Due'] + 1, 1, 1).setValue(r[I['Next PM Due']]);
-      sh.getRange(row, I['Updated At'] + 1, 1, 2).setValues([[now, clean_(req.by)]]);
-      plan.push(x.id);
-    });
-    if (plan.length) audit_(plan[0] + (plan.length > 1 ? ' to ' + plan[plan.length - 1] : ''), 'CATCH-UP SCHEDULE', clean_(req.by),
-      plan.length + ' overdue unit(s) planned from ' + fmtDate_(start) + ' to ' + fmtDate_(day) + ', ' + perDay + ' a day. No PM record was added.', req.device);
-    return { ok: true, count: plan.length, from: plan.length ? fmtDate_(start) : '', to: plan.length ? fmtDate_(day) : '' };
-  });
-}
-
 // Disposal: Unserviceable units become Disposed, with the disposal document (IIRUP or similar) and date in Remarks.
 // They stay in the masterlist for the record.
 function disposeUnits_(req) {
@@ -567,7 +550,9 @@ function voidPM_(req) {
           .sort((a, b) => a[P['Date']] - b[P['Date']]).pop();
         item[I['Last PM']] = prev ? prev[P['Date']] : '';
         item[I['Last PM Ref No.']] = prev ? prev[P['PM Ref No.']] : '';
-        item[I['Next PM Due']] = prev ? (prev[P['Next Check / PM Due']] || nextDue_(prev[P['Date']], item[I['PM Frequency']], item[I['Condition']])) : '';
+        const js = joServices_()[String(eq).toUpperCase()], pd = prev && prev[P['Date']] instanceof Date ? prev[P['Date']] : null;
+        item[I['Next PM Due']] = nextDue_(pd && js ? (js > pd ? js : pd) : pd || js || null, item[I['PM Frequency']], item[I['Condition']],
+          item[I['Date Acquired']] instanceof Date ? item[I['Date Acquired']] : null);
         inv.getRange(ir, 1, 1, INV_HEADERS.length).setValues([item]);
       }
     }
@@ -618,6 +603,16 @@ function renameCore_(from, to, by) {
       col.forEach((v, i) => { if (i > 0 && nameKey_(v[0]) === nameKey_(from)) { ls.getRange(i + 1, 3).setValue(hasTo || renamed ? '' : to); renamed = true; } });
       if (!hasTo && !renamed) appendOffice_(to);
     }
+    // Section plans and employee section changes follow the new name.
+    const ps = SpreadsheetApp.getActive().getSheetByName(PLAN);
+    if (ps && lastRow_(ps) >= 2) ps.getRange(2, 3, lastRow_(ps) - 1, 1).getValues().forEach((v, i) => {
+      if (nameKey_(v[0]) === nameKey_(from)) ps.getRange(i + 2, 3).setValue(to);
+    });
+    const es = SpreadsheetApp.getActive().getSheetByName(EMP_EDITS);
+    if (es && lastRow_(es) >= 2) es.getRange(2, 3, lastRow_(es) - 1, 2).getValues().forEach((v, i) => {
+      const also = String(v[1]).split(/\s*;\s*/).filter(Boolean).map(x => nameKey_(x) === nameKey_(from) ? to : x).join('; ');
+      es.getRange(i + 2, 3, 1, 2).setValues([[nameKey_(v[0]) === nameKey_(from) ? to : v[0], also]]);
+    });
     return count;
 }
 
@@ -722,6 +717,24 @@ function employees_() {
       out.push({ name: name, position: String(r[1]).trim(), office: String(r[2]).trim(), added: true });
     });
   }
+  // Changes made in the app (section, extra designations, position, status) sit on top of the HR list.
+  const es = SpreadsheetApp.getActive().getSheetByName(EMP_EDITS);
+  if (es) {
+    const n = lastRow_(es);
+    if (n >= 2) es.getRange(2, 1, n - 1, EMP_EDIT_HEADERS.length).getValues().forEach(r => {
+      const name = String(r[0]).trim();
+      if (!name) return;
+      let e = out.filter(x => nameKey_(x.name) === nameKey_(name))[0];
+      if (!e) { e = { name: name, position: '', office: '', added: true }; out.push(e); added++; }
+      if (String(r[1]).trim()) e.position = String(r[1]).trim();
+      if (String(r[2]).trim()) e.office = String(r[2]).trim();
+      e.also = String(r[3]).split(/\s*;\s*/).filter(Boolean);
+      e.status = String(r[4]).trim() || 'Active';
+      e.remarks = String(r[5]).trim();
+      e.edited = dtText_(r[6]) + (String(r[7]).trim() ? ' by ' + String(r[7]).trim() : '');
+    });
+  }
+  out.forEach(e => { if (!e.also) e.also = []; if (!e.status) e.status = 'Active'; });
   out.sort((a, b) => a.name.localeCompare(b.name));
   return { list: out, found: found, count: count, added: added };
 }
@@ -900,6 +913,9 @@ function finishSave_(row, r, j, by, req, isNew) {
     }
     item = toItem_(it);
   }
+  const fin = parseDt_(row[J['Date/Time Finished']]);
+  if (eq && fin && ['Resolved', 'Resolved - temporary fix'].indexOf(status) >= 0 && (row[J['Action Taken']] || row[J['Findings / Action Taken']]))
+    item = joServiced_(String(eq).toUpperCase(), fin, by, req.device) || item;
   return { ok: true, jo: toJO_(row), item: item };
 }
 
@@ -1419,12 +1435,15 @@ function backupFolder_() {
 function backupNow_(by) {
   const ss = SpreadsheetApp.getActive();
   const now = new Date();
-  const copy = DriveApp.getFileById(ss.getId()).makeCopy(ss.getName() + ' - backup ' + Utilities.formatDate(now, TZ, 'yyyy-MM-dd HHmm'), backupFolder_());
+  const name = ss.getName() + ' - backup ' + Utilities.formatDate(now, TZ, 'yyyy-MM-dd HHmm');
+  const copy = DriveApp.getFileById(ss.getId()).makeCopy(name, backupFolder_());
   const props = PropertiesService.getScriptProperties();
   props.setProperty('LAST_BACKUP', dt_(now));
   props.setProperty('LAST_BACKUP_URL', copy.getUrl());
   audit_('', 'BACKUP', by, 'Copy of the Sheet saved to Drive folder "' + BACKUP_FOLDER + '".', '');
-  return { ok: true, backup: { last: dt_(now), url: copy.getUrl() } };
+  const mailed = emailBackup_(name, copy.getUrl(), by);
+  return { ok: true, mailed: mailed, backup: { last: dt_(now), url: copy.getUrl(), email: props.getProperty('BACKUP_EMAIL') || '',
+           emailed: props.getProperty('LAST_BACKUP_EMAIL') || '' } };
 }
 
 // Runs by itself on the 1st of every month (the trigger is made by setup).
@@ -1512,6 +1531,14 @@ const REG = {
     choices: { cause: DOWN_CAUSES, scope: DOWN_SCOPES, status: ['Ongoing', 'Restored'] }, defaults: { scope: 'Whole office', cause: 'Unknown' },
     next: (sh, now) => nextNo_(sh, 1, 'DT-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
     check: (row, H) => downCheck_(row, H) },
+  plan: { tab: PLAN, h: PLAN_HEADERS, label: 'PM PLAN',
+    map: { id: 'Plan ID', quarter: 'Quarter', section: 'Section', start: 'Planned Start', end: 'Planned End', actualStart: 'Actual Start',
+      actualEnd: 'Actual Finish', receivedBy: 'Received By', position: 'Position', status: 'Status', remarks: 'Remarks',
+      updatedAt: 'Updated At', updatedBy: 'Updated By' },
+    days: ['start', 'end', 'actualStart', 'actualEnd'], required: ['quarter', 'section', 'start', 'end'],
+    choices: { status: PLAN_STATUS }, defaults: { status: 'Planned' },
+    next: (sh, now) => nextNo_(sh, 1, 'PP-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
+    check: (row, H) => planCheck_(row, H) },
   isoDoc: { tab: ISO_DOCS, h: ISO_DOC_HEADERS, label: 'ISO DOCUMENT',
     map: { id: 'Doc ID', code: 'Document Code', title: 'Title', kind: 'Kind', rev: 'Current Rev.', effectivity: 'Effectivity Date',
       status: 'Status', procedure: 'Related Procedure', location: 'File / Copy Location', retention: 'Retention', remarks: 'Remarks',
@@ -1904,7 +1931,7 @@ function importRows_(req) {
     try { knownOffices = allOffices_().concat(rows.map(r => clean_(r[I['Office / Section']]))); } catch (err) {}
     const ids = {}, serials = {};
     const same = (a, b) => String(a[I['Equipment Type']]).toLowerCase() === String(b[I['Equipment Type']]).toLowerCase() &&
-      String(a[I['Brand / Model']]).toLowerCase() === String(b[I['Brand / Model']]).toLowerCase();
+      (String(a[I['Brand / Model']]).trim() || 'Generic').toLowerCase() === (String(b[I['Brand / Model']]).trim() || 'Generic').toLowerCase();
     rows.forEach(r => { ids[r[I['Equipment ID']]] = r; const sn = String(r[I['Serial No.']]).trim().toLowerCase(); if (sn) serials[sn] = 1; });
     const newRows = [], moved = {};
     inv.forEach(o => {
@@ -1923,9 +1950,10 @@ function importRows_(req) {
       // A different unit already uses this ID, so this one gets the next free ID.
       if (!/^ICT-\d{4,}$/.test(id) || ids[id]) { row[I['Equipment ID']] = nextEquipmentId_(rows.concat(newRows)); if (id) moved[id] = row[I['Equipment ID']]; }
       row[I['Unit Cost']] = toNum_(row[I['Unit Cost']]);
-      if (!row[I['PM Frequency']]) row[I['PM Frequency']] = defaultFreq_(row[I['Equipment Type']]);
+      if (!String(row[I['Brand / Model']]).trim()) row[I['Brand / Model']] = 'Generic';
+      row[I['PM Frequency']] = pmFreq_(row[I['Equipment Type']], row[I['Brand / Model']]);
       if (!row[I['Condition']]) row[I['Condition']] = 'Serviceable';
-      row[I['Next PM Due']] = nextDue_(row[I['Last PM']], row[I['PM Frequency']], row[I['Condition']]);
+      row[I['Next PM Due']] = nextDue_(row[I['Last PM']], row[I['PM Frequency']], row[I['Condition']], row[I['Date Acquired']] instanceof Date ? row[I['Date Acquired']] : null);
       row[I['Added At']] = row[I['Added At']] || now;
       row[I['Updated At']] = now; row[I['Updated By']] = by;
       ids[row[I['Equipment ID']]] = row; if (sn) serials[sn] = 1;
@@ -2076,7 +2104,7 @@ function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(TZ);
   [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS], [USERS, USER_HEADERS],
-   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [DOWNTIME, DOWN_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS]].forEach(([name, h]) => {
+   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [DOWNTIME, DOWN_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS], [PLAN, PLAN_HEADERS], [EMP_EDITS, EMP_EDIT_HEADERS]].forEach(([name, h]) => {
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
     // Writes the header row when it is missing, and adds new columns to an older tab (such as a pasted JO Log).
     const have = sh.getRange(1, 1, 1, h.length).getValues()[0];
@@ -2109,6 +2137,7 @@ function setup() {
   if (!ss.getSheetByName(ADDED)) makeAddedTab_();
   seedIso_();
   seedNetLines_();
+  pmRules_();
   ss.getSheets().forEach(protect_);
   sigFolder_();
   backupFolder_();
@@ -2157,14 +2186,15 @@ function normalizeInventory_() {
       let changed = false;
       if (!r[I['Equipment ID']]) {
         r[I['Equipment ID']] = nextEquipmentId_(fresh);
-        if (!r[I['PM Frequency']]) r[I['PM Frequency']] = defaultFreq_(r[I['Equipment Type']]);
+        r[I['PM Frequency']] = pmFreq_(r[I['Equipment Type']], r[I['Brand / Model']]);
+        if (!String(r[I['Brand / Model']]).trim()) r[I['Brand / Model']] = 'Generic';
         if (!r[I['Condition']]) r[I['Condition']] = 'Serviceable';
         if (!r[I['Added At']]) r[I['Added At']] = new Date();
         added.push(r[I['Equipment ID']]);
         changed = true;
       }
       if (r[I['Last PM']] instanceof Date && !r[I['Next PM Due']]) {
-        r[I['Next PM Due']] = nextDue_(r[I['Last PM']], r[I['PM Frequency']], r[I['Condition']]);
+        r[I['Next PM Due']] = nextDue_(r[I['Last PM']], r[I['PM Frequency']], r[I['Condition']], r[I['Date Acquired']] instanceof Date ? r[I['Date Acquired']] : null);
         changed = true;
       }
       if (changed) sh.getRange(i + 2, 1, 1, INV_HEADERS.length).setValues([r]);
@@ -2201,15 +2231,269 @@ function defaultFreq_(type) {
   return t ? t[1] : 'Annual';
 }
 
-function nextDue_(last, freq, condition) {
+// 1.7.0: PM is only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers.
+// Servers every 6 months, the rest every quarter. Everything else has no PM (blank).
+function pmFreq_(type, brand) {
+  const t = String(type || '').toLowerCase(), s = t + ' ' + String(brand || '').toLowerCase();
+  if (/monitor|keyboard|mouse|peripheral|ups|avr|projector|scanner|network device|router|switch|access point/.test(t)) return '';
+  if (/\bserver\b|\bnas\b/.test(s)) return 'Semi-Annual';
+  if (/desktop|computer|\bpc\b|all[- ]in[- ]one|workstation|\bcpu\b|laptop|notebook|netbook|chromebook|printer|photocopier|copier|multifunction|\bineo\b|tablet|ipad|smart\s*tv|television|\btv\b/.test(s)) return 'Quarterly';
+  return '';
+}
+
+// PM windows follow the calendar: Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec (servers: Jan-Jun, Jul-Dec).
+function winStart_(d, m) { return new Date(d.getFullYear(), Math.floor(d.getMonth() / m) * m, 1, 12); }
+
+// Next PM Due is the first day of the next window after the last service (a PM, or a job order with action taken).
+// A unit never serviced is due in the window after the one it was bought in (bought in March: due Apr-Jun),
+// or in the current window when the date bought is not known.
+function nextDue_(last, freq, condition, acquired) {
   const m = FREQ_MONTHS[freq];
-  if (!m || !(last instanceof Date) || condition === 'Disposed' || condition === 'Unserviceable') return '';
-  const d = new Date(last.getTime());
-  const day = d.getDate();
-  d.setDate(1);
+  if (!m || condition === 'Disposed' || condition === 'Unserviceable') return '';
+  const base = last instanceof Date ? last : acquired instanceof Date ? acquired : null;
+  if (!base) return winStart_(new Date(), m);
+  const d = winStart_(base, m);
   d.setMonth(d.getMonth() + m);
-  d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
   return d;
+}
+
+// The latest job order with action taken on each unit (resolved, with a finish date).
+function joServices_() {
+  const out = {};
+  if (!jobSheet_()) return out;
+  readRows_(JO, JO_HEADERS).forEach(r => {
+    const eq = String(r[J['Equipment ID']] || '').toUpperCase();
+    if (!eq || ['Resolved', 'Resolved - temporary fix'].indexOf(r[J['Status']]) < 0) return;
+    if (!clean_(r[J['Action Taken']]) && !clean_(r[J['Findings / Action Taken']])) return;
+    const d = parseDt_(r[J['Date/Time Finished']]);
+    if (d && (!out[eq] || d > out[eq])) out[eq] = d;
+  });
+  return out;
+}
+
+// One time (1.7.0): applies the PM rule to every unit and moves Next PM Due to the quarter windows,
+// counting job orders with action taken as service for their quarter.
+function pmRules_() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('PM_RULES') === '1.7.0') return;
+  withLock_(() => {
+    const sh = sheet_(INV), n = lastFilledRow_(sh, INV_HEADERS.length);
+    if (n >= 2) {
+      const data = sh.getRange(2, 1, n - 1, INV_HEADERS.length).getValues(), jo = joServices_();
+      let changed = 0;
+      data.forEach((r, i) => {
+        if (!r[I['Equipment ID']]) return;
+        const freq = pmFreq_(r[I['Equipment Type']], r[I['Brand / Model']]);
+        const noBrand = !String(r[I['Brand / Model']]).trim();
+        if (noBrand) r[I['Brand / Model']] = 'Generic';
+        const lp = r[I['Last PM']] instanceof Date ? r[I['Last PM']] : null, js = jo[String(r[I['Equipment ID']]).toUpperCase()];
+        const last = lp && js ? (js > lp ? js : lp) : lp || js || null;
+        const acq = r[I['Date Acquired']] instanceof Date ? r[I['Date Acquired']] : null;
+        const due = nextDue_(last, freq, r[I['Condition']], acq);
+        if (noBrand || r[I['PM Frequency']] !== freq || fmtDate_(r[I['Next PM Due']]) !== fmtDate_(due)) {
+          r[I['PM Frequency']] = freq; r[I['Next PM Due']] = due; changed++;
+          sh.getRange(i + 2, 1, 1, INV_HEADERS.length).setValues([r]);
+        }
+      });
+      audit_('', 'PM RULES APPLIED', 'Setup', changed + ' unit(s) updated: quarterly PM for desktops, printers, laptops, tablets and smart TVs, every 6 months for servers, none for the rest. Blank brand / model set to Generic.', '');
+    }
+    props.setProperty('PM_RULES', '1.7.0');
+  });
+}
+
+// A job order with action taken on a unit counts as its service for that quarter.
+function joServiced_(eq, finished, by, device) {
+  const inv = sheet_(INV), ir = findRow_(inv, eq);
+  if (!ir) return null;
+  const it = inv.getRange(ir, 1, 1, INV_HEADERS.length).getValues()[0];
+  const acq = it[I['Date Acquired']] instanceof Date ? it[I['Date Acquired']] : null;
+  const due = nextDue_(finished, it[I['PM Frequency']], it[I['Condition']], acq);
+  const cur = it[I['Next PM Due']] instanceof Date ? it[I['Next PM Due']] : null;
+  if (!(due instanceof Date) || (cur && fmtDate_(cur) >= fmtDate_(due))) return null;
+  it[I['Next PM Due']] = due;
+  formatInvRow_(inv, ir);
+  inv.getRange(ir, 1, 1, INV_HEADERS.length).setValues([it]);
+  audit_(eq, 'PM DONE BY JOB ORDER', by, 'Action taken on ' + fmtDate_(finished) + ' counts for this quarter. Next PM ' + fmtDate_(due) + '.', device);
+  return toItem_(it);
+}
+
+// ---------- PM plan by section (1.7.0) ----------
+
+function ensureTab_(name, h) {
+  const ss = SpreadsheetApp.getActive();
+  if (ss.getSheetByName(name)) return ss.getSheetByName(name);
+  const sh = ss.insertSheet(name);
+  sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  protect_(sh);
+  return sh;
+}
+
+// '2026-Q2' to its first and last day.
+function quarterDays_(q) {
+  const m = String(q || '').match(/^(\d{4})-Q([1-4])$/);
+  if (!m) throw new Error('Quarter should look like 2026-Q2.');
+  return { from: new Date(+m[1], (+m[2] - 1) * 3, 1, 12), to: new Date(+m[1], +m[2] * 3, 0, 12) };
+}
+function quarterOf_(d) { return Utilities.formatDate(d, TZ, 'yyyy') + '-Q' + (Math.floor(d.getMonth() / 3) + 1); }
+
+function planCheck_(row, H) {
+  quarterDays_(row[H['Quarter']]);
+  const s = row[H['Planned Start']], e = row[H['Planned End']], as = row[H['Actual Start']], ae = row[H['Actual Finish']];
+  if (e < s) throw new Error('The planned end is before the planned start.');
+  if (ae && !as) throw new Error('Type the actual start too.');
+  if (ae && ae < as) throw new Error('The actual finish is before the actual start.');
+  if (ae && fmtDate_(toDate_(ae)) > fmtDate_(new Date())) throw new Error('The actual finish cannot be in the future.');
+  if (ae && ['Moved', 'Cancelled'].indexOf(row[H['Status']]) < 0) row[H['Status']] = 'Done';
+  else if (as && ['Planned', 'Notice sent'].indexOf(row[H['Status']]) >= 0) row[H['Status']] = 'In progress';
+  const key = nameKey_(row[H['Section']]);
+  readRows_(PLAN, PLAN_HEADERS).forEach(x => {
+    if (x[0] !== row[0] && x[H['Quarter']] === row[H['Quarter']] && nameKey_(x[H['Section']]) === key && x[H['Status']] !== 'Cancelled')
+      throw new Error(row[H['Section']] + ' already has a plan for ' + row[H['Quarter']] + ' (' + x[0] + ').');
+  });
+}
+
+// Units that need a PM in a quarter: PM units (not disposed or unserviceable) whose next PM falls on or before its last day.
+function dueBySection_(q) {
+  const end = quarterDays_(q).to, out = {};
+  readRows_(INV, INV_HEADERS).forEach(r => {
+    if (!FREQ_MONTHS[r[I['PM Frequency']]] || ['Disposed', 'Unserviceable'].indexOf(r[I['Condition']]) >= 0) return;
+    const due = r[I['Next PM Due']];
+    if (due instanceof Date && fmtDate_(due) > fmtDate_(end)) return;
+    const sec = clean_(r[I['Office / Section']]) || 'No section';
+    out[sec] = (out[sec] || 0) + 1;
+  });
+  return out;
+}
+
+// Plans the PM of every section with units due in the quarter: `days` working days per section, one after another,
+// Monday to Thursday (Fridays stay free for job orders and catch-up) unless `fridays` is ticked.
+// Sections that already have a plan for the quarter are kept as they are.
+function makePmPlan_(req) {
+  const q = clean_(req.quarter) || quarterOf_(new Date());
+  const qd = quarterDays_(q);
+  const days = Math.max(1, Math.min(5, Math.floor(+req.days || 2)));
+  const work = d => d.getDay() >= 1 && d.getDay() <= (req.fridays ? 5 : 4);
+  ensureTab_(PLAN, PLAN_HEADERS);
+  return withLock_(() => {
+    const sh = sheet_(PLAN), H = idx_(PLAN_HEADERS), have = {};
+    readRows_(PLAN, PLAN_HEADERS).forEach(x => { if (x[H['Quarter']] === q && x[H['Status']] !== 'Cancelled') have[nameKey_(x[H['Section']])] = 1; });
+    const due = dueBySection_(q);
+    const secs = Object.keys(due).filter(s => !have[nameKey_(s)]).sort((a, b) => a.localeCompare(b));
+    const today = toDate_(fmtDate_(new Date()));
+    let day = toDate_(req.start) || (qd.from > today ? qd.from : today);
+    if (day < qd.from) day = new Date(qd.from.getTime());
+    day = new Date(day.getTime());
+    const step = () => { do day.setDate(day.getDate() + 1); while (!work(day)); };
+    while (!work(day)) day.setDate(day.getDate() + 1);
+    const now = new Date(), stamp = dt_(now), by = clean_(req.by), rows = [];
+    let from = '', to = '';
+    secs.forEach((sec, i) => {
+      if (i) step();
+      const a = fmtDate_(day);
+      for (let k = 1; k < days; k++) step();
+      const b = fmtDate_(day);
+      const row = new Array(PLAN_HEADERS.length).fill('');
+      row[H['Quarter']] = q; row[H['Section']] = sec; row[H['Planned Start']] = a; row[H['Planned End']] = b;
+      row[H['Status']] = 'Planned'; row[H['Remarks']] = due[sec] + ' unit(s) due';
+      row[H['Updated At']] = stamp; row[H['Updated By']] = by;
+      rows.push(row);
+      if (!from) from = a;
+      to = b;
+    });
+    rows.forEach(row => {
+      row[0] = REG.plan.next(sh, now);
+      writeRegRow_(REG.plan, sh, lastRow_(sh) + 1, row);
+    });
+    if (rows.length) audit_(q, 'PM PLAN MADE', by, rows.length + ' section(s) planned from ' + from + ' to ' + to + ', ' + days + ' day(s) each' +
+      (req.fridays ? ', Fridays included.' : ', Monday to Thursday.'), req.device);
+    return { ok: true, quarter: q, count: rows.length, kept: Object.keys(have).length, from: from, to: to,
+             pastQuarter: !!to && to > fmtDate_(qd.to), plans: readRows_(PLAN, PLAN_HEADERS).map(r => toObj_(REG.plan, r)) };
+  });
+}
+
+// ---------- employee masterlist changes (1.7.0) ----------
+
+// Head only: changes an employee's position, home section, extra designations (temporary, other sections) or status.
+// A name not in the HR masterlist is added. The HR Masterlist tab itself is never changed.
+function saveEmployee_(req) {
+  const e = req.employee || {};
+  const name = clean_(e.name).replace(/\s+/g, ' ');
+  if (!name) throw new Error('Type the name of the employee.');
+  const status = clean_(e.status) || 'Active';
+  if (['Active', 'Inactive'].indexOf(status) < 0) throw new Error('Status is Active or Inactive.');
+  return withLock_(() => {
+    const fix = o => { o = officeName_(clean_(o)); if (!o) return ''; const k = allOffices_().filter(x => nameKey_(x) === nameKey_(o))[0]; if (k) return k; appendOffice_(o); return o; };
+    const office = fix(e.office);
+    if (!office) throw new Error('Pick the section of the employee.');
+    const also = [];
+    (Array.isArray(e.also) ? e.also : String(e.also || '').split(/\s*;\s*/)).forEach(x => {
+      const o = fix(x);
+      if (o && nameKey_(o) !== nameKey_(office) && also.every(y => nameKey_(y) !== nameKey_(o))) also.push(o);
+    });
+    if (also.length > 5) throw new Error('Up to 5 other sections only.');
+    const sh = ensureTab_(EMP_EDITS, EMP_EDIT_HEADERS);
+    const n = lastRow_(sh);
+    let r = 0;
+    if (n >= 2) sh.getRange(2, 1, n - 1, 1).getValues().forEach((v, i) => { if (!r && nameKey_(v[0]) === nameKey_(name)) r = i + 2; });
+    const before = employees_().list.filter(x => nameKey_(x.name) === nameKey_(name))[0];
+    const row = [before ? before.name : name, clean_(e.position), office, also.join('; '), status, clean_(e.remarks), dt_(new Date()), clean_(req.by)];
+    r = r || n + 1;
+    sh.getRange(r, 1, 1, row.length).setNumberFormat('@');
+    sh.getRange(r, 1, 1, row.length).setValues([row]);
+    const what = [];
+    if (!before) what.push('added, ' + office);
+    else {
+      if (before.office !== office) what.push('section "' + before.office + '" to "' + office + '"');
+      if ((before.also || []).join('; ') !== also.join('; ')) what.push('also assigned to: ' + (also.join('; ') || 'none'));
+      if (row[1] && before.position !== row[1]) what.push('position "' + before.position + '" to "' + row[1] + '"');
+      if ((before.status || 'Active') !== status) what.push('status ' + status);
+    }
+    audit_('', before ? 'EMPLOYEE UPDATED' : 'EMPLOYEE ADDED', clean_(req.by), row[0] + ': ' + (what.join('; ') || 'no change'), req.device);
+    const emp = employees_();
+    return { ok: true, employee: emp.list.filter(x => nameKey_(x.name) === nameKey_(name))[0], employees: emp.list };
+  });
+}
+
+// ---------- backup copy by email (1.7.0) ----------
+
+// Head only: the ICTU staff who gets each backup by email (one address; blank turns it off).
+function saveBackupEmail_(req) {
+  const to = String(req.email || '').trim().toLowerCase();
+  if (to && !/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(to)) throw new Error('This is not an email address: ' + to);
+  PropertiesService.getScriptProperties().setProperty('BACKUP_EMAIL', to);
+  audit_('', 'BACKUP EMAIL CHANGED', req.by, to ? 'Each backup is also emailed to ' + to + '.' : 'Backup emails turned off.', req.device);
+  return { ok: true, email: to };
+}
+
+// Emails the backup as an Excel file (a link only when the file is too big or cannot be made). Never stops the backup itself.
+function emailBackup_(name, url, by) {
+  const props = PropertiesService.getScriptProperties(), to = props.getProperty('BACKUP_EMAIL');
+  if (!to) return '';
+  try {
+    if (MailApp.getRemainingDailyQuota() < 1) throw new Error('The free daily email limit was reached.');
+    const ss = SpreadsheetApp.getActive();
+    let blob = null, why = '';
+    try {
+      const res = UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?format=xlsx',
+        { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+      if (res.getResponseCode() === 200) {
+        blob = res.getBlob().setName(name + '.xlsx');
+        if (blob.getBytes().length > 20 * 1024 * 1024) { blob = null; why = 'The file is over 20 MB, so only the link is sent.'; }
+      } else why = 'The Excel file could not be made (code ' + res.getResponseCode() + '), so only the link is sent.';
+    } catch (err) { why = 'The Excel file could not be made, so only the link is sent.'; }
+    const body = 'Good day!\n\nAttached is the backup of the ICT Inventory and PMS Register made on ' + niceDt_(dt_(new Date())) +
+      ' (' + by + ').\n\nPlease save the file on your workstation and keep this email. The same copy is in Google Drive:\n' + url +
+      (why ? '\n\n' + why : '') + '\n\nICT Unit, DOH TRC Dulag';
+    MailApp.sendEmail({ to: to, subject: 'ICT Inventory and PMS backup ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd'), body: body,
+      attachments: blob ? [blob] : [], name: 'ICT Inventory and PMS' });
+    props.setProperty('LAST_BACKUP_EMAIL', dt_(new Date()) + ' to ' + to + (blob ? '' : ' (link only)'));
+    audit_('', 'BACKUP EMAILED', by, 'Backup sent to ' + to + (blob ? ' as an Excel file.' : '. ' + why), '');
+    return blob ? 'file' : 'link';
+  } catch (err) {
+    audit_('', 'BACKUP EMAIL NOT SENT', by, String(err.message || err).slice(0, 200), '');
+    return 'failed';
+  }
 }
 
 function condFromOverall_(o) {

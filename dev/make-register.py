@@ -53,7 +53,7 @@ for p in S["pms"]:
 
 ws = wb.create_sheet("Checklist Results"); tab(ws, H["CHK"])
 ws = wb.create_sheet("JO Log"); tab(ws, H["JO"])
-for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET"), ("Internet Downtime", "DOWN"), ("ISO Documents", "ISOD"), ("ISO Revisions", "ISOR")]:
+for name, key in [("Users", "USERS"), ("Transfers", "TR"), ("Stock Items", "STOCK"), ("Stock Movements", "MOVES"), ("Incidents", "INC"), ("Network", "NET"), ("Internet Downtime", "DOWN"), ("ISO Documents", "ISOD"), ("ISO Revisions", "ISOR"), ("PM Plan", "PLAN"), ("Employee Changes", "EMPE")]:
     ws = wb.create_sheet(name); tab(ws, H[key])
 ws = wb.create_sheet("Audit Trail"); tab(ws, H["AUD"])
 if S["items"]:
@@ -85,7 +85,9 @@ about = [["ICT Inventory and PMS Register (ICTU)"], [],
  ["Internet Downtime", "Each time the internet went down (DT-YYYY-NNN): the line, when it went down and came back, the hours, cause and ISP ticket. The app works out the hours and the monthly uptime."],
  ["ISO Documents / ISO Revisions", "The ICTU controlled documents (procedures, forms, Context, ROA, APW) and every revision and DRF (REV-YYYY-NNN). Setup fills them with the ICTU documents the first time it runs, when both are empty."],
  ["Lists", "Choices shown in the app. Edit these to add offices, staff, equipment types with their default PM frequency, useful life (years) and replacement cost."],
- ["PM frequency", "Monthly, Quarterly, Semi-Annual, Annual, or Not scheduled (checked with its PC) for monitors, keyboards, hubs and other parts of a PC set."],
+ ["PM Plan", "The PM days of each section for a quarter (PP-YYYY-NNN): planned start and end, actual start and finish, and who received the result form."],
+ ["Employee Changes", "Changes to the HR Masterlist made in the app: home section, other sections someone is designated to, position and status. The Masterlist tab itself is never changed."],
+ ["PM frequency", "Set by the equipment type: Quarterly for desktops / PCs, printers / photocopiers, laptops, tablets and smart TVs; Semi-Annual for servers; blank (no PM) for everything else. Next PM Due is the first day of the next quarter window."],
  ["Protection", "After setup, every tab can be edited by hand only by the Sheet owner. The app writes through Apps Script, only for a signed-in ICTU account whose role allows it. A copy of the Sheet is saved to Drive every month."]]
 for r in about: ws.append(r)
 ws["A1"].font = Font(bold=True, size=13); ws.column_dimensions["A"].width = 20; ws.column_dimensions["B"].width = 110

@@ -2,6 +2,18 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.0 (Nov 4, 2026)
+
+- PM only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers. Other equipment has no PM.
+- PM windows follow the quarters (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec); servers every 6 months. Next PM Due is the first day of the next window. A unit never serviced is due in the window after the one it was bought in.
+- A job order resolved with action taken counts as the unit's PM for that quarter. The unit, the schedule and the job order show the action and how many were done within the quarter.
+- New "PM Plan" tab: section plans per quarter (2 working days each, Monday to Thursday, or with Fridays), quarter schedule, notice per section, and the PMS result form signed by the section head or representative.
+- Do PM opens on the list of sections; the search still finds any unit.
+- New "Employee Changes" tab: edit an employee's home section, other sections (designation), position and status from Accounts. The HR Masterlist tab is never changed. Rename a section moved to Accounts.
+- Backups can be emailed as an Excel file to one ICTU staff (Accounts, Backup).
+- Blank brand / model becomes "Generic". The catch-up schedule is removed (the section plan replaces it).
+- Blank forms and lists follows the ISO Documents list.
+
 ## 1.6.6 (Nov 4, 2026)
 - Router setup now fits the office MikroTik (CCR1009, RouterOS 6.49): it checks PLDT through "ISP IN" and Starlink through 192.168.1.1, and sends its reports only while the router can reach the internet.
 - While ether6 (PLDT) is switched off on purpose, PLDT is not logged as down.

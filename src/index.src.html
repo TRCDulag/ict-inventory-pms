@@ -627,13 +627,13 @@
     <div class="tiles">
       <button class="tile" data-go="inv"><div class="lb">Equipment in service</div><div class="val" id="tInv">0</div><div class="sm" id="tInvS"></div></button>
       <button class="tile" data-go="sched" id="tLateT"><div class="lb">Overdue or never done</div><div class="val" id="tLate">0</div><div class="sm">needs PM now</div></button>
-      <button class="tile" data-go="sched" id="tDueT"><div class="lb">Due this month</div><div class="val" id="tDue">0</div><div class="sm" id="tDueS"></div></button>
-      <button class="tile" data-go="recs"><div class="lb">PM done this quarter</div><div class="val" id="tDone">0</div><div class="sm" id="tDoneS"></div></button>
+      <button class="tile" data-go="sched" id="tDueT"><div class="lb">Due this quarter</div><div class="val" id="tDue">0</div><div class="sm" id="tDueS"></div></button>
+      <button class="tile" data-go="recs"><div class="lb">Done this quarter</div><div class="val" id="tDone">0</div><div class="sm" id="tDoneS"></div></button>
       <button class="tile" data-go="jo" id="tJoT"><div class="lb">Open job orders</div><div class="val" id="tJo">0</div><div class="sm" id="tJoS"></div></button>
     </div>
 
     <div class="panel">
-      <h3>Needs PM <span class="sub">overdue first, then this month and the next 30 days</span></h3>
+      <h3>Needs PM <span class="sub">overdue first, then the ones due this quarter</span></h3>
       <div id="homeDue"></div>
     </div>
     <div class="panel">
@@ -664,7 +664,6 @@
         <button class="btn ghost small" id="iPrint" type="button">Print masterlist</button>
         <button class="btn ghost small" id="iCsv" type="button">Download for Excel</button>
         <button class="btn ghost small need3" id="iDisp" type="button">For disposal</button>
-        <button class="btn ghost small need3" id="iRen" type="button">Rename a section</button>
         <button class="btn ghost small need3" id="iImp" type="button">Import from Excel</button><input type="file" id="iImpFile" accept=".xlsx,.csv" class="hidden">
       </div>
     </div>
@@ -679,26 +678,39 @@
   <!-- SCHEDULE -->
   <section class="view hidden" id="v-sched">
     <h2>PMS schedule</h2>
-    <p class="lead">Each unit is planned from its last PM and its PM frequency. A PM saved in the app marks the month as done and moves the next one.</p>
+    <p class="lead">PM is done every quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec), one section at a time. Servers are every 6 months. Only desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers get PM. A job order with action taken on a unit counts as its PM for that quarter.</p>
+    <div class="panel" id="spPanel">
+      <h3>PM by section</h3>
+      <div class="filters">
+        <label class="f">Quarter<select id="spQ"></select></label>
+        <label class="f need3">Days per section<select id="spDays"><option value="1">1 day</option><option value="2" selected>2 days</option><option value="3">3 days</option></select></label>
+        <label class="f need3">Start on<input id="spStart" type="date"></label>
+        <label class="chk need3"><input type="checkbox" id="spFri"> Use Fridays too</label>
+      </div>
+      <p class="hint" id="spEst" style="margin:8px 0"></p>
+      <div class="row"><button class="btn need3" id="spMake" type="button">Plan the sections</button><button class="btn ghost need2" id="spAdd" type="button">Add a section</button>
+        <span class="spacer"></span><button class="btn ghost small" id="spPrint" type="button">Print the quarter schedule</button><button class="btn ghost small" id="spNotices" type="button">Print notices for all sections</button></div>
+      <div class="tablewrap" style="margin-top:10px"><table class="list" id="spTable"><thead><tr><th>Section</th><th>PM days</th><th>Units done</th><th class="hide-m">Actual</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+      <div class="msg" id="spMsg" role="status"></div>
+    </div>
     <div class="panel">
       <div class="filters">
         <label class="f">Year<select id="sYear"></select></label>
         <label class="f">Section / unit<select id="sOffice"></select></label>
         <label class="f">Equipment type<select id="sType"></select></label>
-        <label class="f">Show<select id="sShow"><option value="">All scheduled units</option><option value="late">Overdue only</option><option value="month">Due this month</option></select></label>
+        <label class="f">Show<select id="sShow"><option value="">All scheduled units</option><option value="late">Overdue only</option><option value="month">Due this quarter</option><option value="done">Done this quarter</option></select></label>
         <label class="f">Sort by<select id="sSort"><option value="office">Section, then ID</option><option value="id">Equipment ID</option><option value="brand">Equipment name</option><option value="type">Equipment type</option><option value="next">Next PM date</option><option value="freq">PM frequency</option></select></label>
       </div>
       <div class="legend">
-        <span><i class="mk done">✓</i> PM done</span><span><i class="mk plan">P</i> Planned</span><span><i class="mk late">!</i> Planned but not done (overdue)</span>
+        <span><i class="mk done">✓</i> Done (PM or job order)</span><span><i class="mk plan">P</i> Due</span><span><i class="mk late">!</i> Due but not done (overdue)</span>
       </div>
       <div class="row"><span class="hint" id="sCount" style="margin:0"></span><span class="spacer"></span>
-        <button class="btn ghost small need3" id="sCatch" type="button">Catch-up schedule</button>
         <button class="btn ghost small need2" id="sRound" type="button">Record a PM round</button>
         <button class="btn ghost small" id="sPrint" type="button">Print schedule (A4)</button>
-        <button class="btn small" id="sPrintSec" type="button">Print calendar by section</button></div>
+</div>
     </div>
     <div class="tablewrap"><table class="sched" id="sTable"></table></div>
-    <p class="hint">Units set to "Not scheduled" (monitors, keyboards, hubs and the like) are checked during the PM of the PC they belong to, so they are not listed here.</p>
+    <p class="hint">Monitors, keyboards, UPS, hubs and other equipment have no PM of their own, so they are not listed here. They are looked at during the PM of the PC they are connected to.</p>
   </section>
 
   <!-- DO PM -->
@@ -715,7 +727,7 @@
         <h3>Equipment</h3>
         <div id="pmPick">
           <label class="f">Find the unit<input id="pmQ" type="search" placeholder="Type the brand, serial, property tag, office or end user"></label>
-          <div class="pmlegend"><span><i class="mk late">!</i> Overdue</span><span><i class="mk plan">P</i> Planned this month or soon</span><span><i class="mk done">✓</i> PM done, up to date</span></div>
+          <div class="pmlegend"><span><i class="mk late">!</i> Overdue</span><span><i class="mk plan">P</i> Due this quarter</span><span><i class="mk done">✓</i> PM done, up to date</span></div>
           <div class="picklist" id="pmList"></div>
         </div>
         <div id="pmSel" class="eqcard hidden"><div class="t"><b id="pmSelT"></b><span id="pmSelS"></span></div><button class="btn ghost small" id="pmChange" type="button">Change</button></div>
@@ -875,9 +887,12 @@
     </div>
     <div class="panel">
       <h3>Blank forms and lists</h3>
+      <p class="hint" style="margin:0 0 10px">Every form in the ISO Documents list. Forms without a print layout in the app yet are greyed out.</p>
+      <div class="row" id="blankIso" style="margin-bottom:10px"></div>
       <div class="row">
-        <button class="btn ghost" id="blankForm" type="button">Print a blank PMS checklist (COH-IDN-F-02)</button>
-        <button class="btn ghost" id="blankJo" type="button">Print a blank job order form (COH-IDN-F-01)</button>
+        <button class="btn ghost hidden" id="blankForm" type="button">Print a blank PMS checklist (COH-IDN-F-02)</button>
+        <button class="btn ghost hidden" id="blankJo" type="button">Print a blank job order form (COH-IDN-F-01)</button>
+        <button class="btn ghost" id="blankResult" type="button">Print a blank PMS result form (by section)</button>
         <button class="btn ghost" id="rPrintInv" type="button">Print the inventory masterlist</button>
         <button class="btn ghost" id="rPrintSched" type="button">Print this year's PMS schedule</button>
         <button class="btn ghost" id="rCsvAll" type="button">Download the whole PM Log for Excel</button>
@@ -995,6 +1010,14 @@
       <div class="tablewrap"><table class="list" id="uTable"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th class="hide-m">Last sign-in</th></tr></thead><tbody></tbody>
         <tfoot><tr><td colspan="5"><button class="addrow" id="addUser" type="button"><span class="plus">+</span>Add an ICTU staff account</button></td></tr></tfoot></table></div>
       <div class="msg" id="uMsg" role="status"></div></div>
+    <div class="panel"><h3>Employee masterlist</h3>
+      <p class="hint" style="margin:0 0 10px">The employees from the HR Masterlist tab plus the ones added in the app. Change someone's section here, or add other sections they are designated to. A designation does not move their equipment.</p>
+      <div class="filters"><label class="f q">Search<input id="emQ" type="search" placeholder="Name, position or section"></label>
+        <label class="f">Section<select id="emSec"></select></label>
+        <label class="chk"><input type="checkbox" id="emInact"> Show inactive</label></div>
+      <div class="tablewrap" style="margin-top:10px;max-height:480px"><table class="list" id="emTable"><thead><tr><th>Name</th><th class="hide-m">Position</th><th>Section</th><th>Also assigned to</th><th>Status</th></tr></thead><tbody></tbody>
+        <tfoot><tr><td colspan="5"><button class="addrow" id="emAdd" type="button"><span class="plus">+</span>Add an employee</button></td></tr></tfoot></table></div>
+      <div class="row" style="margin-top:8px"><span class="hint" id="emCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="iRen" type="button">Rename a section</button></div></div>
     <div class="panel"><h3>New job order emails</h3>
       <p class="hint" style="margin:0 0 10px">Each request filed on the request page sends an email to these addresses (up to 5, separated by commas). Job orders that ICTU logs in the app send none. The app also checks for new requests every 2 minutes while it is open and shows a pop-up.</p>
       <label class="f">Send to<input id="alEmails" type="text" inputmode="email" placeholder="you@gmail.com, argie@gmail.com" autocomplete="off"></label>
@@ -1002,9 +1025,11 @@
       <div class="row"><button class="btn" id="alSave" type="button">Save</button><button class="btn ghost" id="alTest" type="button">Send a test email</button></div>
       <div class="msg" id="alMsg" role="status"></div></div>
     <div class="panel"><h3>Backup of the Google Sheet</h3>
-      <p class="hint" style="margin:0 0 10px">A copy of the whole Sheet is saved on the 1st of every month, at about 6 AM, to the Drive folder "ICT Inventory and PMS Backups". You can also make one now, for example before a big change.</p>
+      <p class="hint" style="margin:0 0 10px">A copy of the whole Sheet (all tabs) is saved on the 1st of every month, at about 6 AM, to the Drive folder "ICT Inventory and PMS Backups". You can also make one now, for example before a big change.</p>
       <p id="bkInfo" style="margin:0 0 10px"></p>
-      <div class="row"><button class="btn" id="bkNow" type="button">Back up now</button></div>
+      <label class="f" style="max-width:420px">Also email each backup to (one ICTU staff)<input id="bkEmail" type="email" inputmode="email" placeholder="argie@gmail.com" autocomplete="off"></label>
+      <p class="hint" id="bkMailInfo" style="margin:8px 0 10px">The backup is sent as an Excel file, so a copy can be saved on the workstation and stays in the email too.</p>
+      <div class="row"><button class="btn ghost" id="bkSaveEmail" type="button">Save email</button><button class="btn" id="bkNow" type="button">Back up now</button></div>
       <div class="msg" id="bkMsg" role="status"></div></div>
   </section>
   <footer class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
@@ -1036,7 +1061,7 @@
         <div class="wide stk"><button class="btn ghost" id="eStk" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Read property sticker</button>
           <input type="file" id="eStkFile" accept="image/*" capture="environment" class="hidden"><span id="eStkMsg" class="hint"></span></div>
         <label class="f"><span class="req">Equipment type</span><select id="eType" required></select></label>
-        <label class="f"><span class="req">Brand / model</span><input id="eBrand" required></label>
+        <label class="f">Brand / model<input id="eBrand" placeholder="Generic"></label>
         <label class="f">Serial no.<input id="eSerial"></label>
         <label class="f">Property tag no.<input id="eTag"></label>
         <label class="f">Source document (RIS / PAR / ICS no.)<input id="eSource"></label>
@@ -1050,7 +1075,7 @@
         <label class="f">MS Office installed<input id="eMso" list="dlMso"></label>
         <label class="f">Unit cost (PHP)<input id="eCost" inputmode="decimal"></label>
         <label class="f">Warranty until<input id="eWarr" type="date"></label>
-        <label class="f">PM frequency<select id="eFreq"></select></label>
+        <label class="f">PM (set by the type)<select id="eFreq" disabled></select></label>
         <label class="f">Condition<select id="eCond"></select></label>
         <label class="f span2">Remarks<input id="eRem"></label>
       </div>
@@ -1090,6 +1115,7 @@
         <label class="f jeq hidden">Equipment / system<input id="jEquip"></label>
         <label class="f jeq hidden">Brand / model<input id="jModel"></label>
         <label class="f jeq hidden">Property / serial no.<input id="jSerial"></label>
+        <p class="hint wide hidden" id="jEqQ" style="margin:0"></p>
         <label class="f hidden" id="jLocWrap"><span id="jLocL">Location</span><input id="jLoc"></label>
         <label class="f">Urgently needed?<select id="jUrgent"><option value="No">No</option><option value="Yes">Yes</option></select></label>
         <label class="f wide hidden" id="jUrgWrap">Reason it is urgent<input id="jUrgReason"></label>
@@ -1210,6 +1236,50 @@
   </form>
 </dialog>
 <!-- rename a section in the masterlist -->
+<dialog id="ppDlg">
+  <form id="ppForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="ppT">Section PM plan</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="grid g3">
+        <label class="f span2"><span class="req">Section</span><select id="ppSec"></select></label>
+        <label class="f">Status<select id="ppStatus"></select></label>
+        <label class="f"><span class="req">PM starts</span><input id="ppStart" type="date"></label>
+        <label class="f"><span class="req">PM ends</span><input id="ppEnd" type="date"></label>
+        <span></span>
+        <label class="f">Actual start<input id="ppAStart" type="date"></label>
+        <label class="f">Actual finish<input id="ppAEnd" type="date"></label>
+        <span></span>
+        <label class="f span2">Received / signed by (section head or representative)<input id="ppRecv" list="empNames"></label>
+        <label class="f">Position<input id="ppPos"></label>
+        <label class="f wide">Remarks<input id="ppRem"></label>
+      </div>
+      <p class="hint" id="ppInfo" style="margin:10px 0 0"></p>
+      <div class="msg" id="ppMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost" type="button" id="ppNotice">Print notice</button><button class="btn ghost" type="button" id="ppResult">Print PMS result form</button><span class="spacer"></span><button class="btn need2" type="submit" id="ppSave">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="emDlg">
+  <form id="emForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="emT">Employee</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <div class="grid g3">
+        <label class="f span2"><span class="req">Name</span><input id="edName" placeholder="First name, middle initial, surname"></label>
+        <label class="f">Status<select id="emStatus"><option>Active</option><option>Inactive</option></select></label>
+        <label class="f span2">Position<input id="edPos"></label>
+        <span></span>
+        <label class="f wide"><span class="req">Home section</span><select id="edOffice"></select></label>
+        <div class="f wide"><span>Also assigned to (designation, can be temporary)</span><div class="picklist" id="emAlso" style="max-height:190px"></div></div>
+        <label class="f wide">Remarks<input id="emRem" placeholder="For example: OIC of Billing until Dec 31, 2026"></label>
+      </div>
+      <p class="hint" style="margin:10px 0 0">Changes are kept in the "Employee Changes" tab. The HR Masterlist tab is not touched. Equipment stays under the section it is listed in, so a designation does not move any unit.</p>
+      <div class="msg" id="emMsg" role="status"></div>
+    </div>
+    <div class="df"><span class="spacer"></span><button class="btn" type="submit" id="emSave">Save</button></div>
+  </form>
+</dialog>
+
 <dialog id="renDlg">
   <form id="renForm" method="dialog" autocomplete="off">
     <div class="dh"><h3>Rename a section</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
@@ -1476,6 +1546,7 @@
 <datalist id="dlUnit"><option>piece</option><option>bottle</option><option>cartridge</option><option>box</option><option>roll</option><option>meter</option><option>set</option><option>pack</option></datalist>
 <datalist id="dlOs"><option>Windows 11 Pro</option><option>Windows 11 Home</option><option>Windows 10 Pro</option><option>Windows 10 Home</option><option>Ubuntu</option></datalist>
 <datalist id="dlMso"><option>Microsoft Office 2021</option><option>Microsoft Office 2019</option><option>Microsoft Office 2016</option><option>Microsoft 365</option><option>WPS Office</option><option>LibreOffice</option><option>None</option></datalist>
+<datalist id="empNames"></datalist>
 <datalist id="dlLic"><option>Licensed / activated</option><option>Not activated</option><option>Free / open source</option><option>Not checked</option></datalist>
 
 <div id="printArea"></div>
@@ -1495,9 +1566,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.6";
+const APP_VERSION = "1.7.0";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.7.0", "Nov 4, 2026", ["PM is now only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers. Other equipment shows No PM.", "PM is every quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec), servers every 6 months. A unit bought in March is due in Apr-Jun.", "A job order resolved with action taken (diagnostics, updates, virus cleanup, printer cleaning, waste ink pad reset and the like) marks the unit Done for that quarter. The unit and the job order show what was done within the quarter and how many times.", "PM by section: plan the sections for a quarter (2 days each, Monday to Thursday), print the quarter schedule, the notice to each section, and the PMS result form signed by the section head or representative.", "Do PM starts with the list of sections. Find the unit still searches every section.", "Accounts: an employee masterlist you can edit, with the home section and other sections someone is designated to. Rename a section moved here.", "Each backup can also be emailed to one ICTU staff as an Excel file.", "Equipment with no brand / model is saved as Generic.", "Blank forms and lists shows every form in the ISO Documents list."]],
   ["1.6.6", "Nov 4, 2026", ["Router setup now fits the office MikroTik (CCR1009, RouterOS 6.49): it checks PLDT through \"ISP IN\" and Starlink through 192.168.1.1, and sends its reports only while the router can reach the internet.", "While ether6 (PLDT) is switched off on purpose, PLDT is not logged as down."]],
   ["1.6.5", "Nov 3, 2026", ["Internet Downtime is now logged by the MikroTik router by itself. It checks PLDT and Starlink every 30 seconds and tells the app the minute a line goes down or comes back, even at night. If both lines are down, it sends the report with the right time once a line is back.", "Router setup (Head) on the Internet Downtime page gives the commands and the script to paste in Winbox, with the app's link and a secret key already filled in.", "The screenshot upload from 1.6.4 was taken out, since the router now keeps the record. Entries logged by the router say so in the list."]],
   ["1.6.4", "Nov 3, 2026", ["Internet Downtime: attach screenshots to each entry as proof, such as the router interface list, a speed test or the ISP's text. Press Ctrl+V in the form to paste one, or choose files. Up to 10 per entry.", "The screenshots are kept in a Drive folder \"ICT PMS Downtime Screenshots\". Click one to see it full size, and the monthly report shows how many each entry has.", "Run setup once in Apps Script so the Internet Downtime tab gets its new Screenshots column."]],
@@ -1549,7 +1621,7 @@ const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&a
 const device = () => navigator.userAgent.replace(/\s+/g, " ").slice(0, 180);
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const FREQ = { "Monthly": 1, "Quarterly": 3, "Semi-Annual": 6, "Annual": 12 };
+const FREQ = { "Quarterly": 3, "Semi-Annual": 6 };
 const NOT_SCHEDULED = "Not scheduled (checked with its PC)";
 
 let TOKEN = store.get("token") || "";   // sign-in token; the server keeps it for 6 hours from the last use
@@ -1703,26 +1775,51 @@ function quarterOf(s) { const d = parse(s); return d ? "Q" + (Math.floor(d.getMo
 // ---------- equipment helpers ----------
 function active(it) { return it.condition !== "Disposed"; }
 function freqM(it) { return FREQ[it.freq] || 0; }
-// State of a unit's PM: late (overdue or never done), due (this month), soon (next 30 days), ok, ns (not scheduled), off.
+// PM windows follow the calendar quarters (servers: half years). Next PM Due is the first day of the unit's next window.
+const QLABEL = ["Jan-Mar", "Apr-Jun", "Jul-Sep", "Oct-Dec"];
+function winStart(d, m) { return new Date(d.getFullYear(), Math.floor(d.getMonth() / m) * m, 1); }
+function winLabel(s, m) { const d = parse(s); if (!d) return ""; m = m || 3; const a = winStart(d, m); return MONTHS[a.getMonth()] + "-" + MONTHS[a.getMonth() + m - 1] + " " + a.getFullYear(); }
+function nextWin(s, m) { const d = parse(s); return d && m ? isoDate(addMonths(winStart(d, m), m)) : ""; }
+// The calendar quarter of a date: its key (2026-Q4), first and last day, and label (Oct-Dec 2026).
+function qOf(s) { const d = parse(s || todayStr()), q = Math.floor(d.getMonth() / 3);
+  return { key: d.getFullYear() + "-Q" + (q + 1), from: isoDate(new Date(d.getFullYear(), q * 3, 1)), to: isoDate(new Date(d.getFullYear(), q * 3 + 3, 0)), label: QLABEL[q] + " " + d.getFullYear(), y: d.getFullYear(), q: q }; }
+function qFromKey(k) { const m = String(k).match(/^(\d{4})-Q([1-4])$/); return m ? qOf(m[1] + "-" + String((+m[2] - 1) * 3 + 1).padStart(2, "0") + "-01") : qOf(); }
+// Services on a unit between two dates: PM records and resolved job orders with action taken (they count as that quarter's PM).
+const JO_DONE = ["Resolved", "Resolved - temporary fix"];
+function servicesOf(id, from, to) {
+  const pm = D.pms.filter(p => p.equipmentId === id && p.recordStatus !== "Voided" && p.date >= from && p.date <= to)
+    .map(p => ({ kind: "PM", ref: p.ref, date: p.date, what: p.activity || "PM", overall: p.overall }));
+  const jo = D.jos.filter(j => j.equipmentId === id && JO_DONE.includes(j.status) && (j.action || j.findings) && String(j.finishedAt).slice(0, 10) >= from && String(j.finishedAt).slice(0, 10) <= to)
+    .map(j => ({ kind: "JO", ref: j.jo, date: String(j.finishedAt).slice(0, 10), what: j.action || j.findings }));
+  return pm.concat(jo).sort((a, b) => a.date < b.date ? -1 : 1);
+}
+// "Waste ink pad reset within the quarter (JO-2026-0042, Nov 4). 2 actions taken this quarter."
+function qRemark(id, s) {
+  const q = qOf(s), jo = servicesOf(id, q.from, q.to).filter(x => x.kind === "JO");
+  if (!jo.length) return "";
+  const last = jo[jo.length - 1];
+  return last.what.replace(/\.$/, "") + " within the quarter (" + last.ref + ", " + nice(last.date) + ")." + (jo.length > 1 ? " " + jo.length + " actions taken this quarter." : "");
+}
+// State of a unit's PM: ok (done for this window), due (in its window now), late (window passed or never planned), ns (no PM), off.
 function pmState(it) {
   if (!active(it)) return "off";
   if (it.condition === "Unserviceable") return "off";
-  if (!freqM(it)) return "ns";
-  const t = parse(todayStr());
-  const due = parse(it.nextDue);
+  const m = freqM(it);
+  if (!m) return "ns";
+  const t = todayStr(), due = it.nextDue;
   if (!due) return "late";
-  if (due < t) return "late";
-  if (due.getFullYear() === t.getFullYear() && due.getMonth() === t.getMonth()) return "due";
-  if ((due - t) / 864e5 <= 30) return "soon";
-  return "ok";
+  if (t < due) return "ok";
+  if (t < nextWin(due, m)) return "due";
+  return "late";
 }
 function dueChip(it) {
-  const s = pmState(it);
+  const s = pmState(it), m = freqM(it);
   if (s === "off") return '<span class="chip mute">' + esc(it.condition) + "</span>";
-  if (s === "ns") return '<span class="chip mute">With its PC</span>';
+  if (s === "ns") return '<span class="chip mute">No PM</span>';
   if (!it.nextDue) return '<span class="chip bad">No PM yet</span>';
-  const cls = { late: "bad", due: "warn", soon: "warn", ok: "ok" }[s];
-  return '<span class="chip ' + cls + '">' + (s === "late" ? "Overdue, " : "") + esc(nice(it.nextDue)) + "</span>";
+  if (s === "ok") return '<span class="chip ok" title="Next PM ' + esc(winLabel(it.nextDue, m)) + '">Done, next ' + esc(winLabel(it.nextDue, m)) + "</span>";
+  if (s === "due") return '<span class="chip warn">Due ' + esc(winLabel(it.nextDue, m)) + "</span>";
+  return '<span class="chip bad">Overdue since ' + esc(winLabel(it.nextDue, m)) + "</span>";
 }
 function condChip(c) {
   const cls = { "Serviceable": "ok", "For monitoring": "warn", "For repair": "bad", "Unserviceable": "bad", "Disposed": "mute" }[c] || "mute";
@@ -2144,7 +2241,7 @@ function show(v) {
   $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
   if (v === "pm") setTimeout(sizePad, 30);
   if (v === "dash") renderDash();
-  if (v === "acc") loadUsers();
+  if (v === "acc") { loadUsers(); renderEmps(); }
   try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) {}
   window.scrollTo(0, 0);
 }
@@ -2176,7 +2273,7 @@ function fillPickers(keep) {
   keepVal("iType", opts(types, "All types")); keepVal("sType", opts(types, "All types"));
   keepVal("iCond", '<option value="">In service</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
   keepVal("eType", opts(L.types.map(t => t[0])));
-  keepVal("eFreq", opts(["Monthly", "Quarterly", "Semi-Annual", "Annual", NOT_SCHEDULED]));
+  $("eFreq").innerHTML = '<option value="Quarterly">Quarterly</option><option value="Semi-Annual">Every 6 months</option><option value="">No PM</option>';
   keepVal("eCond", opts(L.conditions));
   keepVal("pActivity", opts(L.activities));
   const staff = L.staff.map(s => s[0]);
@@ -2221,16 +2318,16 @@ function fillPickers(keep) {
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
-function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderDown(); renderIso(); renderRepl(); renderCost(); renderBackup();
+function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderDown(); renderIso(); renderRepl(); renderCost(); renderBackup(); renderEmps();
   if (!$("v-dash").classList.contains("hidden")) renderDash(); }
 
 // ---------- home ----------
 function renderHome() {
   const act = D.inventory.filter(i => active(i) && i.condition !== "Unserviceable");
   const sch = act.filter(i => freqM(i));
-  const late = sch.filter(i => pmState(i) === "late"), due = sch.filter(i => pmState(i) === "due"), soon = sch.filter(i => pmState(i) === "soon");
-  const q = quarterOf(todayStr());
-  const done = D.pms.filter(p => p.quarter === q && p.recordStatus !== "Voided");
+  const late = sch.filter(i => pmState(i) === "late"), due = sch.filter(i => pmState(i) === "due"), soon = [];
+  const qq = qOf();
+  const done = sch.filter(i => servicesOf(i.id, qq.from, qq.to).length);
   const notes = [];
   const older = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }) < 0;
   if (D.version && older(D.version, APP_VERSION) && can("Head"))
@@ -2243,14 +2340,14 @@ function renderHome() {
   $("tInv").textContent = act.length; $("tInvS").textContent = sch.length + " on the PMS schedule";
   $("navLate").textContent = late.length; $("navLate").classList.toggle("hidden", !late.length);
   $("tLate").textContent = late.length; $("tLateT").className = "tile" + (late.length ? " bad" : "");
-  $("tDue").textContent = due.length; $("tDueT").className = "tile" + (due.length ? " warn" : ""); $("tDueS").textContent = soon.length + " more in the next 30 days";
-  $("tDone").textContent = done.length; $("tDoneS").textContent = q;
+  $("tDue").textContent = due.length; $("tDueT").className = "tile" + (due.length ? " warn" : ""); $("tDueS").textContent = qq.label;
+  $("tDone").textContent = done.length; $("tDoneS").textContent = "units, by PM or job order, " + qq.label;
   const list = late.concat(due, soon).sort((a, b) => (a.nextDue || "0") < (b.nextDue || "0") ? -1 : 1);
   $("homeDue").innerHTML = list.length ? list.slice(0, 40).map(it => `<div class="due-item"><div class="t"><b>${esc(it.id)}  ${esc(eqName(it))}</b>
       <span>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}</span></div>
       ${dueChip(it)}<button class="btn small need2" data-pm="${esc(it.id)}" type="button">Start PM</button></div>`).join("") +
       (list.length > 40 ? '<p class="hint">' + (list.length - 40) + " more on the PMS Schedule tab.</p>" : "")
-    : '<div class="empty">Nothing is due in the next 30 days.</div>';
+    : '<div class="empty">Nothing is due this quarter.</div>';
   const rec = D.pms.filter(p => p.recordStatus !== "Voided").slice().sort((a, b) => a.ref < b.ref ? 1 : -1).slice(0, 6);
   $("homeRecent").innerHTML = rec.length ? rec.map(p => `<div class="due-item"><div class="t"><b>${esc(p.ref)}  ${esc(p.brand)}</b>
       <span>${esc(nice(p.date))}, ${esc(p.office)}, by ${esc(p.personnel)}</span></div>${statusChip(p.status)}
@@ -2337,7 +2434,7 @@ function eqViewMode() {
     ["Parts and outside repairs", (() => { const c = costOf(it); return c.spent ? peso(c.spent) + (c.pct != null ? " (" + Math.round(c.pct * 100) + "% of its cost)" : "") : ""; })()],
     ["Replace by", (() => { const r = replOf(it); return r.year ? r.year + " (useful life " + r.life + " years)" : ""; })()],
     ["Warranty until", nice(it.warranty)], ["Computer name / IP", it.compName], ["OS installed", it.os], ["MS Office installed", it.msOffice],
-    ["PM frequency", it.freq], ["Last PM", it.lastPm ? nice(it.lastPm) + " (" + it.lastRef + ")" : "None yet"], ["Remarks", it.remarks],
+    ["PM", it.freq ? it.freq + (it.nextDue ? ", next " + winLabel(it.nextDue, freqM(it)) : "") : "No PM for this type"], ["This quarter", qRemark(it.id)], ["Last PM", it.lastPm ? nice(it.lastPm) + " (" + it.lastRef + ")" : "None yet"], ["Remarks", it.remarks],
     ["Last updated", it.updatedAt ? it.updatedAt + (it.updatedBy ? " by " + it.updatedBy : "") : ""]].filter(r => r[1]);
   const cst = costOf(it), trs = D.transfers.filter(t => t.equipmentId === it.id).sort((a, b) => a.no < b.no ? 1 : -1);
   $("eqView").innerHTML = `<div class="row" style="margin-bottom:10px">${condChip(it.condition)} ${dueChip(it)}${cst.pct >= .5 ? ' <span class="chip bad">Repairs reached ' + Math.round(cst.pct * 100) + "% of its cost</span>" : ""}</div>
@@ -2354,7 +2451,7 @@ function eqViewMode() {
   $("eqFoot").innerHTML = `<button class="btn ghost need2" type="button" id="eqEditBtn">Edit details</button><button class="btn ghost need2" type="button" id="eqTrBtn">Transfer</button>
     <button class="btn ghost" type="button" id="eqQrBtn">Print QR label</button><button class="btn ghost" type="button" id="eqSmBtn">Print S&amp;M history</button><span class="spacer"></span>
     <button class="btn ghost need2" type="button" id="eqJoBtn">New job order</button>` +
-    (it.condition !== "Disposed" ? `<button class="btn need2" type="button" id="eqPmBtn">Start PM</button>` : "");
+    (it.condition !== "Disposed" && freqM(it) ? `<button class="btn need2" type="button" id="eqPmBtn">Start PM</button>` : "");
   $("eqTrBtn").onclick = () => { $("eqDlg").close(); openTr(null, it.id); };
   $("eqEditBtn").onclick = eqEditMode;
   $("eqQrBtn").onclick = () => printLabels([it]);
@@ -2368,7 +2465,7 @@ function eqEditMode() {
   $("eqView").classList.add("hidden"); $("eqEdit").classList.remove("hidden");
   const f = { eType: it.type, eBrand: it.brand, eSerial: it.serial, eTag: it.tag, eDesc: it.desc, eOffice: it.office, eEndUser: it.endUser,
     eAcc: it.accountable, eSource: it.source, eAcq: it.acquired, eCost: it.cost, eWarr: it.warranty, eComp: it.compName, eOs: it.os,
-    eMso: it.msOffice, eFreq: it.freq || defFreq(it.type), eCond: it.condition, eRem: it.remarks };
+    eMso: it.msOffice, eFreq: pmFreqOf(it.type, it.brand), eCond: it.condition, eRem: it.remarks };
   Object.keys(f).forEach(k => $(k).value = f[k] == null ? "" : f[k]);
   msg("eStkMsg", "");
   $("eqFoot").innerHTML = (eqCur ? `<button class="btn ghost" type="button" id="eqBack">Back</button>` : "") +
@@ -2378,7 +2475,15 @@ function eqEditMode() {
   $("eBrand").focus();
 }
 function defFreq(type) { const t = D.lists.types.find(x => x[0] === type); return t ? t[1] : "Annual"; }
-$("eType").onchange = () => { if (!eqCur) $("eFreq").value = defFreq($("eType").value); };
+// Same rule as the Apps Script (pmFreq_): PM only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs (quarterly) and servers (every 6 months).
+function pmFreqOf(type, brand) {
+  const t = String(type || "").toLowerCase(), s = t + " " + String(brand || "").toLowerCase();
+  if (/monitor|keyboard|mouse|peripheral|ups|avr|projector|scanner|network device|router|switch|access point/.test(t)) return "";
+  if (/\bserver\b|\bnas\b/.test(s)) return "Semi-Annual";
+  if (/desktop|computer|\bpc\b|all[- ]in[- ]one|workstation|\bcpu\b|laptop|notebook|netbook|chromebook|printer|photocopier|copier|multifunction|\bineo\b|tablet|ipad|smart\s*tv|television|\btv\b/.test(s)) return "Quarterly";
+  return "";
+}
+["eType", "eBrand"].forEach(id => $(id).addEventListener("input", () => $("eFreq").value = pmFreqOf($("eType").value, $("eBrand").value)));
 // Read property sticker: a photo of the yellow "DOH TRC DULAG PROPERTY" sticker fills the form (Gemini, through the Apps Script).
 // "JA Elona" -> the one employee whose surname is Elona and whose first names start with J and A.
 function nameFromSticker(t) {
@@ -2408,7 +2513,7 @@ $("eStkFile").onchange = async () => {
     if (!j.ok) { msg("eStkMsg", j.error, "err"); return; }
     const t = j.sticker, got = [];
     const put = (id, v, label) => { if (v === "" || v == null) return; $(id).value = v; got.push(label); };
-    if (t.type) { $("eType").value = t.type; $("eType").onchange(); got.push("type"); }
+    if (t.type) { $("eType").value = t.type; $("eFreq").value = pmFreqOf(t.type, t.brand); got.push("type"); }
     put("eBrand", t.brand, "brand"); put("eTag", t.propertyNo, "property tag"); put("eSerial", t.serial, "serial no.");
     put("eSource", t.icsNo ? "ICS " + t.icsNo : t.parNo ? "PAR " + t.parNo : "", "ICS / PAR no.");
     put("eAcc", t.accountable ? nameFromSticker(t.accountable) : "", "accountable officer");
@@ -2509,7 +2614,7 @@ document.querySelectorAll('input[data-combo="office"]').forEach(i => combo(i, { 
   add: (t, exact) => t && !exact ? '+ Add "' + t + '" as a new section' : "+ Add a new section or unit",
   onAdd: t => openOffice(i.id, t) }));
 document.querySelectorAll('input[data-combo="emp"]').forEach(i => combo(i, {
-  source: () => D.employees.map(e => ({ value: e.name, sub: [e.position, e.office].filter(Boolean).join(", ") })),
+  source: () => D.employees.filter(e => e.status !== "Inactive").map(e => ({ value: e.name, sub: [e.position, e.office].filter(Boolean).join(", ") + ((e.also || []).length ? ". Also " + e.also.join("; ") : "") })),
   add: (t, exact) => t && !exact ? '+ Add "' + t + '" as a new employee' : "+ Add an employee who is not on the list",
   onAdd: t => openEmp(i.id, t) }));
 document.querySelectorAll('input[data-combo="eq"]').forEach(i => combo(i, {
@@ -2573,25 +2678,26 @@ $("empForm").onsubmit = async ev => {
 };
 
 // ---------- schedule ----------
-// Months of year y in which this unit's PM is planned: from its next due date, then every freq months.
-function plannedMonths(it, y) {
+// Quarters (0-3) of year y in which this unit is due: its next window, then every freq months.
+function plannedQs(it, y) {
   const m = freqM(it), out = new Set();
   if (!m || pmState(it) === "off") return out;
-  let d = parse(it.nextDue);
-  if (!d) { const t = parse(todayStr()); d = new Date(t.getFullYear(), t.getMonth(), 1); }
-  for (let i = 0; i < 60 && d.getFullYear() <= y; i++, d = addMonths(d, m)) if (d.getFullYear() === y) out.add(d.getMonth());
+  let d = parse(it.nextDue) || winStart(parse(todayStr()), m);
+  for (let i = 0; i < 40 && d.getFullYear() <= y; i++, d = addMonths(d, m))
+    for (let k = 0; k < m; k += 3) { const x = addMonths(d, k); if (x.getFullYear() === y) out.add(Math.floor(x.getMonth() / 3)); }
   return out;
 }
-function doneMonths(it, y) {
+// Services (PM or job order with action taken) in each quarter of year y.
+function doneQs(it, y) {
   const out = {};
-  pmsOf(it.id).forEach(p => { const d = parse(p.date); if (d && d.getFullYear() === y) out[d.getMonth()] = (out[d.getMonth()] ? out[d.getMonth()] + ", " : "") + p.ref; });
+  servicesOf(it.id, y + "-01-01", y + "-12-31").forEach(x => { const q = Math.floor((+x.date.slice(5, 7) - 1) / 3); (out[q] = out[q] || []).push(x); });
   return out;
 }
 function schedRows() {
-  const y = +$("sYear").value, o = $("sOffice").value, t = $("sType").value, sh = $("sShow").value;
-  return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && (freqM(it) || Object.keys(doneMonths(it, y)).length) &&
+  const y = +$("sYear").value, o = $("sOffice").value, t = $("sType").value, sh = $("sShow").value, qq = qOf();
+  return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && freqM(it) &&
     (!o || it.office === o) && (!t || it.type === t) &&
-    (!sh || (sh === "late" ? pmState(it) === "late" : pmState(it) === "due")))
+    (!sh || (sh === "late" ? pmState(it) === "late" : sh === "done" ? servicesOf(it.id, qq.from, qq.to).length : pmState(it) === "due")))
     .sort(schedSorter());
 }
 // The order picked in "Sort by". IDs break ties so the order never jumps around.
@@ -2601,26 +2707,156 @@ function schedSorter() {
     : k === "next" ? PM_RANK[pmState(it)] + (it.nextDue || "0000") : String(freqM(it) || 99).padStart(2, "0");
   return (a, b) => nat(key(a).toLowerCase(), key(b).toLowerCase()) || nat(a.id, b.id);
 }
-function schedCell(it, y, mo, plan, done) {
-  const t = parse(todayStr()), past = y < t.getFullYear() || (y === t.getFullYear() && mo < t.getMonth());
-  if (done[mo]) return { cls: "done", t: "✓", tip: done[mo] };
-  if (plan.has(mo)) return past || (y === t.getFullYear() && mo === t.getMonth() && pmState(it) === "late") ? { cls: "late", t: "!", tip: "Overdue" } : { cls: "plan", t: "P", tip: "Planned" };
+function schedCell(it, y, q, plan, done) {
+  const t = qOf(), past = y < t.y || (y === t.y && q < t.q);
+  if (done[q]) { const jo = done[q].filter(x => x.kind === "JO");
+    return { cls: "done", t: "✓", tip: done[q].map(x => x.ref + " " + nice(x.date) + ": " + x.what).join("\n") + (jo.length > 1 ? "\n" + jo.length + " actions taken this quarter" : "") }; }
+  if (plan.has(q)) return past || (y === t.y && q === t.q && pmState(it) === "late") ? { cls: "late", t: "!", tip: "Overdue" } : { cls: "plan", t: "P", tip: "Due" };
   return null;
 }
 function renderSched() {
-  const y = +$("sYear").value, rows = schedRows(), t = parse(todayStr());
+  const y = +$("sYear").value, rows = schedRows(), t = qOf();
   $("sCount").textContent = rows.length + " units";
-  if (!rows.length) { $("sTable").innerHTML = '<tbody><tr><td class="empty">No scheduled units match.</td></tr></tbody>'; return; }
-  $("sTable").innerHTML = `<thead><tr><th style="text-align:left">Equipment</th><th style="text-align:left">Office / end user</th><th>Freq.</th>${MONTHS.map(m => `<th>${m}</th>`).join("")}<th></th></tr></thead><tbody>` +
+  renderPlans();
+  if (!rows.length) { $("sTable").innerHTML = '<tbody><tr><td class="empty">No units match.</td></tr></tbody>'; return; }
+  $("sTable").innerHTML = `<thead><tr><th style="text-align:left">Equipment</th><th style="text-align:left">Section / end user</th><th>Freq.</th>${QLABEL.map(m => `<th>${m}</th>`).join("")}<th></th></tr></thead><tbody>` +
     rows.map(it => {
-      const plan = plannedMonths(it, y), done = doneMonths(it, y);
-      return `<tr><td><b>${esc(it.id)}</b> ${esc(it.brand)}<div class="s" style="color:var(--muted);font-size:12px">${esc(it.type)}${it.serial ? ", S/N " + esc(it.serial) : ""}</div></td>
-        <td>${esc(it.office)}<div style="color:var(--muted);font-size:12px">${esc(it.endUser)}</div></td><td>${esc(it.freq.replace(NOT_SCHEDULED, "With PC"))}</td>` +
-        MONTHS.map((m, mo) => { const c = schedCell(it, y, mo, plan, done);
-          return `<td class="m${y === t.getFullYear() && mo === t.getMonth() ? " now" : ""}">${c ? `<i class="mk ${c.cls}" title="${esc(c.tip)}">${c.t}</i>` : ""}</td>`; }).join("") +
+      const plan = plannedQs(it, y), done = doneQs(it, y), rm = qRemark(it.id);
+      return `<tr><td><b>${esc(it.id)}</b> ${esc(it.brand)}<div class="s" style="color:var(--muted);font-size:12px">${esc(it.type)}${it.serial ? ", S/N " + esc(it.serial) : ""}${rm ? "<br>" + esc(rm) : ""}</div></td>
+        <td>${esc(it.office)}<div style="color:var(--muted);font-size:12px">${esc(it.endUser)}</div></td><td>${esc(it.freq)}</td>` +
+        QLABEL.map((m, q) => { const c = schedCell(it, y, q, plan, done);
+          return `<td class="m${y === t.y && q === t.q ? " now" : ""}">${c ? `<i class="mk ${c.cls}" title="${esc(c.tip)}">${c.t}</i>` : ""}</td>`; }).join("") +
         `<td><button class="btn small ghost need2" data-pm="${esc(it.id)}" type="button" style="white-space:nowrap">Start PM</button></td></tr>`;
     }).join("") + "</tbody>";
   bindRowButtons($("sTable"));
+}
+
+// ---------- PM plan by section ----------
+// PM units of a section for a quarter: all of them, which are done (PM or job order in the quarter), and which were due.
+function secUnits(sec, qk) {
+  const q = qFromKey(qk);
+  return D.inventory.filter(it => active(it) && it.condition !== "Unserviceable" && freqM(it) && (it.office || "No section") === sec)
+    .map(it => { const sv = servicesOf(it.id, q.from, q.to); return { it, sv, due: !it.nextDue || it.nextDue <= q.to || sv.length }; })
+    .filter(x => x.due).sort((a, b) => a.it.id.localeCompare(b.it.id, undefined, { numeric: true }));
+}
+function planSecs() { return [...new Set(D.inventory.filter(it => active(it) && freqM(it)).map(it => it.office || "No section"))].sort((a, b) => a.localeCompare(b)); }
+function plansOf(qk) { return (D.plans || []).filter(p => p.quarter === qk && p.status !== "Cancelled").sort((a, b) => (a.start + a.section).localeCompare(b.start + b.section)); }
+function fillPlanQ() {
+  const t = qOf(), keep = $("spQ").value, ks = [];
+  for (let i = -2; i <= 3; i++) { const d = addMonths(parse(t.from), i * 3); ks.push(qOf(isoDate(d))); }
+  $("spQ").innerHTML = ks.map(q => `<option value="${q.key}">${q.label}${q.key === t.key ? " (now)" : ""}</option>`).join("");
+  $("spQ").value = keep && ks.some(q => q.key === keep) ? keep : t.key;
+}
+function renderPlans() {
+  if (!$("spQ").options.length) fillPlanQ();
+  const qk = $("spQ").value, q = qFromKey(qk), list = plansOf(qk);
+  const need = planSecs().filter(sec => secUnits(sec, qk).some(x => !x.sv.length));
+  const days = +$("spDays").value || 2, perWeek = $("spFri").checked ? 5 / days : Math.floor(4 / days) || 1;
+  const left = need.filter(sec => !list.some(p => p.section === sec)).length;
+  $("spEst").textContent = need.length + " section(s) still have PM units due in " + q.label + ". At " + days + " day(s) per section, about " +
+    (Math.round(perWeek * 10) / 10) + " sections a week" + ($("spFri").checked ? "" : " (Monday to Thursday, Fridays free for job orders)") + ", a full round takes about " +
+    Math.ceil(need.length / perWeek) + " week(s)." + (list.length ? " " + list.length + " planned" + (left ? ", " + left + " not yet." : ".") : "");
+  const st = { Planned: "mute", "Notice sent": "warn", "In progress": "warn", Done: "ok", Moved: "mute" };
+  $("spTable").querySelector("tbody").innerHTML = list.length ? list.map(p => { const u = secUnits(p.section, qk), d = u.filter(x => x.sv.length).length;
+    return `<tr data-plan="${esc(p.id)}"><td><b>${esc(p.section)}</b></td><td>${esc(nice(p.start))}${p.end !== p.start ? " to " + esc(nice(p.end)) : ""}</td><td>${d} of ${u.length}</td>
+      <td class="hide-m">${p.actualStart ? esc(nice(p.actualStart)) + (p.actualEnd ? " to " + esc(nice(p.actualEnd)) : "") : ""}</td>
+      <td><span class="chip ${st[p.status] || "mute"}">${esc(p.status)}</span></td>
+      <td style="white-space:nowrap"><button class="btn ghost small" data-notice="${esc(p.id)}" type="button">Notice</button> <button class="btn ghost small" data-result="${esc(p.id)}" type="button">Result form</button></td></tr>`; }).join("")
+    : `<tr><td colspan="6" class="empty">No section plan for ${esc(q.label)} yet.${can("Head") ? " Press Plan the sections." : ""}</td></tr>`;
+  $("spTable").querySelectorAll("tr[data-plan]").forEach(r => r.onclick = e => { if (!e.target.closest("button")) openPlan(r.dataset.plan); });
+  $("spTable").querySelectorAll("[data-notice]").forEach(b => b.onclick = () => printNotices([D.plans.find(p => p.id === b.dataset.notice)]));
+  $("spTable").querySelectorAll("[data-result]").forEach(b => b.onclick = () => printResult(D.plans.find(p => p.id === b.dataset.result)));
+}
+["spQ", "spDays", "spFri"].forEach(id => $(id).addEventListener("input", renderPlans));
+$("spMake").onclick = async () => {
+  const q = qFromKey($("spQ").value);
+  if (!confirm("Plan the PM of every section with units due in " + q.label + ", " + $("spDays").value + " day(s) each?\n\nSections that already have a plan stay as they are.")) return;
+  $("spMake").disabled = true; msg("spMsg", "Planning…");
+  try {
+    const j = await api({ action: "makePmPlan", quarter: q.key, days: +$("spDays").value, fridays: $("spFri").checked, start: $("spStart").value });
+    if (!j.ok) return msg("spMsg", j.error, "err");
+    D.plans = j.plans; renderPlans();
+    msg("spMsg", j.count ? j.count + " section(s) planned from " + nice(j.from) + " to " + nice(j.to) + "." + (j.pastQuarter ? " The last ones go past the end of the quarter. Tick Use Fridays too, or start earlier." : "") : "Every section with units due already has a plan.", j.pastQuarter ? "err" : "ok");
+  } catch (e) { msg("spMsg", errText(e), "err"); }
+  finally { $("spMake").disabled = false; }
+};
+let planCur = null;
+function openPlan(id) {
+  planCur = id ? D.plans.find(p => p.id === id) : null;
+  const p = planCur || {}, q = qFromKey(p.quarter || $("spQ").value);
+  $("ppT").textContent = (p.id ? p.id + ", " : "New plan, ") + q.label;
+  $("ppSec").innerHTML = opts(planSecs(), "Pick a section"); $("ppSec").value = p.section || ""; $("ppSec").disabled = !!p.id;
+  $("ppStatus").innerHTML = opts((D.choices || {}).planStatus || ["Planned", "Notice sent", "In progress", "Done", "Moved", "Cancelled"]); $("ppStatus").value = p.status || "Planned";
+  $("ppStart").value = p.start || ""; $("ppEnd").value = p.end || ""; $("ppAStart").value = p.actualStart || ""; $("ppAEnd").value = p.actualEnd || "";
+  $("ppAEnd").max = todayStr(); $("ppRecv").value = p.receivedBy || ""; $("ppPos").value = p.position || ""; $("ppRem").value = p.remarks || "";
+  const u = p.section ? secUnits(p.section, q.key) : [];
+  $("ppInfo").textContent = p.section ? u.filter(x => x.sv.length).length + " of " + u.length + " PM unit(s) of this section are done for " + q.label + "." : "";
+  ["ppNotice", "ppResult"].forEach(b => $(b).classList.toggle("hidden", !p.id));
+  msg("ppMsg", ""); $("ppDlg").showModal();
+}
+$("spAdd").onclick = () => openPlan(null);
+$("ppRecv").addEventListener("change", () => { const e = (D.employees || []).find(x => x.name === $("ppRecv").value); if (e && !$("ppPos").value) $("ppPos").value = e.position; });
+$("ppNotice").onclick = () => planCur && printNotices([planCur]);
+$("ppResult").onclick = () => planCur && printResult(planCur);
+$("ppForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = { quarter: planCur ? planCur.quarter : $("spQ").value, section: $("ppSec").value, start: $("ppStart").value, end: $("ppEnd").value || $("ppStart").value,
+    actualStart: $("ppAStart").value, actualEnd: $("ppAEnd").value, receivedBy: $("ppRecv").value, position: $("ppPos").value, status: $("ppStatus").value, remarks: $("ppRem").value };
+  if (planCur) item.id = planCur.id;
+  if (!item.section || !item.start) return msg("ppMsg", "Pick the section and the PM start date.", "err");
+  $("ppSave").disabled = true; msg("ppMsg", "Saving…");
+  try {
+    const j = await api({ action: "savePmPlan", item });
+    if (!j.ok) return msg("ppMsg", j.error, "err");
+    const i = (D.plans = D.plans || []).findIndex(p => p.id === j.item.id);
+    if (i >= 0) D.plans[i] = j.item; else D.plans.push(j.item);
+    planCur = j.item; renderPlans(); $("ppDlg").close();
+  } catch (err) { msg("ppMsg", errText(err), "err"); }
+  finally { $("ppSave").disabled = false; }
+};
+// Overall schedule for the quarter (to send around or post), one line per section.
+$("spPrint").onclick = () => {
+  const qk = $("spQ").value, q = qFromKey(qk), list = plansOf(qk);
+  if (!list.length) return msg("spMsg", "No section plan for " + q.label + " yet.", "err");
+  doPrint(`<div class="sheet">${header()}<h3>PREVENTIVE MAINTENANCE SCHEDULE OF ICT EQUIPMENT</h3>
+    <div class="sub">${esc(q.label)} (${esc(longDate(q.from))} to ${esc(longDate(q.to))}). PM is done section by section. Please keep the units available on your section's PM days.</div>
+    <table><thead><tr><th>No.</th><th>Section / Unit</th><th>PM days</th><th>No. of units</th><th>Remarks</th></tr></thead><tbody>
+    ${list.map((p, i) => `<tr><td class="c">${i + 1}</td><td>${esc(p.section)}</td><td>${esc(nice(p.start))}${p.end !== p.start ? " to " + esc(nice(p.end)) : ""}</td><td class="c">${secUnits(p.section, qk).length}</td><td>${esc(p.status === "Moved" ? "Moved. " + p.remarks : p.status === "Done" ? "Done" : "")}</td></tr>`).join("")}
+    </tbody></table>${signs()}</div>`, false);
+};
+$("spNotices").onclick = () => { const l = plansOf($("spQ").value); if (!l.length) return msg("spMsg", "No section plan for this quarter yet.", "err"); printNotices(l); };
+// Notice to a section: its PM days and the units to be checked. The section signs that it received it.
+function printNotices(list) {
+  doPrint(list.map(p => { const q = qFromKey(p.quarter), u = secUnits(p.section, p.quarter);
+    return `<div class="sheet">${header()}<h3>NOTICE OF PREVENTIVE MAINTENANCE OF ICT EQUIPMENT</h3>
+    <p style="margin:2mm 0">To: <b>The Head, ${esc(p.section)}</b><br>Date: ${esc(longDate(todayStr()))}</p>
+    <p style="margin:2mm 0">Please be informed that the ICT Unit will do the preventive maintenance (PM) of your section's ICT equipment for ${esc(q.label)} on
+      <b>${esc(longDate(p.start))}${p.end !== p.start ? " to " + esc(longDate(p.end)) : ""}</b>. Kindly have the units below available, save your open work, and let the end users know.
+      Units that already had a job order with action taken this quarter are marked Done and will only be checked quickly.</p>
+    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Status this quarter</th></tr></thead><tbody>
+    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${x.sv.length ? "Done (" + esc(x.sv[x.sv.length - 1].ref) + ")" : "For PM"}</td></tr>`).join("") || '<tr><td colspan="5" class="c">No units due.</td></tr>'}
+    </tbody></table>
+    ${sigTable([["PREPARED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["NOTED BY", headOf()[0], headOf()[1]], ["RECEIVED BY", "", "Section Head or Representative / Date"]])}</div>`; }).join('<div class="pagebreak"></div>'), false);
+}
+function blankRows(n, cols, num) { return Array.from({ length: n }, (_, i) => "<tr>" + Array.from({ length: cols }, (_, c) => `<td${c ? "" : ' class="c"'} style="height:6mm">${num && !c ? i + 1 : ""}</td>`).join("") + "</tr>").join(""); }
+// PMS result for a section, signed by the section head or representative. Only a summary: the full details stay with ICTU.
+function printResult(p) {
+  const q = qFromKey(p.quarter), u = secUnits(p.section, p.quarter);
+  const types = {}; u.forEach(x => { const t = types[x.it.type] = types[x.it.type] || { n: 0, d: 0, j: 0 }; t.n++; if (x.sv.some(s => s.kind === "PM")) t.d++; else if (x.sv.length) t.j++; });
+  const res = x => { const pm = x.sv.filter(s => s.kind === "PM").pop(); if (pm) return "Done" + (pm.overall && pm.overall !== "Functional" ? ", " + pm.overall.toLowerCase() : ""); return x.sv.length ? "Checked (job order)" : "Not done"; };
+  const done = u.filter(x => x.sv.length).length;
+  doPrint(`<div class="sheet">${header()}<h3>PREVENTIVE MAINTENANCE RESULT</h3>
+    <table><tr><td class="k">Section / Unit:</td><td><b>${esc(p.section)}</b></td><td class="k">Period:</td><td>${esc(q.label)}</td></tr>
+      <tr><td class="k">PM started:</td><td>${esc(longDate(p.actualStart || p.start))}</td><td class="k">PM finished:</td><td>${esc(p.actualEnd ? longDate(p.actualEnd) : "")}</td></tr>
+      <tr><td class="k">Units:</td><td>${p.section ? u.length : ""}</td><td class="k">Done / checked:</td><td>${p.section ? done + " of " + u.length : ""}</td></tr></table>
+    <div class="sec">SUMMARY</div>
+    <table><thead><tr><th>Equipment type</th><th>Units</th><th>PM done</th><th>Checked through a job order</th><th>Not done</th></tr></thead><tbody>
+    ${Object.keys(types).sort().map(t => `<tr><td>${esc(t)}</td><td class="c">${types[t].n}</td><td class="c">${types[t].d}</td><td class="c">${types[t].j}</td><td class="c">${types[t].n - types[t].d - types[t].j}</td></tr>`).join("") || blankRows(4, 5)}</tbody></table>
+    <div class="sec">UNITS</div>
+    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Result</th></tr></thead><tbody>
+    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${esc(res(x))}</td></tr>`).join("") || blankRows(15, 5, true)}</tbody></table>
+    <p style="font-size:8pt;margin:2mm 0">The full PM checklist (Form ${esc(D.form.code || "COH-IDN-F-02")}) of each unit is kept by the ICT Unit. Remarks: ${esc(p.remarks || "")}</p>
+    ${sigTable([["CONDUCTED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["CONFORME", p.receivedBy, (p.position ? p.position + ", " : "") + "Section Head or Representative / Date"], ["NOTED BY", headOf()[0], headOf()[1]]])}</div>`, false);
 }
 ["sYear", "sOffice", "sType", "sShow", "sSort"].forEach(id => $(id).addEventListener("input", renderSched));
 
@@ -2730,36 +2966,42 @@ $("roundForm").onsubmit = async e => {
   } catch (err) { msg("rdMsg", errText(err), "err"); }
   finally { $("rdSave").disabled = false; }
 };
-$("sCatch").onclick = async () => {
-  const late = D.inventory.filter(it => pmState(it) === "late");
-  if (!late.length) return alert("No unit is overdue.");
-  const n = prompt(late.length + " unit(s) are overdue or have no PM date yet.\n\nThe catch-up schedule gives each one a new next PM date on working days starting today, oldest first. It does not mark any PM as done.\n\nHow many units a day can ICTU do?", "8");
-  if (!n) return;
-  try {
-    const j = await api({ action: "catchUp", perDay: +n || 8, start: todayStr() });
-    if (!j.ok) return alert(j.error);
-    await reload();
-    alert(j.count ? j.count + " unit(s) planned from " + nice(j.from) + " to " + nice(j.to) + ". Record each PM in Do PM (or Record a PM round) as it is done." : "No unit needed a new date.");
-  } catch (err) { alert(errText(err)); }
-};
-
 // ---------- do PM ----------
 let pmItem = null, ck = {}, nextTouched = false, lastSaved = null;
+// Do PM goes section by section: pick the section, then its units. Typing in Find the unit searches every section.
+let pmSec = "";
 function renderPick() {
-  const q = $("pmQ").value.trim().toLowerCase();
-  const list = D.inventory.filter(it => active(it) && (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser].join(" ").toLowerCase().includes(q)))
-    .sort((a, b) => { const r = s => ({ late: 0, due: 1, soon: 2, ok: 3, ns: 4, off: 5 })[pmState(s)]; return r(a) - r(b) || a.id.localeCompare(b.id); });
-  $("pmList").innerHTML = list.length ? list.slice(0, 60).map(it => `<button type="button" data-id="${esc(it.id)}">${pmMark(it)}<b>${esc(it.id)}  ${esc(eqName(it))}</b>
-    <span>${esc(it.office)}${it.endUser ? ", " + esc(it.endUser) : ""}${it.serial ? ". S/N " + esc(it.serial) : ""}${it.nextDue ? ". Next PM " + esc(nice(it.nextDue)) : ""}</span></button>`).join("")
-    : '<div class="empty">No equipment matches. Add it first on the Inventory tab.</div>';
-  $("pmList").querySelectorAll("button").forEach(b => b.onclick = () => pickPM(b.dataset.id));
+  const q = $("pmQ").value.trim().toLowerCase(), qq = qOf();
+  const all = D.inventory.filter(it => active(it) && freqM(it));
+  const rank = s => ({ late: 0, due: 1, ok: 3, ns: 4, off: 5 })[pmState(s)];
+  if (!q && !pmSec) {
+    const plans = plansOf(qq.key);
+    const secs = planSecs().map(sec => { const u = all.filter(it => (it.office || "No section") === sec && it.condition !== "Unserviceable");
+      const late = u.filter(it => pmState(it) === "late").length, due = u.filter(it => pmState(it) === "due").length, p = plans.find(x => x.section === sec);
+      return { sec, u, late, due, done: u.length - late - due, p }; }).filter(x => x.u.length)
+      .sort((a, b) => ((a.p ? a.p.start : "9") + a.sec).localeCompare((b.p ? b.p.start : "9") + b.sec));
+    $("pmList").innerHTML = secs.length ? `<div class="hint" style="margin:0 0 6px">Sections, in the order of their PM days for ${esc(qq.label)}. Pick one to see its units.</div>` + secs.map(x => {
+      const mk = x.late ? ["late", "!"] : x.due ? ["plan", "P"] : ["done", "✓"];
+      return `<button type="button" data-sec="${esc(x.sec)}"><i class="mk ${mk[0]} pmk">${mk[1]}</i><b>${esc(x.sec)}</b>
+        <span>${x.u.length} unit${x.u.length === 1 ? "" : "s"}: ${x.done} done, ${x.due} due, ${x.late} overdue${x.p ? ". PM days " + esc(nice(x.p.start)) + (x.p.end !== x.p.start ? " to " + esc(nice(x.p.end)) : "") + " (" + esc(x.p.status) + ")" : ""}</span></button>`; }).join("")
+      : '<div class="empty">No equipment with PM yet. PM is only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers.</div>';
+  } else {
+    const list = all.filter(it => q ? [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser].join(" ").toLowerCase().includes(q) : (it.office || "No section") === pmSec)
+      .sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id, undefined, { numeric: true }));
+    $("pmList").innerHTML = (!q ? `<button type="button" data-sec=""><b>← All sections</b><span>${esc(pmSec)}: ${list.length} unit(s)</span></button>` : "") +
+      (list.length ? list.slice(0, 80).map(it => { const rm = qRemark(it.id); return `<button type="button" data-id="${esc(it.id)}">${pmMark(it)}<b>${esc(it.id)}  ${esc(eqName(it))}</b>
+      <span>${q ? esc(it.office) + ", " : ""}${esc(it.endUser || "No end user")}${it.serial ? ". S/N " + esc(it.serial) : ""}${it.nextDue ? ". Next PM " + esc(winLabel(it.nextDue, freqM(it))) : ""}${rm ? ". " + esc(rm) : ""}</span></button>`; }).join("")
+      : '<div class="empty">No unit matches. PM is only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers.</div>');
+  }
+  $("pmList").querySelectorAll("button[data-id]").forEach(b => b.onclick = () => pickPM(b.dataset.id));
+  $("pmList").querySelectorAll("button[data-sec]").forEach(b => b.onclick = () => { pmSec = b.dataset.sec; renderPick(); });
 }
 $("pmQ").addEventListener("input", renderPick);
-// The same marks as the PMS schedule: red overdue, blue outline planned (due this month or soon), green done (up to date).
+// The same marks as the PMS schedule: red overdue, blue outline due this quarter, green done (up to date).
 function pmMark(it) {
   const s = pmState(it);
-  const m = { late: ["late", "!", "Overdue"], due: ["plan", "P", "Planned this month"], soon: ["plan", "P", "Planned soon"], ok: ["done", "✓", "PM done, up to date"] }[s];
-  return m ? `<i class="mk ${m[0]} pmk" title="${m[2]}" aria-label="${m[2]}">${m[1]}</i>` : `<i class="mk pmk none" title="Not scheduled" aria-label="Not scheduled">–</i>`;
+  const m = { late: ["late", "!", "Overdue"], due: ["plan", "P", "Due this quarter"], ok: ["done", "✓", "Done for this quarter"] }[s];
+  return m ? `<i class="mk ${m[0]} pmk" title="${m[2]}" aria-label="${m[2]}">${m[1]}</i>` : `<i class="mk pmk none" title="No PM" aria-label="No PM">–</i>`;
 }
 function startPM(id) { show("pm"); pickPM(id); }
 function pickPM(id) {
@@ -2789,7 +3031,7 @@ function setNext() {
   if (nextTouched || !pmItem) return;
   const m = freqM(pmItem), d = parse($("pDate").value);
   const ov = (document.querySelector('input[name="ov"]:checked') || {}).value;
-  $("pNext").value = m && d && ov !== "For replacement / condemnation" ? isoDate(addMonths(d, m)) : "";
+  $("pNext").value = m && d && ov !== "For replacement / condemnation" ? nextWin($("pDate").value, m) : "";
 }
 $("pDate").addEventListener("input", setNext);
 $("pNext").addEventListener("input", () => nextTouched = true);
@@ -3070,6 +3312,7 @@ function openJo(no, eqId) {
   $("jPulled").value = String(j.pulledOut || "").slice(0, 10); $("jReturned").value = String(j.returnedOn || "").slice(0, 10);
   $("jConsent").checked = !!j.consent; setTypes($("jTypes"), j.types);
   if (!joCur && eqId) { $("jEq").value = eqId; fillJoEq(); }
+  joEqQuarter();
   fitJoForm("j"); $("jUrgWrap").classList.toggle("hidden", $("jUrgent").value !== "Yes" && !$("jUrgReason").value.trim());
   if (!$("jStatus").value) $("jStatus").value = "Received";
   $("joTitle").textContent = joCur ? j.jo + "  " + joWho(j) : "Log a job order";
@@ -3087,6 +3330,18 @@ function fillJoEq() {
   $("jEq").value = it.id; $("jEquip").value = it.type; $("jModel").value = it.brand;
   $("jSerial").value = [it.tag, it.serial].filter(Boolean).join(" / "); $("jLoc").value = it.office;
   if (!$("jUnit").value) $("jUnit").value = it.office;
+  joEqQuarter();
+}
+// What was done on the unit this quarter, so the person sees it counts as the unit's PM.
+function joEqQuarter() {
+  const it = byId(codeOf($("jEq").value)), el = $("jEqQ");
+  if (!it) { el.classList.add("hidden"); return; }
+  const q = qOf(), sv = servicesOf(it.id, q.from, q.to), jo = sv.filter(x => x.kind === "JO");
+  const t = [];
+  if (jo.length) t.push(qRemark(it.id));
+  if (sv.some(x => x.kind === "PM")) t.push("PM done this quarter (" + sv.filter(x => x.kind === "PM").map(x => x.ref).join(", ") + ").");
+  if (freqM(it)) t.push(sv.length ? "This unit is Done on the PMS schedule for " + q.label + "." : "When this job order is resolved with action taken, the unit is marked Done on the PMS schedule for " + q.label + ".");
+  el.textContent = t.join(" "); el.classList.toggle("hidden", !t.length);
 }
 $("jEq").addEventListener("change", fillJoEq);
 // "Juan P. Dela Cruz" or "DELA CRUZ, Juan P." -> last, first, middle initial
@@ -3380,7 +3635,7 @@ function formHtml(p) {
       <tr><td class="k">Action Taken:</td><td style="height:6mm">${esc(p.action)}</td></tr>
       <tr><td class="k">Parts Replaced / Used:</td><td>${esc(p.parts)}</td></tr>
       <tr><td class="k">Overall Status:</td><td>${ov.map(o => box(p.overall === o) + o).join(" ")}</td></tr>
-      <tr><td class="k">Recommendation / Next PM:</td><td>${esc(p.remarks && !/^VOIDED/.test(p.remarks) ? p.remarks + ". " : "")}Next PM Schedule: ${p.nextDue ? "<u>" + esc(longDate(p.nextDue)) + "</u>" : "____________________"}</td></tr></table>
+      <tr><td class="k">Recommendation / Next PM:</td><td>${esc(p.remarks && !/^VOIDED/.test(p.remarks) ? p.remarks + ". " : "")}Next PM Schedule: ${p.nextDue ? "<u>" + esc(winLabel(p.nextDue, FREQ[p.freq] || 3)) + "</u>" : "____________________"}</td></tr></table>
     <div class="sec">E. CONFORME</div>
     <table><tr><th></th><th>PERFORMED BY<br>(ICT Personnel)</th><th>ACKNOWLEDGED BY<br>(End User)</th><th>VERIFIED BY<br>(Head, ICT Unit)</th></tr>
       <tr><td class="k">Name and Signature</td><td class="sig">${esc(p.personnel)}</td><td class="sig">${p.signature ? `<img src="${p.signature}" alt="">` : ""}${esc(p.ackBy)}</td><td class="sig">${esc(p.verifiedBy)}</td></tr>
@@ -3414,41 +3669,14 @@ function signs(prep, noted) {
 function schedPrint() {
   const y = +$("sYear").value, rows = schedRows();
   doPrint(`<div class="sheet land">${header()}<h3>ICT EQUIPMENT PREVENTIVE MAINTENANCE SCHEDULE, CY ${y}</h3>
-    <div class="sub">Information and Communications Technology Unit (ICTU)${$("sOffice").value ? ". " + esc($("sOffice").value) : ""}. P = planned, ✓ = done, ! = planned but not yet done.</div>
-    <table class="sch"><thead><tr><th>ID</th><th>Equipment</th><th>Serial No.</th><th>Office / Section</th><th>End User</th><th>Freq.</th>${MONTHS.map(m => `<th class="m">${m}</th>`).join("")}</tr></thead><tbody>
-    ${rows.map(it => { const plan = plannedMonths(it, y), done = doneMonths(it, y);
+    <div class="sub">Information and Communications Technology Unit (ICTU)${$("sOffice").value ? ". " + esc($("sOffice").value) : ""}. P = due, ✓ = done (PM or job order with action taken), ! = due but not yet done.</div>
+    <table class="sch"><thead><tr><th>ID</th><th>Equipment</th><th>Serial No.</th><th>Office / Section</th><th>End User</th><th>Freq.</th>${QLABEL.map(m => `<th class="m">${m}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map(it => { const plan = plannedQs(it, y), done = doneQs(it, y);
       return `<tr><td>${esc(it.id)}</td><td>${esc(it.brand)} (${esc(it.type)})</td><td>${esc(it.serial)}</td><td>${esc(it.office)}</td><td>${esc(it.endUser)}</td><td>${esc(it.freq)}</td>` +
-        MONTHS.map((m, mo) => { const c = schedCell(it, y, mo, plan, done); return `<td class="m">${c ? c.t : ""}</td>`; }).join("") + "</tr>"; }).join("")}
+        QLABEL.map((m, q) => { const c = schedCell(it, y, q, plan, done); return `<td class="m">${c ? c.t : ""}</td>`; }).join("") + "</tr>"; }).join("")}
     </tbody></table>${signs()}</div>`, true);
 }
 $("sPrint").onclick = schedPrint;
-// One calendar page per section, to hand to each section / unit. Uses the filters and the sort order on screen.
-function schedPrintBySection() {
-  const y = +$("sYear").value, rows = schedRows();
-  if (!rows.length) { alert("No scheduled units match the filters."); return; }
-  const secs = [...new Set(rows.map(it => it.office || "No section"))].sort((a, b) => a.localeCompare(b));
-  const t = parse(todayStr());
-  const page = sec => {
-    const units = rows.filter(it => (it.office || "No section") === sec);
-    const months = MONTHS_LONG.map((name, mo) => {
-      const items = units.map(it => {
-        const c = schedCell(it, y, mo, plannedMonths(it, y), doneMonths(it, y)); if (!c) return "";
-        const d = parse(it.nextDue), day = d && c.cls !== "done" ? MONTHS[mo] + " " + d.getDate() + ": " : "";
-        return `<div class="ci ${c.cls}"><span class="mk2">${c.t}</span><span>${esc(day)}<b>${esc(it.id)}</b> ${esc(it.brand)} <i>(${esc(it.type)}${it.endUser ? ", " + esc(it.endUser) : ""})</i></span></div>`;
-      }).join("");
-      const now = y === t.getFullYear() && mo === t.getMonth();
-      return `<div class="cm${now ? " now" : ""}"><div class="cmh">${name}</div>${items || '<div class="none">No PM this month</div>'}</div>`;
-    }).join("");
-    return `<div class="sheet land cal">${header()}<h3>PREVENTIVE MAINTENANCE SCHEDULE OF ICT EQUIPMENT, CY ${y}</h3>
-      <div class="sub"><b>${esc(sec)}</b>. ${units.length} unit${units.length === 1 ? "" : "s"}. P = planned, ✓ = done, ! = planned but not yet done.
-        Please keep the unit available during its scheduled month. The ICT Unit will confirm the exact day.</div>
-      <div class="calg">${months}</div>
-      <div class="signs"><div>Prepared by:<div class="line">${esc((D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0] || "")}</div>ICT Unit</div>
-        <div>Received by:<div class="line"></div>Section / Unit Head, ${esc(sec)} (signature over printed name and date)</div></div></div>`;
-  };
-  doPrint(secs.map(page).join('<div class="pagebreak"></div>'), true);
-}
-$("sPrintSec").onclick = schedPrintBySection;
 $("rPrintSched").onclick = () => { $("sYear").value = String(new Date().getFullYear()); $("sOffice").value = ""; $("sType").value = ""; $("sShow").value = ""; renderSched(); schedPrint(); };
 
 function quarterPMs() {
@@ -3989,8 +4217,16 @@ const pendingOf = code => revsOf(code).filter(r => !ISO_DONE.includes(r.status))
 // Forms the app prints, so the ISO page can print a copy of each.
 const ISO_FORMS = {
   "COH-IDN-F-01": () => doPrint(joFormHtml(null), false), "COH-IDN-F-02": () => doPrint(formHtml(null), false),
-  "COH-IDN-F-03": () => printTir({}), "COH-IDN-F-04": () => schedPrintBySection(), "COH-IDN-F-05": () => $("qPrint").click(),
-  "COH-IDN-F-06": () => $("mrPrint").click(), "COH-IDN-F-07": () => printTr({}), "COH-IDN-F-09": () => $("rPrintInv").click() };
+  "COH-IDN-F-03": () => printTir({}), "COH-IDN-F-04": () => schedPrint(), "COH-IDN-F-05": () => $("qPrint").click(),
+  "COH-IDN-F-06": () => $("mrPrint").click(), "COH-IDN-F-07": () => printTr({}), "COH-IDN-F-08": () => printSm({ id: "", tag: "", type: "", brand: "", serial: "", office: "", endUser: "" }), "COH-IDN-F-09": () => $("rPrintInv").click() };
+// The blank forms list on the Reports tab follows the ISO Documents list (forms that are not obsolete).
+function renderBlankIso() {
+  const forms = (D.isoDocs || []).filter(d => d.kind === "Form" && d.status !== "Obsolete").sort((a, b) => a.code.localeCompare(b.code));
+  const list = forms.length ? forms : [{ code: "COH-IDN-F-01", title: "ICTU Job Order Request Form" }, { code: "COH-IDN-F-02", title: "ICT Equipment Preventive Maintenance Checklist" }];
+  $("blankIso").innerHTML = list.map(d => `<button class="btn ghost" type="button" data-iso-form="${esc(d.code)}"${ISO_FORMS[d.code] ? "" : " disabled title=\"No print layout in the app yet\""}>${esc(d.code)} ${esc(d.title)}</button>`).join("");
+  $("blankIso").querySelectorAll("[data-iso-form]").forEach(b => b.onclick = () => ISO_FORMS[b.dataset.isoForm] && ISO_FORMS[b.dataset.isoForm]());
+}
+$("blankResult").onclick = () => printResult({ section: "", quarter: qOf().key, start: "", end: "", receivedBy: "", position: "", remarks: "" });
 let isoFilled = false;
 function isoPickers() {
   if (isoFilled) return; isoFilled = true;
@@ -4005,7 +4241,7 @@ function isoFiltered() {
     hay([d.code, d.title, d.kind, d.procedure, d.remarks], q)).sort((a, b) => a.code.localeCompare(b.code));
 }
 function renderIso() {
-  isoPickers();
+  isoPickers(); renderBlankIso();
   const live = D.isoDocs.filter(d => d.status !== "Obsolete"), inUse = live.filter(d => d.status === "Approved (in use)").length;
   const pend = D.isoRevs.filter(r => !ISO_DONE.includes(r.status)), drafts = live.filter(d => d.status !== "Approved (in use)").length;
   $("oTiles").innerHTML = `<div class="tile"><div class="lb">Controlled documents</div><div class="val">${live.length}</div><div class="sm">not counting obsolete</div></div>
@@ -4458,6 +4694,9 @@ $("uForm").onsubmit = async e => {
 };
 function renderBackup() {
   const b = D.backup || {};
+  if (document.activeElement !== $("bkEmail")) $("bkEmail").value = b.email || "";
+  $("bkMailInfo").textContent = (b.email ? "Each backup is also emailed to " + b.email + " as an Excel file." : "Type one ICTU staff email to get each backup as an Excel file, so a copy is kept on the workstation and in the email.") +
+    (b.emailed ? " Last sent " + niceDt(b.emailed.slice(0, 16)) + b.emailed.slice(16) + "." : "");
   $("bkInfo").innerHTML = b.last ? "Last backup: <b>" + esc(niceDt(b.last)) + "</b>. " + (b.url ? '<a href="' + esc(b.url) + '" target="_blank" rel="noopener">Open that copy</a>' : "")
     : "No backup has been made yet. The first automatic one runs on the 1st of next month.";
 }
@@ -4466,9 +4705,63 @@ $("bkNow").onclick = async () => {
   try {
     const j = await api({ action: "backupNow" });
     if (!j.ok) { msg("bkMsg", j.error, "err"); return; }
-    D.backup = j.backup; renderBackup(); msg("bkMsg", "Done. The copy is in the Drive folder.", "ok");
+    D.backup = j.backup; renderBackup();
+    msg("bkMsg", "Done. The copy is in the Drive folder." + (j.mailed === "file" ? " It was also emailed to " + j.backup.email + "." : j.mailed === "link" ? " The file was too big to attach, so the link was emailed to " + j.backup.email + "." : j.mailed === "failed" ? " The email could not be sent. See the Audit Trail." : ""), j.mailed === "failed" ? "err" : "ok");
   } catch (e) { msg("bkMsg", errText(e), "err"); }
   finally { $("bkNow").disabled = false; }
+};
+
+$("bkSaveEmail").onclick = async () => {
+  $("bkSaveEmail").disabled = true; msg("bkMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveBackupEmail", email: $("bkEmail").value });
+    if (!j.ok) { msg("bkMsg", j.error, "err"); return; }
+    D.backup.email = j.email; renderBackup();
+    msg("bkMsg", j.email ? "Saved. The next backup goes to " + j.email + ". Press Back up now to send one today. The first time, Google asks you to allow the app to send email." : "Saved. Backups are no longer emailed.", "ok");
+  } catch (e) { msg("bkMsg", errText(e), "err"); }
+  finally { $("bkSaveEmail").disabled = false; }
+};
+
+// ---------- employee masterlist (Head) ----------
+function renderEmps() {
+  const q = $("emQ").value.trim().toLowerCase(), sec = $("emSec").value, inact = $("emInact").checked, all = D.employees || [];
+  const secs = [...new Set(all.flatMap(e => [e.office].concat(e.also || [])).filter(Boolean))].sort();
+  const keep = sec; $("emSec").innerHTML = opts(secs, "All sections"); $("emSec").value = secs.includes(keep) ? keep : "";
+  const list = all.filter(e => (inact || e.status !== "Inactive") && (!$("emSec").value || e.office === $("emSec").value || (e.also || []).includes($("emSec").value)) &&
+    hay([e.name, e.position, e.office, (e.also || []).join(" ")], q));
+  $("emTable").tBodies[0].innerHTML = list.length ? list.map(e => `<tr data-em="${esc(e.name)}"><td><b>${esc(e.name)}</b>${e.added ? ' <span class="chip mute">added in the app</span>' : ""}</td>
+    <td class="hide-m">${esc(e.position)}</td><td>${esc(e.office)}</td><td>${esc((e.also || []).join("; "))}</td>
+    <td><span class="chip ${e.status === "Inactive" ? "mute" : "ok"}">${esc(e.status || "Active")}</span></td></tr>`).join("")
+    : '<tr><td colspan="5" class="empty">No employee matches.</td></tr>';
+  $("emTable").querySelectorAll("tr[data-em]").forEach(tr => tr.onclick = () => openEmpEdit(tr.dataset.em));
+  $("emCount").textContent = list.length + " of " + all.length + " employees";
+  $("empNames").innerHTML = all.filter(e => e.status !== "Inactive").map(e => `<option value="${esc(e.name)}">`).join("");
+}
+["emQ", "emSec", "emInact"].forEach(id => $(id).addEventListener("input", renderEmps));
+let emCur = null;
+function openEmpEdit(name) {
+  emCur = name ? (D.employees || []).find(e => e.name === name) : null;
+  const e = emCur || { name: "", position: "", office: "", also: [], status: "Active", remarks: "" };
+  $("emT").textContent = emCur ? e.name : "Add an employee";
+  $("edName").value = e.name; $("edName").readOnly = !!emCur; $("edPos").value = e.position || ""; $("emStatus").value = e.status || "Active"; $("emRem").value = e.remarks || "";
+  const secs = [...new Set((D.lists.offices || []).concat((D.employees || []).map(x => x.office)).filter(Boolean))].sort();
+  $("edOffice").innerHTML = opts(secs, "Pick a section"); $("edOffice").value = e.office || "";
+  $("emAlso").innerHTML = secs.map(o => `<label><input type="checkbox" value="${esc(o)}"${(e.also || []).includes(o) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("");
+  msg("emMsg", ""); $("emDlg").showModal();
+}
+$("emAdd").onclick = () => openEmpEdit(null);
+$("emForm").onsubmit = async ev => {
+  ev.preventDefault();
+  const employee = { name: $("edName").value, position: $("edPos").value, office: $("edOffice").value, status: $("emStatus").value, remarks: $("emRem").value,
+    also: [...$("emAlso").querySelectorAll("input:checked")].map(c => c.value).filter(o => o !== $("edOffice").value) };
+  if (!employee.name.trim() || !employee.office) return msg("emMsg", "Type the name and pick the home section.", "err");
+  $("emSave").disabled = true; msg("emMsg", "Saving…");
+  try {
+    const j = await api({ action: "saveEmployee", employee });
+    if (!j.ok) return msg("emMsg", j.error, "err");
+    D.employees = j.employees; renderEmps(); $("emDlg").close();
+  } catch (e) { msg("emMsg", errText(e), "err"); }
+  finally { $("emSave").disabled = false; }
 };
 
 // ---------- dashboard (hand-drawn SVG bar charts, one hue) ----------

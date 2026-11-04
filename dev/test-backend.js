@@ -57,7 +57,12 @@ let L = call({ action: 'load' });
 ok(L.ok, 'load ok ' + L.error);
 ok(L.inventory.length === 29, 'seed has 29 units');
 const epson = L.inventory.find(i => i.brand === 'Epson L3210');
-ok(epson.lastRef === 'PM-2026-001' && epson.nextDue === '2027-01-05', 'next due filled from last PM: ' + epson.nextDue);
+ok(epson.lastRef === 'PM-2026-001' && epson.nextDue === '2027-01-01', 'next PM is the next quarter window (Jan-Mar 2027): ' + epson.nextDue);
+ok(L.inventory.filter(i => /Monitor|UPS|Keyboard|Peripheral/.test(i.type)).every(i => i.freq === '' && i.nextDue === ''), 'monitors, UPS, keyboards and peripherals have no PM');
+ok(L.inventory.filter(i => /Desktop|Laptop|Printer/.test(i.type)).every(i => i.freq === 'Quarterly'), 'desktops, laptops and printers are quarterly');
+const qStart = L.today.slice(0, 5) + String(Math.floor((+L.today.slice(5, 7) - 1) / 3) * 3 + 1).padStart(2, '0') + '-01';
+ok(L.inventory.find(i => i.type === 'Laptop').nextDue === qStart, 'never serviced, no date bought: due this quarter');
+ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(r => r[2] === 'PM RULES APPLIED'), 'PM rules applied once on the first load');
 ok(L.pms.length === 1 && L.pms[0].quarter === 'Q4 2026', 'seed PM');
 ok(L.lists.types.length === 11 && L.lists.staff.length === 2, 'lists tab read');
 
@@ -65,9 +70,11 @@ ok(L.lists.types.length === 11 && L.lists.staff.length === 2, 'lists tab read');
 let r = call({ action: 'saveEquipment', item: { type: 'Desktop Computer', brand: 'Acer Veriton', serial: 'ABC123', tag: 'TRC-ICT-0099', office: 'ICTU', endUser: 'Argie R. Lopez', acquired: '2025-06-10', cost: '45,500.00', freq: '' }, by: 'tester' });
 ok(r.ok && r.id === 'ICT-0030', 'new id ' + r.id + ' ' + r.error);
 ok(r.item.freq === 'Quarterly' && r.item.cost === 45500 && r.item.acquired === '2025-06-10', 'defaults and parsing');
-ok(r.item.nextDue === '', 'no PM yet means no next due');
+ok(r.item.nextDue === '2025-07-01', 'bought Jun 2025, never serviced: due from the Jul-Sep 2025 window: ' + r.item.nextDue);
+ok(/has no PM/.test(call({ action: 'savePM', pm: { equipmentId: L.inventory.find(i => i.type === 'Monitor').id, date: '2026-10-28', personnel: 'X', overall: 'Functional' } }).error), 'no PM on a monitor');
 ok(!call({ action: 'saveEquipment', item: { type: 'Monitor', brand: 'X', serial: 'abc123', office: 'ICTU' } }).ok, 'duplicate serial refused');
-ok(!call({ action: 'saveEquipment', item: { type: 'Monitor', brand: '', office: 'ICTU' } }).ok, 'brand required');
+r = call({ action: 'saveEquipment', item: { type: 'Monitor', brand: '', office: 'ICTU' } });
+ok(r.ok && r.item.brand === 'Generic' && r.item.freq === '', 'no brand / model is saved as Generic: ' + r.error);
 // formula injection
 r = call({ action: 'saveEquipment', item: { id: 'ICT-0030', type: 'Desktop Computer', brand: 'Acer Veriton', serial: 'ABC123', tag: 'TRC-ICT-0099', office: 'ICTU', endUser: '=HYPERLINK("x")', acquired: '2025-06-10', cost: '45500', freq: 'Quarterly' }, by: 'tester' });
 ok(r.ok && r.item.endUser === 'HYPERLINK("x")', 'leading = stripped: ' + r.item.endUser);
@@ -80,7 +87,7 @@ r = call({ action: 'savePM', pm: { equipmentId: 'ICT-0030', date: '2026-10-28', 
   overall: 'Functional, for monitoring', findings: 'Fans check: noisy fan', action: 'Cleaned fan', activity: 'Cleaning', os: 'Windows 11 Pro', ackBy: 'Argie R. Lopez', verifiedBy: 'James Adrian M. Elona' },
   checks, signature: sig });
 ok(r.ok && r.ref === 'PM-2026-002', 'PM ref continues the series: ' + r.ref + ' ' + r.error);
-ok(r.pm.nextDue === '2027-01-28' && r.pm.status === 'For Monitoring' && r.pm.quarter === 'Q4 2026' && r.pm.timeStart === '9:00 AM', 'pm fields');
+ok(r.pm.nextDue === '2027-01-01' && r.pm.status === 'For Monitoring' && r.pm.quarter === 'Q4 2026' && r.pm.timeStart === '9:00 AM', 'pm fields');
 ok(r.item.lastPm === '2026-10-28' && r.item.condition === 'For monitoring' && r.item.os === 'Windows 11 Pro', 'masterlist follows the PM');
 let g = call({ action: 'getPM', ref: 'PM-2026-002' });
 ok(g.ok && g.pm.checks.length === 2 && g.pm.signature === sig, 'getPM returns checks and signature');
@@ -94,13 +101,13 @@ row3[14] = save;
 // second PM same unit, occurrence count, next year numbering
 r = call({ action: 'savePM', pm: { equipmentId: 'ICT-0030', date: '2027-01-20', personnel: 'Argie R. Lopez', overall: 'Functional', activity: 'Cleaning' }, checks: [] });
 ok(r.ok && r.ref === 'PM-2027-001' && r.pm.occurrence === '2', 'new year resets numbering, occurrence 2: ' + r.ref + ' ' + r.pm.occurrence);
-ok(r.item.condition === 'Serviceable' && r.item.nextDue === '2027-04-20', 'condition back to serviceable');
+ok(r.item.condition === 'Serviceable' && r.item.nextDue === '2027-04-01', 'condition back to serviceable');
 // void the latest, masterlist points back
 r = call({ action: 'voidPM', ref: 'PM-2027-001', reason: 'wrong unit' });
 ok(r.ok, 'void ok');
 L = call({ action: 'load' });
 const u = L.inventory.find(i => i.id === 'ICT-0030');
-ok(u.lastRef === 'PM-2026-002' && u.nextDue === '2027-01-28', 'void restores previous PM: ' + u.lastRef + ' ' + u.nextDue);
+ok(u.lastRef === 'PM-2026-002' && u.nextDue === '2027-01-01', 'void restores previous PM: ' + u.lastRef + ' ' + u.nextDue);
 ok(!call({ action: 'voidPM', ref: 'PM-2027-001', reason: 'again' }).ok, 'double void refused');
 ok(!call({ action: 'voidPM', ref: 'PM-2026-002', reason: '' }).ok, 'void needs reason');
 
@@ -121,7 +128,7 @@ const blank = IH.map(() => ''); blank[IH.indexOf('Equipment Type')] = 'Printer';
 inv.getRange(inv._data.length + 1, 1, 1, IH.length).setValues([blank]);
 L = call({ action: 'load' });
 const b = L.inventory.find(i => i.brand === 'Brother HL');
-ok(b && b.id === 'ICT-0031' && b.freq === 'Quarterly' && b.condition === 'Serviceable', 'pasted row normalized: ' + JSON.stringify(b && b.id));
+ok(b && b.id === 'ICT-0032' && b.freq === 'Quarterly' && b.condition === 'Serviceable', 'pasted row normalized: ' + JSON.stringify(b && b.id));
 
 // audit trail
 const aud = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
@@ -301,6 +308,15 @@ ok(r.ok && r.backup.url && be.gas._copies.length === 1, 'backup now made a copy'
 be.code.monthlyBackup();
 ok(be.gas._copies.length === 2 && /backup \d{4}-\d{2}-\d{2} \d{4}$/.test(be.gas._copies[1]), 'monthly backup makes a dated copy');
 ok(call({ action: 'load' }).backup.last, 'last backup shown');
+ok(r.mailed === '' && be.gas._mails.length === 0, 'no backup email until one is set');
+ok(/role \(Technician\)/.test(asTech({ action: 'saveBackupEmail', email: 'argie@example.com' }).error), 'only the Head sets the backup email');
+ok(/not an email/.test(call({ action: 'saveBackupEmail', email: 'argie at mail' }).error), 'bad email refused');
+ok(call({ action: 'saveBackupEmail', email: 'Argie@Example.com' }).email === 'argie@example.com', 'backup email saved');
+r = call({ action: 'backupNow' });
+const bm = be.gas._mails[be.gas._mails.length - 1];
+ok(r.mailed === 'file' && bm.to === 'argie@example.com' && bm.attachments.length === 1 && /\.xlsx$/.test(bm.attachments[0].name) && bm.body.includes(r.backup.url) && /argie@example.com/.test(r.backup.emailed), 'backup emailed as an Excel file with the Drive link');
+be.code.monthlyBackup();
+ok(be.gas._mails.length === 2, 'the monthly backup is emailed too');
 
 // import from an Excel file (Head only): new units added, ones already there skipped
 const invBefore = call({ action: 'load' }).inventory.length;
@@ -341,22 +357,65 @@ r = call({ action: 'importRows', file: 'report.xlsx', inventory: [
 const nm = Object.fromEntries(r.names);
 ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Maria Clara R. Santos' && nm['DR. REYES'] === 'Jose Mari S. Reyes Jr.' && r.unmatched.join() === 'Nobody Known' && nm['Juan D.'] === 'Juan P. Dela Cruz' && nm['Maria'] === 'Maria Clara R. Santos' && call({ action: 'load' }).inventory.some(i => i.office === 'HIMS' && i.type === 'Laptop' && i.endUser === '') && call({ action: 'load' }).pms.find(p => p.ref === 'PM-2024-003').endUser === 'Ana Liza M. Garcia', 'end users are matched to the employee masterlist: ' + JSON.stringify(r.names) + JSON.stringify(r.unmatched));
 
-// PM round and catch-up schedule
+// PM round, job orders that count as the quarter's PM, and the PM plan by section
 {
   const today = call({ action: 'load' }).today;
-  const sched = call({ action: 'load' }).inventory.filter(i => ['Quarterly', 'Semi-Annual', 'Annual', 'Monthly'].includes(i.freq) && !['Disposed', 'Unserviceable'].includes(i.condition));
-  ok(/role \(Technician\)/.test(asTech({ action: 'catchUp', perDay: 2 }).error), 'only the Head makes a catch-up schedule');
-  const pmsBefore = call({ action: 'load' }).pms.length;
-  const cu = call({ action: 'catchUp', perDay: 2 });
-  const after = call({ action: 'load' });
-  ok(cu.ok && cu.count > 0 && sched.every(i => { const x = after.inventory.find(y => y.id === i.id); return x.nextDue >= today; }) && after.pms.length === pmsBefore, 'catch-up gives every overdue unit a date from today and adds no PM record: ' + JSON.stringify(cu));
-  ok(after.inventory.every(i => !i.nextDue || ![0, 6].includes(new Date(i.nextDue + 'T12:00:00').getDay()) || i.nextDue < today || !cu.count), 'catch-up dates fall on working days');
-  ok(call({ action: 'catchUp', perDay: 2 }).count === 0, 'a second catch-up has nothing left to plan');
+  const sched = call({ action: 'load' }).inventory.filter(i => ['Quarterly', 'Semi-Annual'].includes(i.freq) && !['Disposed', 'Unserviceable'].includes(i.condition));
   const two = sched.slice(0, 2).map(i => i.id);
   ok(/future/.test(asTech({ action: 'savePMRound', ids: two, pm: { date: '2099-01-01', personnel: 'Argie R. Lopez', overall: 'Functional' } }).error), 'a PM round cannot be dated in the future');
   const rd = asTech({ action: 'savePMRound', ids: two.concat(['ICT-9999']), pm: { date: today, personnel: 'Argie R. Lopez', overall: 'Functional', action: 'Cleaned unit' } });
   const L2 = call({ action: 'load' });
   ok(rd.ok && rd.refs.length === 2 && rd.failed.length === 1 && two.every(id => L2.inventory.find(i => i.id === id).lastPm === today) && /PM round/.test(L2.pms.find(p => p.ref === rd.refs[0]).remarks), 'a PM round saves one record per unit and moves their next PM: ' + JSON.stringify(rd));
+
+  // a job order with action taken counts as the PM of the quarter
+  const qs = today.slice(0, 5) + String(Math.floor((+today.slice(5, 7) - 1) / 3) * 3 + 1).padStart(2, '0') + '-01';
+  const nq = (() => { const d = new Date(qs + 'T12:00:00'); d.setMonth(d.getMonth() + 3); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'; })();
+  const pr = L2.inventory.find(i => i.freq === 'Quarterly' && !two.includes(i.id) && i.nextDue && i.nextDue <= today && i.condition === 'Serviceable');
+  const jo = call({ action: 'saveJO', jo: { lastName: 'Lopez', unit: pr.office, description: 'Printer blinking', equipmentId: pr.id } });
+  let x = asTech({ action: 'saveJO', jo: { jo: jo.jo.jo, status: 'In Progress' } });
+  ok(x.ok && call({ action: 'load' }).inventory.find(i => i.id === pr.id).nextDue === pr.nextDue, 'an open job order does not count yet');
+  x = asTech({ action: 'saveJO', jo: { jo: jo.jo.jo, status: 'Resolved', findings: 'Waste ink pad full', action: 'Waste ink pad reset', personnel: 'Argie R. Lopez' } });
+  const L3 = call({ action: 'load' });
+  ok(x.ok && L3.inventory.find(i => i.id === pr.id).nextDue === nq, 'a resolved job order with action taken marks the unit done for the quarter: ' + pr.nextDue + ' to ' + L3.inventory.find(i => i.id === pr.id).nextDue);
+  ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(r => r[2] === 'PM DONE BY JOB ORDER' && r[1] === pr.id), 'audit notes the job order counted as PM');
+  ok(call({ action: 'saveEquipment', item: Object.assign({}, L3.inventory.find(i => i.id === pr.id), { remarks: 'edited' }) }).item.nextDue === nq, 'editing the unit keeps the window set by the job order');
+
+  // PM plan by section, 2 days each, Monday to Thursday
+  ok(/role \(Technician\)/.test(asTech({ action: 'makePmPlan', quarter: '2027-Q1' }).error), 'only the Head makes the section PM plan');
+  ok(/2026-Q2/.test(call({ action: 'makePmPlan', quarter: '2027-1' }).error), 'bad quarter refused');
+  const secs = [...new Set(L3.inventory.filter(i => i.freq && !['Disposed', 'Unserviceable'].includes(i.condition)).map(i => i.office))];
+  const mp = call({ action: 'makePmPlan', quarter: '2027-Q1' });
+  const qp = mp.plans.filter(p => p.quarter === '2027-Q1').sort((a, b) => a.start.localeCompare(b.start));
+  ok(mp.ok && mp.count === secs.length && qp.length === secs.length && qp[0].start === '2027-01-04' && qp[0].end === '2027-01-05' && qp[1].start === '2027-01-06' && qp[1].end === '2027-01-07'
+    && qp[2].start === '2027-01-11' && qp.every(p => p.status === 'Planned' && /unit\(s\) due/.test(p.remarks) && ![0, 5, 6].includes(new Date(p.start + 'T12:00:00').getDay()) && ![0, 5, 6].includes(new Date(p.end + 'T12:00:00').getDay())),
+    'each section gets 2 working days, Monday-Tuesday and Wednesday-Thursday: ' + JSON.stringify(qp.map(p => p.section + ' ' + p.start + '/' + p.end)));
+  ok(mp.from === '2027-01-04' && !mp.pastQuarter, 'plan dates returned');
+  const again = call({ action: 'makePmPlan', quarter: '2027-Q1' });
+  ok(again.count === 0 && again.kept === secs.length, 'a second run keeps the plans already made');
+  ok(/already has a plan/.test(asTech({ action: 'savePmPlan', item: { quarter: '2027-Q1', section: qp[0].section, start: '2027-02-01', end: '2027-02-02' } }).error), 'one plan per section per quarter');
+  ok(/future/.test(asTech({ action: 'savePmPlan', item: { id: qp[0].id, actualStart: '2099-01-04', actualEnd: '2099-01-05' } }).error), 'the actual finish cannot be in the future');
+  x = asTech({ action: 'savePmPlan', item: { id: qp[0].id, actualStart: today, actualEnd: today, receivedBy: 'Ana Liza M. Garcia', position: 'Section Head' } });
+  ok(x.ok && x.item.status === 'Done' && x.item.receivedBy === 'Ana Liza M. Garcia', 'actual finish marks the plan Done');
+  const fr = call({ action: 'makePmPlan', quarter: '2026-Q4', start: '2026-11-06', fridays: true });
+  const fq = fr.plans.filter(p => p.quarter === '2026-Q4').sort((a, b) => a.start.localeCompare(b.start));
+  ok(fr.ok && fq[0].start === '2026-11-06' && fq[0].end === '2026-11-09' && fq[1].start === '2026-11-10', 'with Fridays the sections follow one after another: ' + JSON.stringify(fq.slice(0, 2)));
+  ok(call({ action: 'load' }).plans.length === qp.length + fq.length, 'load returns the plans');
+}
+
+// employee masterlist changes (Head only); the HR Masterlist tab is never changed
+{
+  const ms = JSON.stringify(be.gas._ss.getSheetByName('Masterlist')._data);
+  const e0 = call({ action: 'load' }).employees.find(e => e.name === 'Ana Liza M. Garcia');
+  ok(e0 && e0.status === 'Active' && Array.isArray(e0.also), 'employees have a status and extra sections');
+  ok(/role \(Technician\)/.test(asTech({ action: 'saveEmployee', employee: { name: e0.name, office: 'HRMO' } }).error), 'only the Head edits employees');
+  let x = call({ action: 'saveEmployee', employee: { name: e0.name, position: e0.position, office: 'Budget Section', also: [e0.office, 'Budget Section', 'Cash Unit'] } });
+  ok(x.ok && x.employee.office === 'Budget Section' && x.employee.also.join() === e0.office + ',Cash Unit', 'section changed, extra designations kept without the home section: ' + JSON.stringify(x.employee));
+  ok(JSON.stringify(be.gas._ss.getSheetByName('Masterlist')._data) === ms, 'the HR Masterlist tab is not touched');
+  x = call({ action: 'saveEmployee', employee: { name: 'New Hire Q. Person', position: 'Admin Aide I', office: 'HRMO', status: 'Active' } });
+  ok(x.ok && call({ action: 'load' }).employees.some(e => e.name === 'New Hire Q. Person' && e.office === 'HRMO'), 'a new employee can be added');
+  x = call({ action: 'saveEmployee', employee: { name: 'new hire q. person', office: 'HRMO', status: 'Inactive' } });
+  ok(x.ok && call({ action: 'load' }).employees.filter(e => /New Hire/.test(e.name)).length === 1 && x.employee.status === 'Inactive', 'the same name updates, not duplicates');
+  ok(!call({ action: 'saveEmployee', employee: { name: 'X', office: 'HRMO', status: 'Retired' } }).ok, 'unknown status refused');
 }
 
 // renaming a section

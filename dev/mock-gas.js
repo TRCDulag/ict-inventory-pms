@@ -80,13 +80,15 @@ function createGas() {
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
     LockService: { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) },
     Session: { getEffectiveUser: () => ({ getEmail: () => 'salagfacility@gmail.com' }) },
-    ScriptApp: { getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/MOCK/exec' }),
+    ScriptApp: { getOAuthToken: () => 'mock-token', getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/MOCK/exec' }),
       getProjectTriggers: () => triggers.map(h => ({ getHandlerFunction: () => h })),
       newTrigger: h => { const t = { timeBased: () => t, onMonthDay: () => t, atHour: () => t, create: () => { triggers.push(h); return t; } }; return t; } },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     Logger: { log: () => {} },
     // Stands in for Gemini: answers a sticker photo with the fields of the sample sticker.
-    UrlFetchApp: { fetch: (url, o) => { fetches.push({ url, body: JSON.parse(o.payload) });
+    UrlFetchApp: { fetch: (url, o) => { fetches.push({ url, body: o.payload ? JSON.parse(o.payload) : null });
+      if (/\/export\?format=xlsx/.test(url)) return { getResponseCode: () => 200, getBlob: () => { const b = { name: '', bytes: Buffer.from('PK fake xlsx'),
+        setName(n) { b.name = n; return b; }, getBytes() { return [...b.bytes]; } }; return b; } };
       const text = JSON.stringify({ type: 'Laptop', brand: 'Lenovo', propertyNo: 'SEICT-HV-25-11-102', icsNo: '2025-11-212', parNo: '', accountable: 'JA Elona', cost: 'Php 45,500.00', eulYears: 5, serial: '', dateAcquired: '' });
       return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }) }; } },
     MailApp: { getRemainingDailyQuota: () => 100 - mails.length, sendEmail: o => { mails.push(o); } },
@@ -164,6 +166,7 @@ function seed(be) {
   const ms = gas._ss.insertSheet('Masterlist');
   ms.getRange(1, 1, s.masterlist.length, 3).setValues(s.masterlist);
   gas._props.ICTU_PASSCODE = '1234';
+  delete gas._props.PM_RULES;   // the seed rows are older than 1.7.0: the first load applies the PM rules, like an upgrade
 }
 
 module.exports = { createGas, loadBackend, seed };
