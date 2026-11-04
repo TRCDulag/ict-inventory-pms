@@ -689,7 +689,7 @@
         <label class="chk need3"><input type="checkbox" id="spFri"> Use Fridays too</label>
       </div>
       <p class="hint" id="spEst" style="margin:8px 0"></p>
-      <div class="row"><button class="btn need3" id="spMake" type="button">Plan the sections</button><button class="btn ghost need2" id="spAdd" type="button">Add a section</button>
+      <div class="row"><button class="btn need3" id="spMake" type="button">Plan the sections</button><button class="btn ghost need2" id="spAdd" type="button">Add a section</button><button class="btn ghost need3" id="spClear" type="button">Clear this quarter's plan</button>
         <span class="spacer"></span><button class="btn ghost small" id="spPrint" type="button">Print the quarter schedule</button><button class="btn ghost small" id="spNotices" type="button">Print notices for all sections</button></div>
       <div class="tablewrap" style="margin-top:10px"><table class="list" id="spTable"><thead><tr><th>Section</th><th>PM days</th><th>Units done</th><th class="hide-m">Actual</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
       <div class="msg" id="spMsg" role="status"></div>
@@ -731,7 +731,7 @@
           <div class="pmlegend"><span><i class="mk late">!</i> Overdue</span><span><i class="mk plan">P</i> Due this quarter</span><span><i class="mk done">✓</i> PM done, up to date</span></div>
           <div class="picklist" id="pmList"></div>
         </div>
-        <div id="pmSel" class="eqcard hidden"><div class="t"><b id="pmSelT"></b><span id="pmSelS"></span></div><button class="btn ghost small" id="pmChange" type="button">Change</button></div>
+        <div id="pmSel" class="eqcard hidden"><div class="t"><b id="pmSelT"></b><span id="pmSelS"></span><span id="pmSelN" style="display:block;margin-top:6px"></span></div><button class="btn ghost small" id="pmChange" type="button">Change</button></div>
       </div>
 
       <div id="pmBody" class="hidden">
@@ -888,14 +888,15 @@
     </div>
     <div class="panel">
       <h3>Blank forms and lists</h3>
-      <p class="hint" style="margin:0 0 10px">Every form in the ISO Documents list. Forms without a print layout in the app yet are greyed out.</p>
-      <div class="row" id="blankIso" style="margin-bottom:10px"></div>
+      <p class="hint" style="margin:0 0 10px">Every form in the ISO Documents list, plus the section PM forms. Pick one and press Print.</p>
+      <div class="row" style="margin-bottom:10px"><label class="f" style="flex:1;min-width:260px;margin:0">Form or list<select id="blankIso"></select></label>
+        <button class="btn" id="blankPrint" type="button" style="align-self:end">Print</button></div>
       <div class="row">
         <button class="btn ghost hidden" id="blankForm" type="button">Print a blank PMS checklist (COH-IDN-F-02)</button>
         <button class="btn ghost hidden" id="blankJo" type="button">Print a blank job order form (COH-IDN-F-01)</button>
-        <button class="btn ghost" id="blankResult" type="button">Print a blank PMS result form (by section)</button>
-        <button class="btn ghost" id="rPrintInv" type="button">Print the inventory masterlist</button>
-        <button class="btn ghost" id="rPrintSched" type="button">Print this year's PMS schedule</button>
+        <button class="btn ghost hidden" id="blankResult" type="button">Print a blank PMS result form (by section)</button>
+        <button class="btn ghost hidden" id="rPrintInv" type="button">Print the inventory masterlist</button>
+        <button class="btn ghost hidden" id="rPrintSched" type="button">Print this year's PMS schedule</button>
         <button class="btn ghost" id="rCsvAll" type="button">Download the whole PM Log for Excel</button>
       </div>
     </div>
@@ -1570,9 +1571,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.7.1";
+const APP_VERSION = "1.7.2";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.7.2", "Nov 4, 2026", ["Do PM: the picked unit shows its next PM, its last PM and any job order done this quarter.", "PM by section: Clear this quarter's plan cancels the plans so you can plan again. Sections whose PM already started are kept.", "The quarter list starts at Jan-Mar of this year. A past quarter is planned inside that quarter, not from today.", "Blank forms and lists is one dropdown. The PMS checklist, the inventory masterlist and the PMS schedule are listed once, under their ISO form codes."]],
   ["1.7.1", "Nov 4, 2026", ["Accounts, employee: the Also assigned to list has each checkbox on the same line as its section, ticked sections on top and highlighted, a search box, and a line that lists what is ticked. The home section cannot be ticked."]],
   ["1.7.0", "Nov 4, 2026", ["PM is now only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers. Other equipment shows No PM.", "PM is every quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec), servers every 6 months. A unit bought in March is due in Apr-Jun.", "A job order resolved with action taken (diagnostics, updates, virus cleanup, printer cleaning, waste ink pad reset and the like) marks the unit Done for that quarter. The unit and the job order show what was done within the quarter and how many times.", "PM by section: plan the sections for a quarter (2 days each, Monday to Thursday), print the quarter schedule, the notice to each section, and the PMS result form signed by the section head or representative.", "Do PM starts with the list of sections. Find the unit still searches every section.", "Accounts: an employee masterlist you can edit, with the home section and other sections someone is designated to. Rename a section moved here.", "Each backup can also be emailed to one ICTU staff as an Excel file.", "Equipment with no brand / model is saved as Generic.", "Blank forms and lists shows every form in the ISO Documents list."]],
   ["1.6.6", "Nov 4, 2026", ["Router setup now fits the office MikroTik (CCR1009, RouterOS 6.49): it checks PLDT through \"ISP IN\" and Starlink through 192.168.1.1, and sends its reports only while the router can reach the internet.", "While ether6 (PLDT) is switched off on purpose, PLDT is not logged as down."]],
@@ -2748,7 +2750,8 @@ function planSecs() { return [...new Set(D.inventory.filter(it => active(it) && 
 function plansOf(qk) { return (D.plans || []).filter(p => p.quarter === qk && p.status !== "Cancelled").sort((a, b) => (a.start + a.section).localeCompare(b.start + b.section)); }
 function fillPlanQ() {
   const t = qOf(), keep = $("spQ").value, ks = [];
-  for (let i = -2; i <= 3; i++) { const d = addMonths(parse(t.from), i * 3); ks.push(qOf(isoDate(d))); }
+  const first = [t.y + "-Q1"].concat((D.plans || []).map(p => p.quarter)).sort()[0];
+  for (let d = parse(qFromKey(first).from), end = addMonths(parse(t.from), 9); d <= end; d = addMonths(d, 3)) ks.push(qOf(isoDate(d)));
   $("spQ").innerHTML = ks.map(q => `<option value="${q.key}">${q.label}${q.key === t.key ? " (now)" : ""}</option>`).join("");
   $("spQ").value = keep && ks.some(q => q.key === keep) ? keep : t.key;
 }
@@ -2784,6 +2787,20 @@ $("spMake").onclick = async () => {
     msg("spMsg", j.count ? j.count + " section(s) planned from " + nice(j.from) + " to " + nice(j.to) + "." + (j.pastQuarter ? " The last ones go past the end of the quarter. Tick Use Fridays too, or start earlier." : "") : "Every section with units due already has a plan.", j.pastQuarter ? "err" : "ok");
   } catch (e) { msg("spMsg", errText(e), "err"); }
   finally { $("spMake").disabled = false; }
+};
+$("spClear").onclick = async () => {
+  const q = qFromKey($("spQ").value), list = plansOf(q.key), keep = list.filter(p => p.actualStart || p.status === "Done");
+  if (!list.length) return msg("spMsg", "No section plan for " + q.label + " to clear.", "err");
+  if (!confirm("Clear the section plan for " + q.label + "?\n\n" + (list.length - keep.length) + " plan(s) will be cancelled so you can plan again." +
+    (keep.length ? " " + keep.length + " section(s) that already started or finished are kept." : "") + "\n\nThe cancelled plans stay in the PM Plan tab for the record.")) return;
+  $("spClear").disabled = true; msg("spMsg", "Clearing…");
+  try {
+    const j = await api({ action: "clearPmPlan", quarter: q.key });
+    if (!j.ok) return msg("spMsg", j.error, "err");
+    D.plans = j.plans; renderPlans();
+    msg("spMsg", j.count + " plan(s) cleared for " + q.label + "." + (j.kept ? " " + j.kept + " kept because the PM already started." : "") + " Press Plan the sections to plan again.", "ok");
+  } catch (e) { msg("spMsg", errText(e), "err"); }
+  finally { $("spClear").disabled = false; }
 };
 let planCur = null;
 function openPlan(id) {
@@ -3016,6 +3033,11 @@ function pickPM(id) {
   $("pmPick").classList.add("hidden"); $("pmSel").classList.remove("hidden"); $("pmBody").classList.remove("hidden");
   $("pmSelT").textContent = it.id + "  " + eqName(it);
   $("pmSelS").textContent = [it.office, it.endUser, it.serial ? "S/N " + it.serial : "", it.tag ? "Tag " + it.tag : ""].filter(Boolean).join(", ");
+  // The unit's PM schedule for reference: last PM, next PM window and its state, and any job order done this quarter.
+  const st = pmState(it), win = it.nextDue ? winLabel(it.nextDue, freqM(it)) : "";
+  $("pmSelN").innerHTML = "Next PM: " + dueChip(it) + (st === "late" && win ? ' <span style="color:var(--muted)">(should have been done in ' + esc(win) + ")</span>" : "") +
+    ' <span style="color:var(--muted)">Last PM: ' + (it.lastPm ? esc(nice(it.lastPm)) + (it.lastRef ? " (" + esc(it.lastRef) + ")" : "") : "none yet") + ". " + esc(it.freq === "Semi-Annual" ? "Every 6 months." : "Every quarter.") +
+    (qRemark(it.id) ? " " + esc(qRemark(it.id)) : "") + "</span>";
   $("pDate").value = todayStr(); $("pStart").value = nowTime(); $("pEnd").value = "";
   $("pOffice").value = it.office; $("pEndUser").value = it.endUser; $("pAck").value = it.endUser;
   $("pPmType").value = "Scheduled PM"; $("pActivity").value = kindOf(it.type).includes("printer") ? "Print Test" : "Cleaning";
@@ -4228,9 +4250,19 @@ const ISO_FORMS = {
 function renderBlankIso() {
   const forms = (D.isoDocs || []).filter(d => d.kind === "Form" && d.status !== "Obsolete").sort((a, b) => a.code.localeCompare(b.code));
   const list = forms.length ? forms : [{ code: "COH-IDN-F-01", title: "ICTU Job Order Request Form" }, { code: "COH-IDN-F-02", title: "ICT Equipment Preventive Maintenance Checklist" }];
-  $("blankIso").innerHTML = list.map(d => `<button class="btn ghost" type="button" data-iso-form="${esc(d.code)}"${ISO_FORMS[d.code] ? "" : " disabled title=\"No print layout in the app yet\""}>${esc(d.code)} ${esc(d.title)}</button>`).join("");
-  $("blankIso").querySelectorAll("[data-iso-form]").forEach(b => b.onclick = () => ISO_FORMS[b.dataset.isoForm] && ISO_FORMS[b.dataset.isoForm]());
+  // One list: the ISO forms (F-02 is the PMS checklist, F-04 this year's PMS schedule, F-09 the inventory masterlist, so those are not listed twice),
+  // then the section PM forms that have no form code yet.
+  const keep = $("blankIso").value;
+  $("blankIso").innerHTML = '<optgroup label="ISO forms">' + list.map(d => `<option value="${esc(d.code)}"${ISO_FORMS[d.code] ? "" : " disabled"}>${esc(d.code)} ${esc(d.title)}${ISO_FORMS[d.code] ? "" : " (no print layout yet)"}</option>`).join("") + "</optgroup>" +
+    '<optgroup label="Section PM (no form code yet)"><option value="x-result">PMS result form, blank (signed by the section)</option><option value="x-notice">Notice of PM to a section, this quarter (all sections)</option></optgroup>';
+  if (keep) $("blankIso").value = keep;
 }
+$("blankPrint").onclick = () => {
+  const v = $("blankIso").value;
+  if (v === "x-result") return $("blankResult").click();
+  if (v === "x-notice") { const l = plansOf(qOf().key); return l.length ? printNotices(l) : alert("No section plan for " + qOf().label + " yet. Plan the sections on the PMS Schedule tab first."); }
+  if (ISO_FORMS[v]) ISO_FORMS[v]();
+};
 $("blankResult").onclick = () => printResult({ section: "", quarter: qOf().key, start: "", end: "", receivedBy: "", position: "", remarks: "" });
 let isoFilled = false;
 function isoPickers() {

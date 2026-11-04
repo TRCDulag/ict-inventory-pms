@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.7.1';
+const VERSION = '1.7.2';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -153,7 +153,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
-  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -257,6 +257,7 @@ function handle_(req) {
       case 'savePMRound':   return savePMRound_(req);
       case 'savePmPlan':    ensureTab_(PLAN, PLAN_HEADERS); return saveReg_(REG.plan, req.item, req);
       case 'makePmPlan':    return makePmPlan_(req);
+      case 'clearPmPlan':   return clearPmPlan_(req);
       case 'saveEmployee':  return saveEmployee_(req);
       case 'saveBackupEmail': return saveBackupEmail_(req);
       case 'renameOffice':  return renameOffice_(req);
@@ -2381,8 +2382,9 @@ function makePmPlan_(req) {
     const due = dueBySection_(q);
     const secs = Object.keys(due).filter(s => !have[nameKey_(s)]).sort((a, b) => a.localeCompare(b));
     const today = toDate_(fmtDate_(new Date()));
-    let day = toDate_(req.start) || (qd.from > today ? qd.from : today);
-    if (day < qd.from) day = new Date(qd.from.getTime());
+    // From today when the quarter is under way; from its first day when it is still to come or already over.
+    let day = toDate_(req.start) || (today >= qd.from && today <= qd.to ? today : qd.from);
+    if (day < qd.from || day > qd.to) day = new Date(qd.from.getTime());
     day = new Date(day.getTime());
     const step = () => { do day.setDate(day.getDate() + 1); while (!work(day)); };
     while (!work(day)) day.setDate(day.getDate() + 1);
@@ -2409,6 +2411,29 @@ function makePmPlan_(req) {
       (req.fridays ? ', Fridays included.' : ', Monday to Thursday.'), req.device);
     return { ok: true, quarter: q, count: rows.length, kept: Object.keys(have).length, from: from, to: to,
              pastQuarter: !!to && to > fmtDate_(qd.to), plans: readRows_(PLAN, PLAN_HEADERS).map(r => toObj_(REG.plan, r)) };
+  });
+}
+
+// Head only: cancels the quarter's plans so the sections can be planned again. Plans whose PM already started
+// (actual start or Done) are kept. Cancelled rows stay in the tab for the record.
+function clearPmPlan_(req) {
+  const q = clean_(req.quarter);
+  quarterDays_(q);
+  ensureTab_(PLAN, PLAN_HEADERS);
+  return withLock_(() => {
+    const sh = sheet_(PLAN), H = idx_(PLAN_HEADERS), n = lastRow_(sh), stamp = dt_(new Date()), by = clean_(req.by);
+    let count = 0, kept = 0;
+    if (n >= 2) sh.getRange(2, 1, n - 1, PLAN_HEADERS.length).getValues().forEach((r, i) => {
+      if (r[H['Quarter']] !== q || r[H['Status']] === 'Cancelled') return;
+      if (r[H['Actual Start']] || r[H['Status']] === 'Done') { kept++; return; }
+      r[H['Status']] = 'Cancelled';
+      r[H['Remarks']] = [clean_(r[H['Remarks']]), 'Cleared ' + stamp.slice(0, 10) + ' to plan again.'].filter(Boolean).join(' ');
+      r[H['Updated At']] = stamp; r[H['Updated By']] = by;
+      writeRegRow_(REG.plan, sh, i + 2, r);
+      count++;
+    });
+    if (count) audit_(q, 'PM PLAN CLEARED', by, count + ' section plan(s) cancelled' + (kept ? ', ' + kept + ' kept (already started)' : '') + '.', req.device);
+    return { ok: true, count: count, kept: kept, plans: readRows_(PLAN, PLAN_HEADERS).map(r => toObj_(REG.plan, r)) };
   });
 }
 

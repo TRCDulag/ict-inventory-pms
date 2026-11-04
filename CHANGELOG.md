@@ -2,6 +2,13 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.2 (Nov 4, 2026)
+
+- Do PM shows the picked unit's next PM, last PM and job orders done this quarter.
+- PM by section: Clear this quarter's plan (Head) cancels the plans so they can be made again; started or done plans are kept. Cancelled rows stay in the PM Plan tab.
+- Quarter list starts at Jan-Mar of the current year. A past quarter is planned from its first day (it was planned from today before).
+- Blank forms and lists is one dropdown; the doubles (PMS checklist, inventory masterlist, PMS schedule) are listed once under F-02, F-09 and F-04.
+
 ## 1.7.1 (Nov 4, 2026)
 
 - Employee editor: the "Also assigned to" checkboxes line up with their section names; ticked ones on top and highlighted, with a search box and a "Ticked:" line. The home section cannot be ticked.

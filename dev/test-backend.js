@@ -400,6 +400,13 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   const fq = fr.plans.filter(p => p.quarter === '2026-Q4').sort((a, b) => a.start.localeCompare(b.start));
   ok(fr.ok && fq[0].start === '2026-11-06' && fq[0].end === '2026-11-09' && fq[1].start === '2026-11-10', 'with Fridays the sections follow one after another: ' + JSON.stringify(fq.slice(0, 2)));
   ok(call({ action: 'load' }).plans.length === qp.length + fq.length, 'load returns the plans');
+  const past = call({ action: 'makePmPlan', quarter: '2026-Q2' });
+  ok(past.ok && past.from >= '2026-04-01' && past.to <= '2026-06-30', 'a past quarter is planned inside that quarter, not from today: ' + past.from + ' to ' + past.to);
+  ok(/role \(Technician\)/.test(asTech({ action: 'clearPmPlan', quarter: '2027-Q1' }).error), 'only the Head clears a plan');
+  const cl = call({ action: 'clearPmPlan', quarter: '2027-Q1' });
+  ok(cl.ok && cl.count === qp.length - 1 && cl.kept === 1 && cl.plans.filter(p => p.quarter === '2027-Q1' && p.status !== 'Cancelled').length === 1, 'clearing keeps the plan already done: ' + JSON.stringify([cl.count, cl.kept]));
+  const re = call({ action: 'makePmPlan', quarter: '2027-Q1' });
+  ok(re.count === qp.length - 1, 'the cleared sections can be planned again');
 }
 
 // employee masterlist changes (Head only); the HR Masterlist tab is never changed
