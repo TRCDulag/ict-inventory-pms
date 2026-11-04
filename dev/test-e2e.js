@@ -651,7 +651,7 @@ const shots = path.join(__dirname, 'screenshots');
   // router setup (Head): the commands and the script with the link and key filled in
   await page.click('#wRouter'); await page.waitForSelector('#rtDlg[open]');
   await page.waitForFunction(() => /trcdQueue/.test($('rtScript').value));
-  ok(await page.evaluate(() => /:local key "[a-f0-9]{40}"/.test($('rtScript').value) && /"PLDT"="ISP IN"/.test($('rtScript').value) && /netwatch add host=1\.0\.0\.1/.test($('rtSetup').value)), 'Router setup gives the router script with the key and the PLDT and Starlink checks');
+  ok(await page.evaluate(() => /:local key "[a-f0-9]{40}"/.test($('rtScript').value) && /"ether6 - ISP IN"/.test($('rtScript').value) && !/max-redirect/.test($('rtScript').value) && /gateway="ISP IN"/.test($('rtSetup').value) && /8\.8\.4\.4\/32 gateway=192\.168\.1\.1/.test($('rtSetup').value) && /netwatch add host=1\.0\.0\.1/.test($('rtSetup').value)), 'Router setup gives the router script with the key and the PLDT and Starlink checks');
   await page.screenshot({ path: path.join(shots, '29-router-setup.png') });
   await page.evaluate(() => $('rtDlg').close());
   // picture for the guide: how entries logged by the router look (shown only, not saved)

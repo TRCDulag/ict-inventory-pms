@@ -1433,7 +1433,7 @@
     <p class="hint" style="margin:0 0 8px">The MikroTik router checks each line every 30 seconds and tells the app when one goes down or comes back. It sends through whichever line still works. If both are down, it keeps the report and sends it with the right time once a line is back. Lines switched off on the router (disabled) are not logged.</p>
     <div id="rtLast" class="hint" style="margin:0 0 10px"></div>
     <h4 style="margin:10px 0 4px">1. In Winbox, open New Terminal and paste this (one time)</h4>
-    <p class="hint" style="margin:0 0 4px">It adds a check address for each line and the 1-minute schedule. Check the Starlink gateway (192.168.1.1) with ICTU before pasting.</p>
+    <p class="hint" style="margin:0 0 4px">It adds a check address for each line (1.0.0.1 only through PLDT, 8.8.4.4 only through Starlink), a Netwatch for each, and the 1-minute schedule. Nothing else on the router changes.</p>
     <textarea class="code" id="rtSetup" readonly></textarea>
     <div class="row" style="margin:4px 0 10px"><button class="btn ghost small" type="button" data-copy="rtSetup">Copy</button></div>
     <h4 style="margin:10px 0 4px">2. System, Scripts, + : name it <b>trcd-downtime</b>, tick read, write, test, then paste this as the Source</h4>
@@ -1495,9 +1495,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.6.5";
+const APP_VERSION = "1.6.6";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.6.6", "Nov 4, 2026", ["Router setup now fits the office MikroTik (CCR1009, RouterOS 6.49): it checks PLDT through \"ISP IN\" and Starlink through 192.168.1.1, and sends its reports only while the router can reach the internet.", "While ether6 (PLDT) is switched off on purpose, PLDT is not logged as down."]],
   ["1.6.5", "Nov 3, 2026", ["Internet Downtime is now logged by the MikroTik router by itself. It checks PLDT and Starlink every 30 seconds and tells the app the minute a line goes down or comes back, even at night. If both lines are down, it sends the report with the right time once a line is back.", "Router setup (Head) on the Internet Downtime page gives the commands and the script to paste in Winbox, with the app's link and a secret key already filled in.", "The screenshot upload from 1.6.4 was taken out, since the router now keeps the record. Entries logged by the router say so in the list."]],
   ["1.6.4", "Nov 3, 2026", ["Internet Downtime: attach screenshots to each entry as proof, such as the router interface list, a speed test or the ISP's text. Press Ctrl+V in the form to paste one, or choose files. Up to 10 per entry.", "The screenshots are kept in a Drive folder \"ICT PMS Downtime Screenshots\". Click one to see it full size, and the monthly report shows how many each entry has.", "Run setup once in Apps Script so the Internet Downtime tab gets its new Screenshots column."]],
   ["1.6.3", "Nov 3, 2026", ["Internet Downtime: since PLDT is the main line and the router switches to Starlink by itself, the office is now counted as without internet only while both lines are down at the same time. Each line still shows its own uptime.", "New scope choice \"Backup line took over\". It is picked by default when you record one line, and \"Whole office\" is picked when you choose All internet lines."]],
@@ -4322,33 +4323,35 @@ $("wPrint").onclick = () => {
 };
 
 // ---- automatic reports from the MikroTik router (Head sets it up) ----
-const RT_IF = { PLDT: "ISP IN", Starlink: "ether7 - STARLINK" };
+// Written for the office MikroTik (CCR1009, RouterOS 6.49): v6 fetch does not follow the 302 that
+// the /exec link answers with, but the app has already logged the report by then, so a fetch error is
+// expected. The script only sends while the router can reach the internet, then clears its queue.
+const RT_IF = { PLDT: "ether6 - ISP IN", Starlink: "ether7 - STARLINK" };
+const RT_CHECK = { PLDT: ["1.0.0.1", '"ISP IN"'], Starlink: ["8.8.4.4", "192.168.1.1"] };
 function routerScripts(url, key, lines) {
-  const map = lines.map(n => '"' + n + '"="' + (RT_IF[n] || n) + '"').join(";");
-  const setup = [
-    '/ip route add dst-address=1.0.0.1/32 gateway="ISP IN" scope=10 comment="TRCD check PLDT"',
-    '/ip route add dst-address=1.0.0.1/32 blackhole distance=250 comment="TRCD check PLDT"',
-    '/ip route add dst-address=8.8.4.4/32 gateway=192.168.1.1 scope=10 comment="TRCD check Starlink"',
-    '/ip route add dst-address=8.8.4.4/32 blackhole distance=250 comment="TRCD check Starlink"',
-    '/tool netwatch add host=1.0.0.1 interval=30s timeout=3s comment="PLDT"',
-    '/tool netwatch add host=8.8.4.4 interval=30s timeout=3s comment="Starlink"',
-    '/system ntp client set enabled=yes servers=time.google.com',
-    '/system clock set time-zone-name=Asia/Manila',
-    '/system scheduler add name=trcd-downtime interval=1m on-event=trcd-downtime comment="TRCD ICT downtime log"'].join("\n");
+  lines = lines.filter(n => RT_CHECK[n]);
+  const setup = lines.map(n => [
+    `/ip route add dst-address=${RT_CHECK[n][0]}/32 gateway=${RT_CHECK[n][1]} comment="TRCD check ${n}"`,
+    `/ip route add dst-address=${RT_CHECK[n][0]}/32 type=blackhole distance=250 comment="TRCD check ${n}"`,
+    `/tool netwatch add host=${RT_CHECK[n][0]} interval=30s timeout=1s comment="${n}"`].join("\n")).join("\n") +
+    '\n/system scheduler add name=trcd-downtime interval=1m on-event=trcd-downtime comment="TRCD ICT downtime log"';
   const script = `# DOH TRC Dulag ICTU: tells the ICT Inventory and PMS app when an internet line goes down or comes back.
+# A line whose port is disabled on purpose is not logged.
 :local url "${url}"
 :local key "${key}"
-:local lines {${map}}
+:local names {${lines.map(n => '"' + n + '"').join(";")}}
+:local ports {${lines.map(n => '"' + RT_IF[n] + '"').join(";")}}
 :global trcdState
 :global trcdQueue
 :if ([:typeof $trcdState] != "array") do={ :set trcdState [:toarray ""] }
 :if ([:typeof $trcdQueue] != "array") do={ :set trcdQueue [:toarray ""] }
 :local d [/system clock get date]
 :local t [/system clock get time]
-:foreach name,ifname in=$lines do={
+:for i from=0 to=([:len $names] - 1) do={
+  :local name [:pick $names $i]
   :local st "off"
-  :local i [/interface find name=$ifname]
-  :if ([:len $i] > 0) do={ :if (![/interface get $i disabled]) do={ :set st [/tool netwatch get [find comment=$name] status] } }
+  :local p [/interface find name=[:pick $ports $i]]
+  :if ([:len $p] > 0) do={ :if (![/interface get $p disabled]) do={ :set st [/tool netwatch get [find comment=$name] status] } }
   :local old ($trcdState->$name)
   :if ($st != "unknown" && $st != $old) do={
     :if ($st = "down" && ($old = "up" || [:len $old] = 0)) do={ :set trcdQueue ($trcdQueue, ("line=" . $name . "&state=down&date=" . $d . "&time=" . $t)) }
@@ -4357,14 +4360,15 @@ function routerScripts(url, key, lines) {
   }
 }
 :while ([:len $trcdQueue] > 20) do={ :set trcdQueue [:pick $trcdQueue 1 [:len $trcdQueue]] }
-:local left [:toarray ""]
-:local failed false
-:foreach q in=$trcdQueue do={
-  :if ($failed) do={ :set left ($left, $q) } else={
-    :do { /tool fetch url=($url . "?router=1&key=" . $key . "&" . $q) http-method=get http-max-redirect-count=5 output=none } on-error={ :set failed true; :set left ($left, $q) }
+:if ([:len $trcdQueue] > 0) do={
+  :if ([/ping 8.8.8.8 count=3] > 0) do={
+    :foreach q in=$trcdQueue do={
+      :do { /tool fetch url=($url . "?router=1&key=" . $key . "&" . $q) check-certificate=no output=none } on-error={}
+      :delay 2s
+    }
+    :set trcdQueue [:toarray ""]
   }
-}
-:set trcdQueue $left`;
+}`;
   return { setup, script };
 }
 async function openRouter(newKey) {
@@ -4374,7 +4378,7 @@ async function openRouter(newKey) {
     const j = await api({ action: "routerSetup", newKey: !!newKey });
     if (!j.ok) return msg("rtMsg", j.error, "err");
     const url = j.url || "PASTE-THE-APP-/exec-LINK-HERE";
-    const lines = j.lines.filter(n => RT_IF[n]).length ? j.lines.filter(n => RT_IF[n]) : j.lines;
+    const lines = j.lines;
     const sc = routerScripts(url, j.key, lines);
     $("rtSetup").value = sc.setup; $("rtScript").value = sc.script;
     const L = j.last || {};

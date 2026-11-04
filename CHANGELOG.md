@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.6.6 (Nov 4, 2026)
+- Router setup now fits the office MikroTik (CCR1009, RouterOS 6.49): it checks PLDT through "ISP IN" and Starlink through 192.168.1.1, and sends its reports only while the router can reach the internet.
+- While ether6 (PLDT) is switched off on purpose, PLDT is not logged as down.
+
 ## 1.6.5 (Nov 3, 2026)
 - Internet Downtime is now logged by the MikroTik router by itself. It checks PLDT and Starlink every 30 seconds and tells the app the minute a line goes down or comes back, even at night. If both lines are down, it sends the report with the right time once a line is back.
 - Router setup (Head) on the Internet Downtime page gives the commands and the script to paste in Winbox, with the app's link and a secret key already filled in.
