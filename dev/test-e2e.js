@@ -629,6 +629,30 @@ const shots = path.join(__dirname, 'screenshots');
   await page.fill('#oName', 'Records Section'); await page.click('#offSave');
   await page.waitForFunction(() => !$('offDlg').open);
   ok(await page.evaluate(() => D.lists.offices.includes('Records Section')), 'a section / unit can be added from the employee masterlist');
+  // from inside the employee window: a new section, and one that only the equipment list had, both show and get picked
+  await page.click('#emTable tbody tr[data-em]'); await page.waitForSelector('#emDlg[open]');
+  await page.click('#edNewSec'); await page.waitForSelector('#offDlg[open]');
+  await page.fill('#oName', 'Dental Unit'); await page.click('#offSave');
+  await page.waitForFunction(() => !$('offDlg').open);
+  ok(await page.inputValue('#edOffice') === 'Dental Unit' && await page.locator('#emAlso input[value="Dental Unit"]').count() === 1, 'a section added inside the employee window shows in its lists and is picked');
+  const invOnly = await page.evaluate(() => D.inventory.map(i => i.office).find(o => o && !D.lists.offices.includes(o) && !D.employees.some(e => e.office === o)));
+  if (invOnly) {
+    await page.click('#edNewSec'); await page.waitForSelector('#offDlg[open]');
+    await page.fill('#oName', invOnly); await page.click('#offSave');
+    await page.waitForFunction(() => !$('offDlg').open, null, { timeout: 5000 });
+    ok(await page.inputValue('#edOffice') === invOnly, 'a section that only the equipment had is in the list and is picked: ' + invOnly);
+  }
+  await page.evaluate(() => $('emDlg').close());
+  // remove a section: refused while in use, removed after two confirmations when free
+  await page.click('#emRmSec'); await page.waitForSelector('#rmDlg[open]');
+  await page.selectOption('#rmSec', 'HRMO');
+  ok(await page.isDisabled('#rmSave') && /In use/.test(await page.textContent('#rmInfo')), 'a section in use cannot be removed');
+  const asked = []; const onAsk = d => asked.push(d.message()); page.on('dialog', onAsk);
+  await page.selectOption('#rmSec', 'Records Section'); await page.click('#rmSave');
+  await page.waitForFunction(() => /was removed/.test($('rmMsg').textContent));
+  page.off('dialog', onAsk);
+  ok(asked.length === 2 && await page.evaluate(() => !D.lists.offices.includes('Records Section')), 'removing a section asks twice, then removes it');
+  await page.evaluate(() => $('rmDlg').close());
   // backup email
   await page.fill('#bkEmail', 'argie@example.com'); await page.click('#bkSaveEmail');
   await page.waitForFunction(() => /Saved/.test($('bkMsg').textContent));

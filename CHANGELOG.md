@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.4 (Nov 4, 2026)
+
+- Fix: the employee window's section lists left out sections that only the equipment list had, so adding one (Dental Unit) looked like it did nothing. They now use the same list as the rest of the app.
+- Remove a section (Head): only when no equipment or employee has it; asks twice; also taken off designations. Saved records keep the old name.
+
 ## 1.7.3 (Nov 4, 2026)
 
 - One-page forms fit the page at 100% scale on A4 or short bond (Letter): a sheet that runs up to 25% over is shrunk to fit, with a 5% allowance for printer margins. Long lists still run onto more pages.

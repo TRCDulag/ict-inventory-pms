@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.7.3';
+const VERSION = '1.7.4';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -154,7 +154,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
-  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', renameOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -262,6 +262,7 @@ function handle_(req) {
       case 'saveEmployee':  return saveEmployee_(req);
       case 'saveBackupEmail': return saveBackupEmail_(req);
       case 'renameOffice':  return renameOffice_(req);
+      case 'removeOffice':  return removeOffice_(req);
       case 'tidyOffices':   return tidyOffices_(req);
       case 'disposeUnits':  return disposeUnits_(req);
       case 'getPM':         return getPM_(req.ref);
@@ -571,6 +572,30 @@ function addOffice_(req) {
     appendOffice_(name);
     audit_('', 'OFFICE ADDED', clean_(req.by) || 'ICTU', name, req.device);
     return { ok: true, office: name };
+  });
+}
+
+// Head only: takes a section off the Lists tab and off employees' designations. Refused while any equipment or employee
+// has it as their section (move them first, or rename it into another). Saved records keep the name they had.
+function removeOffice_(req) {
+  const name = clean_(req.name);
+  if (!name) throw new Error('Pick the section to remove.');
+  return withLock_(() => {
+    const k = nameKey_(name);
+    const units = readRows_(INV, INV_HEADERS).filter(r => nameKey_(r[I['Office / Section']]) === k).length;
+    const emps = employees_().list.filter(e => nameKey_(e.office) === k).length;
+    if (units || emps) throw new Error(name + ' is still used by ' + units + ' unit(s) and ' + emps + ' employee(s). Move them first, or use Rename a section.');
+    let removed = 0;
+    const ls = SpreadsheetApp.getActive().getSheetByName(LISTS);
+    if (ls) ls.getRange(1, 3, ls.getMaxRows(), 1).getValues().forEach((v, i) => { if (i > 0 && nameKey_(v[0]) === k) { ls.getRange(i + 1, 3).setValue(''); removed++; } });
+    let des = 0;
+    const es = SpreadsheetApp.getActive().getSheetByName(EMP_EDITS);
+    if (es && lastRow_(es) >= 2) es.getRange(2, 4, lastRow_(es) - 1, 1).getValues().forEach((v, i) => {
+      const list = String(v[0]).split(/\s*;\s*/).filter(Boolean), keep = list.filter(x => nameKey_(x) !== k);
+      if (keep.length !== list.length) { es.getRange(i + 2, 4).setValue(keep.join('; ')); des++; }
+    });
+    audit_('', 'OFFICE REMOVED', clean_(req.by), name + (des ? '; taken off the designations of ' + des + ' employee(s)' : ''), req.device);
+    return { ok: true, removed: removed, designations: des };
   });
 }
 

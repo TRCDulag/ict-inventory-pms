@@ -426,6 +426,12 @@ ok(nm['ANA GARCIA'] === 'Ana Liza M. Garcia' && nm['Ma. Clara Santoz'] === 'Mari
   x = call({ action: 'saveEmployee', employee: { name: 'Gip Trainee A. Uno', office: 'HRMO', employment: 'GIP' } });
   ok(x.ok && x.employee.employment === 'GIP' && call({ action: 'saveEmployee', employee: { name: 'Jo Worker B. Dos', office: 'HRMO', employment: 'Job Order Employee' } }).employee.employment === 'Job Order Employee', 'GIP and Job Order employees can be added');
   ok(!call({ action: 'saveEmployee', employee: { name: 'Y', office: 'HRMO', employment: 'Casual-ish' } }).ok, 'unknown employment refused');
+  ok(call({ action: 'addOffice', name: 'Dental Unit' }).ok && call({ action: 'saveEmployee', employee: { name: 'Gip Trainee A. Uno', office: 'HRMO', employment: 'GIP', also: ['Dental Unit'] } }).ok, 'section added and used as a designation');
+  ok(/role \(Technician\)/.test(asTech({ action: 'removeOffice', name: 'Dental Unit' }).error), 'only the Head removes a section');
+  ok(/still used by/.test(call({ action: 'removeOffice', name: 'HRMO' }).error), 'a section in use cannot be removed');
+  x = call({ action: 'removeOffice', name: 'Dental Unit' });
+  const L9 = call({ action: 'load' });
+  ok(x.ok && x.removed === 1 && x.designations === 1 && !L9.lists.offices.includes('Dental Unit') && !L9.employees.find(e => e.name === 'Gip Trainee A. Uno').also.includes('Dental Unit'), 'an unused section is removed from the list and the designations: ' + JSON.stringify(x));
 }
 
 // renaming a section
