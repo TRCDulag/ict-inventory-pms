@@ -1596,9 +1596,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.7.6";
+const APP_VERSION = "1.7.7";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.7.7", "Nov 4, 2026", ["The notice and the PMS result form now show, for each unit, the date it was done and who did it (Bro. Jhedd, Bro. Argie)."]],
   ["1.7.6", "Nov 4, 2026", ["Printed PMS schedule now has colors: green for done (PM or a job order with action taken), light red for overdue, and white with a blue P for planned. A color key is printed at the top."]],
   ["1.7.5", "Nov 4, 2026", ["Scan code now opens the camera on Windows and Mac browsers and on iPhones too, not only on Android. If the camera is blocked, the window says how to allow it.", "Scan code also takes or picks a photo of the QR label and reads it."]],
   ["1.7.4", "Nov 4, 2026", ["Employee window: the section lists now show every section, including ones that so far only had equipment (like Dental Unit). Add a section / unit inside the window picks the section right away.", "Employee masterlist: Remove a section. Only a section with no equipment and no employee can be removed, and the app asks twice before removing it."]],
@@ -1824,9 +1825,9 @@ function qFromKey(k) { const m = String(k).match(/^(\d{4})-Q([1-4])$/); return m
 const JO_DONE = ["Resolved", "Resolved - temporary fix"];
 function servicesOf(id, from, to) {
   const pm = D.pms.filter(p => p.equipmentId === id && p.recordStatus !== "Voided" && p.date >= from && p.date <= to)
-    .map(p => ({ kind: "PM", ref: p.ref, date: p.date, what: p.activity || "PM", overall: p.overall }));
+    .map(p => ({ kind: "PM", ref: p.ref, date: p.date, what: p.activity || "PM", overall: p.overall, by: p.personnel }));
   const jo = D.jos.filter(j => j.equipmentId === id && JO_DONE.includes(j.status) && (j.action || j.findings) && String(j.finishedAt).slice(0, 10) >= from && String(j.finishedAt).slice(0, 10) <= to)
-    .map(j => ({ kind: "JO", ref: j.jo, date: String(j.finishedAt).slice(0, 10), what: j.action || j.findings }));
+    .map(j => ({ kind: "JO", ref: j.jo, date: String(j.finishedAt).slice(0, 10), what: j.action || j.findings, by: j.personnel }));
   return pm.concat(jo).sort((a, b) => a.date < b.date ? -1 : 1);
 }
 // "Waste ink pad reset within the quarter (JO-2026-0042, Nov 4). 2 actions taken this quarter."
@@ -2881,6 +2882,16 @@ $("spPrint").onclick = () => {
     </tbody></table>${signs()}</div>`, false);
 };
 $("spNotices").onclick = () => { const l = plansOf($("spQ").value); if (!l.length) return msg("spMsg", "No section plan for this quarter yet.", "err"); printNotices(l); };
+// What the section sees on the notice and result form: "Bro. Jhedd" for James, "Bro. Argie" for Argie (Jed's rule).
+const BRO_NICK = { james: "Jhedd" };
+function broName(n) {
+  n = String(n || "").trim(); if (!n) return "";
+  const first = (n.includes(",") ? n.split(",")[1] : n).trim().split(/\s+/)[0] || "";
+  const nick = BRO_NICK[first.toLowerCase()] || first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+  return "Bro. " + nick;
+}
+function svDates(sv) { return [...new Set(sv.map(s => nice(s.date)))].join(", "); }
+function svBy(sv) { return [...new Set(sv.map(s => broName(s.by)).filter(Boolean))].join(", "); }
 // Notice to a section: its PM days and the units to be checked. The section signs that it received it.
 function printNotices(list) {
   doPrint(list.map(p => { const q = qFromKey(p.quarter), u = secUnits(p.section, p.quarter);
@@ -2889,8 +2900,8 @@ function printNotices(list) {
     <p style="margin:2mm 0">Please be informed that the ICT Unit will do the preventive maintenance (PM) of your section's ICT equipment for ${esc(q.label)} on
       <b>${esc(longDate(p.start))}${p.end !== p.start ? " to " + esc(longDate(p.end)) : ""}</b>. Kindly have the units below available, save your open work, and let the end users know.
       Units that already had a job order with action taken this quarter are marked Done and will only be checked quickly.</p>
-    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Status this quarter</th></tr></thead><tbody>
-    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${x.sv.length ? "Done (" + esc(x.sv[x.sv.length - 1].ref) + ")" : "For PM"}</td></tr>`).join("") || '<tr><td colspan="5" class="c">No units due.</td></tr>'}
+    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Status this quarter</th><th>Date done</th><th>Done by</th></tr></thead><tbody>
+    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${x.sv.length ? "Done (" + esc(x.sv[x.sv.length - 1].ref) + ")" : "For PM"}</td><td>${esc(svDates(x.sv))}</td><td>${esc(svBy(x.sv))}</td></tr>`).join("") || '<tr><td colspan="7" class="c">No units due.</td></tr>'}
     </tbody></table>
     ${sigTable([["PREPARED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["NOTED BY", headOf()[0], headOf()[1]], ["RECEIVED BY", "", "Section Head or Representative / Date"]])}</div>`; }).join('<div class="pagebreak"></div>'), false);
 }
@@ -2909,8 +2920,8 @@ function printResult(p) {
     <table><thead><tr><th>Equipment type</th><th>Units</th><th>PM done</th><th>Checked through a job order</th><th>Not done</th></tr></thead><tbody>
     ${Object.keys(types).sort().map(t => `<tr><td>${esc(t)}</td><td class="c">${types[t].n}</td><td class="c">${types[t].d}</td><td class="c">${types[t].j}</td><td class="c">${types[t].n - types[t].d - types[t].j}</td></tr>`).join("") || blankRows(4, 5)}</tbody></table>
     <div class="sec">UNITS</div>
-    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Result</th></tr></thead><tbody>
-    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${esc(res(x))}</td></tr>`).join("") || blankRows(15, 5, true)}</tbody></table>
+    <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Result</th><th>Date done</th><th>Done by</th></tr></thead><tbody>
+    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${esc(res(x))}</td><td>${esc(svDates(x.sv))}</td><td>${esc(svBy(x.sv))}</td></tr>`).join("") || blankRows(15, 7, true)}</tbody></table>
     <p style="font-size:8pt;margin:2mm 0">The full PM checklist (Form ${esc(D.form.code || "COH-IDN-F-02")}) of each unit is kept by the ICT Unit. Remarks: ${esc(p.remarks || "")}</p>
     ${sigTable([["CONDUCTED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["CONFORME", p.receivedBy, (p.position || "Section Head or Representative") + " / Date"], ["NOTED BY", headOf()[0], headOf()[1]]])}</div>`, false);
 }

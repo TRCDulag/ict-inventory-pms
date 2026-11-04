@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.7 (Nov 4, 2026)
+
+- Section notice and PMS result form: new "Date done" and "Done by" columns per unit, from the PM record or the job order. Names show as "Bro." plus first name, with James shown as Bro. Jhedd.
+
 ## 1.7.6 (Nov 4, 2026)
 
 - Printed PMS schedule (COH-IDN-F-04): done quarters are green, overdue quarters light red, planned quarters white with a blue boxed P, plus a color key.

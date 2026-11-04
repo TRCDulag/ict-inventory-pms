@@ -188,6 +188,8 @@ const shots = path.join(__dirname, 'screenshots');
   ok(await page.locator('#spTable tbody tr[data-plan]').count() === nSec, 'the sections can be planned again after clearing');
   await page.click('#spTable tbody tr[data-plan] [data-result]');
   const res = await page.innerHTML('#printArea');
+  ok(/Date done/.test(res) && /Done by/.test(res), 'result form shows the date done and who did it');
+  ok(await page.evaluate(() => [broName('JAMES ADRIAN M. ELONA'), broName('Argie R. Lopez'), broName('Lopez, Argie R.'), broName('')].join('|')) === 'Bro. Jhedd|Bro. Argie|Bro. Argie|', 'done by shows Bro. Jhedd / Bro. Argie');
   ok(/PREVENTIVE MAINTENANCE RESULT/.test(res) && /CONFORME/.test(res) && /SUMMARY/.test(res), 'PMS result form printed with the summary and the sign-off');
   await page.evaluate(() => document.body.classList.add('printing'));
   await page.emulateMedia({ media: 'print' });
