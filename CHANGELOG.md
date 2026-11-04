@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.6 (Nov 4, 2026)
+
+- Printed PMS schedule (COH-IDN-F-04): done quarters are green, overdue quarters light red, planned quarters white with a blue boxed P, plus a color key.
+
 ## 1.7.5 (Nov 4, 2026)
 
 - Scan code works where the browser has no QR reader of its own (Windows and Mac browsers, iPhone): frames are read with jsQR 1.4.0 (Apache-2.0, inlined by the build). Clear messages when the camera is blocked or missing.

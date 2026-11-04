@@ -447,6 +447,14 @@
   .sheet .jo .v { font-weight: bold; color: #0b2a6b; }
   .sheet .rateqr { display: flex; gap: 2mm; align-items: center; margin-top: 1mm; }
   .sheet .rateqr svg { width: 15mm; height: 15mm; flex: none; }
+  /* PMS schedule print: green done, light red overdue, white with a blue-lined P for planned */
+  .sheet td.q { text-align: center; font-weight: bold; }
+  .sheet td.q.done, .sheet .qkey .q.done { background: #2E7D32; color: #fff; }
+  .sheet td.q.late, .sheet .qkey .q.late { background: #F28B82; color: #7A1C14; }
+  .sheet td.q.plan, .sheet .qkey .q.plan { background: #fff; }
+  .sheet .pp { display: inline-block; min-width: 3.2mm; border: .8pt solid #1E5BC6; border-radius: .8mm; color: #1E5BC6; font-weight: bold; line-height: 3.4mm; padding: 0 .4mm; }
+  .sheet .qkey { white-space: nowrap; margin-left: 2mm; }
+  .sheet .qkey .q { display: inline-block; min-width: 4.5mm; text-align: center; font-weight: bold; border: .6pt solid #000; margin: 0 .8mm 0 2.5mm; padding: 0 .5mm; }
   .sheet .fbar { border-top: 1pt solid #1F2A45; margin-top: 2mm; padding-top: 1mm; font-size: 6.6pt; text-align: center; }
   @media print {
     body { background: #fff; }
@@ -1588,9 +1596,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.7.5";
+const APP_VERSION = "1.7.6";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.7.6", "Nov 4, 2026", ["Printed PMS schedule now has colors: green for done (PM or a job order with action taken), light red for overdue, and white with a blue P for planned. A color key is printed at the top."]],
   ["1.7.5", "Nov 4, 2026", ["Scan code now opens the camera on Windows and Mac browsers and on iPhones too, not only on Android. If the camera is blocked, the window says how to allow it.", "Scan code also takes or picks a photo of the QR label and reads it."]],
   ["1.7.4", "Nov 4, 2026", ["Employee window: the section lists now show every section, including ones that so far only had equipment (like Dental Unit). Add a section / unit inside the window picks the section right away.", "Employee masterlist: Remove a section. Only a section with no equipment and no employee can be removed, and the app asks twice before removing it."]],
   ["1.7.3", "Nov 4, 2026", ["Printing: every one-page form (job order, PMS checklist, TIR, notices, result form and the rest) shrinks itself just enough to print whole at 100%, on A4 or short bond.", "Employee masterlist: Add a section / unit, and an Employment choice for each employee (plantilla / regular, Job Order Employee, GIP, Contract of Service)."]],
@@ -3776,11 +3785,12 @@ function signs(prep, noted) {
 function schedPrint() {
   const y = +$("sYear").value, rows = schedRows();
   doPrint(`<div class="sheet land">${header()}<h3>ICT EQUIPMENT PREVENTIVE MAINTENANCE SCHEDULE, CY ${y}</h3>
-    <div class="sub">Information and Communications Technology Unit (ICTU)${$("sOffice").value ? ". " + esc($("sOffice").value) : ""}. P = due, ✓ = done (PM or job order with action taken), ! = due but not yet done.</div>
+    <div class="sub">Information and Communications Technology Unit (ICTU)${$("sOffice").value ? ". " + esc($("sOffice").value) : ""}.
+      <span class="qkey"><span class="q done">✓</span> done (PM or job order with action taken) <span class="q late">!</span> overdue <span class="q plan"><span class="pp">P</span></span> planned</span></div>
     <table class="sch"><thead><tr><th>ID</th><th>Equipment</th><th>Serial No.</th><th>Office / Section</th><th>End User</th><th>Freq.</th>${QLABEL.map(m => `<th class="m">${m}</th>`).join("")}</tr></thead><tbody>
     ${rows.map(it => { const plan = plannedQs(it, y), done = doneQs(it, y);
       return `<tr><td>${esc(it.id)}</td><td>${esc(it.brand)} (${esc(it.type)})</td><td>${esc(it.serial)}</td><td>${esc(it.office)}</td><td>${esc(it.endUser)}</td><td>${esc(it.freq)}</td>` +
-        QLABEL.map((m, q) => { const c = schedCell(it, y, q, plan, done); return `<td class="m">${c ? c.t : ""}</td>`; }).join("") + "</tr>"; }).join("")}
+        QLABEL.map((m, q) => { const c = schedCell(it, y, q, plan, done); return `<td class="m q${c ? " " + c.cls : ""}">${c ? (c.cls === "plan" ? '<span class="pp">P</span>' : c.t) : ""}</td>`; }).join("") + "</tr>"; }).join("")}
     </tbody></table>${signs()}</div>`, true);
 }
 $("sPrint").onclick = schedPrint;
