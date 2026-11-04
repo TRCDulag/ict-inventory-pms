@@ -341,6 +341,7 @@
   .rdlist input[type=checkbox] { width: 18px; height: 18px; min-height: 0; flex: 0 0 18px; margin: 3px 0 0; padding: 0; }
   .rdlist label > span { flex: 1; text-align: left; }
   .rdlist small { display: block; color: var(--muted); }
+  .rdlist label:has(input:checked) { background: var(--mint); font-weight: 600; }
   .opening { text-align: center; padding-top: 34px; padding-bottom: 38px; }
   .opening h2 { margin: 14px 0 4px; }
   .spin { display: inline-block; width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--brand); animation: spin .8s linear infinite; }
@@ -1270,7 +1271,10 @@
         <label class="f span2">Position<input id="edPos"></label>
         <span></span>
         <label class="f wide"><span class="req">Home section</span><select id="edOffice"></select></label>
-        <div class="f wide"><span>Also assigned to (designation, can be temporary)</span><div class="picklist" id="emAlso" style="max-height:190px"></div></div>
+        <div class="f wide"><span>Also assigned to (designation, can be temporary)</span>
+          <input id="edAlsoQ" type="search" placeholder="Type to find a section" style="margin-bottom:6px">
+          <div class="rdlist" id="emAlso" style="max-height:220px"></div>
+          <p class="hint" id="edAlsoSum" style="margin:6px 0 0"></p></div>
         <label class="f wide">Remarks<input id="emRem" placeholder="For example: OIC of Billing until Dec 31, 2026"></label>
       </div>
       <p class="hint" style="margin:10px 0 0">Changes are kept in the "Employee Changes" tab. The HR Masterlist tab is not touched. Equipment stays under the section it is listed in, so a designation does not move any unit.</p>
@@ -1566,9 +1570,10 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.7.0";
+const APP_VERSION = "1.7.1";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.7.1", "Nov 4, 2026", ["Accounts, employee: the Also assigned to list has each checkbox on the same line as its section, ticked sections on top and highlighted, a search box, and a line that lists what is ticked. The home section cannot be ticked."]],
   ["1.7.0", "Nov 4, 2026", ["PM is now only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers. Other equipment shows No PM.", "PM is every quarter (Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec), servers every 6 months. A unit bought in March is due in Apr-Jun.", "A job order resolved with action taken (diagnostics, updates, virus cleanup, printer cleaning, waste ink pad reset and the like) marks the unit Done for that quarter. The unit and the job order show what was done within the quarter and how many times.", "PM by section: plan the sections for a quarter (2 days each, Monday to Thursday), print the quarter schedule, the notice to each section, and the PMS result form signed by the section head or representative.", "Do PM starts with the list of sections. Find the unit still searches every section.", "Accounts: an employee masterlist you can edit, with the home section and other sections someone is designated to. Rename a section moved here.", "Each backup can also be emailed to one ICTU staff as an Excel file.", "Equipment with no brand / model is saved as Generic.", "Blank forms and lists shows every form in the ISO Documents list."]],
   ["1.6.6", "Nov 4, 2026", ["Router setup now fits the office MikroTik (CCR1009, RouterOS 6.49): it checks PLDT through \"ISP IN\" and Starlink through 192.168.1.1, and sends its reports only while the router can reach the internet.", "While ether6 (PLDT) is switched off on purpose, PLDT is not logged as down."]],
   ["1.6.5", "Nov 3, 2026", ["Internet Downtime is now logged by the MikroTik router by itself. It checks PLDT and Starlink every 30 seconds and tells the app the minute a line goes down or comes back, even at night. If both lines are down, it sends the report with the right time once a line is back.", "Router setup (Head) on the Internet Downtime page gives the commands and the script to paste in Winbox, with the app's link and a secret key already filled in.", "The screenshot upload from 1.6.4 was taken out, since the router now keeps the record. Entries logged by the router say so in the list."]],
@@ -4746,10 +4751,24 @@ function openEmpEdit(name) {
   $("edName").value = e.name; $("edName").readOnly = !!emCur; $("edPos").value = e.position || ""; $("emStatus").value = e.status || "Active"; $("emRem").value = e.remarks || "";
   const secs = [...new Set((D.lists.offices || []).concat((D.employees || []).map(x => x.office)).filter(Boolean))].sort();
   $("edOffice").innerHTML = opts(secs, "Pick a section"); $("edOffice").value = e.office || "";
-  $("emAlso").innerHTML = secs.map(o => `<label><input type="checkbox" value="${esc(o)}"${(e.also || []).includes(o) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("");
+  // Ticked sections first, then the rest A to Z; each checkbox sits on the same line as its section name.
+  const also = new Set(e.also || []);
+  $("edAlsoQ").value = "";
+  $("emAlso").innerHTML = secs.filter(o => also.has(o)).concat(secs.filter(o => !also.has(o)))
+    .map(o => `<label><input type="checkbox" value="${esc(o)}"${also.has(o) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("");
+  edAlsoSync();
   msg("emMsg", ""); $("emDlg").showModal();
 }
 $("emAdd").onclick = () => openEmpEdit(null);
+function edAlsoSync() {
+  const home = $("edOffice").value;
+  $("emAlso").querySelectorAll("label").forEach(l => { const c = l.querySelector("input"); c.disabled = c.value === home; if (c.disabled) c.checked = false; l.title = c.disabled ? "This is the home section" : ""; });
+  const t = [...$("emAlso").querySelectorAll("input:checked")].map(c => c.value);
+  $("edAlsoSum").textContent = t.length ? "Ticked: " + t.join("; ") : "None ticked.";
+}
+$("emAlso").addEventListener("change", edAlsoSync);
+$("edOffice").addEventListener("change", edAlsoSync);
+$("edAlsoQ").addEventListener("input", () => { const q = $("edAlsoQ").value.trim().toLowerCase(); $("emAlso").querySelectorAll("label").forEach(l => l.classList.toggle("hidden", !!q && !l.textContent.toLowerCase().includes(q))); });
 $("emForm").onsubmit = async ev => {
   ev.preventDefault();
   const employee = { name: $("edName").value, position: $("edPos").value, office: $("edOffice").value, status: $("emStatus").value, remarks: $("emRem").value,

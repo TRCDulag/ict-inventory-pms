@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.7.1 (Nov 4, 2026)
+
+- Employee editor: the "Also assigned to" checkboxes line up with their section names; ticked ones on top and highlighted, with a search box and a "Ticked:" line. The home section cannot be ticked.
+
 ## 1.7.0 (Nov 4, 2026)
 
 - PM only for desktops / PCs, printers / photocopiers, laptops, tablets, smart TVs and servers. Other equipment has no PM.
