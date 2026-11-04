@@ -2856,7 +2856,7 @@ function printResult(p) {
     <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Result</th></tr></thead><tbody>
     ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${esc(res(x))}</td></tr>`).join("") || blankRows(15, 5, true)}</tbody></table>
     <p style="font-size:8pt;margin:2mm 0">The full PM checklist (Form ${esc(D.form.code || "COH-IDN-F-02")}) of each unit is kept by the ICT Unit. Remarks: ${esc(p.remarks || "")}</p>
-    ${sigTable([["CONDUCTED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["CONFORME", p.receivedBy, (p.position ? p.position + ", " : "") + "Section Head or Representative / Date"], ["NOTED BY", headOf()[0], headOf()[1]]])}</div>`, false);
+    ${sigTable([["CONDUCTED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["CONFORME", p.receivedBy, (p.position || "Section Head or Representative") + " / Date"], ["NOTED BY", headOf()[0], headOf()[1]]])}</div>`, false);
 }
 ["sYear", "sOffice", "sType", "sShow", "sSort"].forEach(id => $(id).addEventListener("input", renderSched));
 
