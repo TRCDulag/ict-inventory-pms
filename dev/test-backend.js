@@ -270,12 +270,47 @@ ok(/Dates should look like/.test(call({ action: 'saveNetwork', item: { kind: 'Sw
 
 // ISO documents and revisions (setup put in the ICTU documents)
 L = call({ action: 'load' });
-ok(L.isoDocs.length === 13 && L.isoRevs.length >= 20 && L.choices.isoKind.includes('Procedure'), 'setup seeded the ISO documents and revisions');
+ok(L.isoDocs.length === 15 && L.isoRevs.length >= 20 && L.choices.isoKind.includes('Procedure'), 'setup seeded the ISO documents and revisions');
 const f02 = L.isoDocs.find(d => d.code === 'COH-IDN-F-02');
 ok(f02 && f02.rev === '00' && f02.effectivity === '2024-12-23' && f02.status === 'Approved (in use)', 'F-02 seeded as Rev 00 in use');
+const f01 = L.isoDocs.find(d => d.code === 'COH-IDN-F-01');
+ok(f01.rev === '00' && f01.status === 'Draft' && !L.isoRevs.some(x => x.code === 'COH-IDN-F-01' && x.rev === '01') && L.joForm.rev === '00', 'F-01 is its initial issue (Rev 00), not Rev 01');
+ok(['COH-IDN-F-10', 'COH-IDN-F-11'].every(c => L.isoDocs.some(d => d.code === c)), 'F-10 notice and F-11 PM result are in the ISO list');
+{ // a Sheet set up by 1.6.x: F-01 approved Rev 00 with a draft Rev 01, no F-10 / F-11. The 1.8.0 load fixes it once.
+  const old = be, oc = call, vm = require('vm');
+  const ds = old.gas._ss.getSheetByName('ISO Documents'), rs = old.gas._ss.getSheetByName('ISO Revisions');
+  const DH = vm.runInContext('ISO_DOC_HEADERS', old.ctx), RH = vm.runInContext('ISO_REV_HEADERS', old.ctx);
+  const keepOnly = (sh, f) => { const k = sh._data.filter(f); sh._data.splice(0, sh._data.length, ...k); };
+  keepOnly(ds, r => !/^COH-IDN-F-1[01]$/.test(r[DH.indexOf('Document Code')]));
+  keepOnly(rs, r => !/^COH-IDN-F-1[01]$/.test(r[RH.indexOf('Document Code')]));
+  ds._data.find(r => r[DH.indexOf('Document Code')] === 'COH-IDN-F-01')[DH.indexOf('Status')] = 'Approved (in use)';
+  rs._data.find(r => r[RH.indexOf('Document Code')] === 'COH-IDN-F-01')[RH.indexOf('Status')] = 'Approved';
+  const extra = RH.map(() => ''); extra[0] = 'REV-SEED-099'; extra[RH.indexOf('Document Code')] = 'COH-IDN-F-01'; extra[RH.indexOf('Rev. No.')] = '01'; extra[RH.indexOf('Status')] = 'Draft'; extra[RH.indexOf('Nature')] = 'Revision';
+  rs._data.push(extra.map(v => v));
+  delete old.gas._props.ISO_FIX;
+  const OL = oc({ action: 'load' }), of01 = OL.isoDocs.find(d => d.code === 'COH-IDN-F-01');
+  ok(of01.status === 'Draft' && OL.isoRevs.find(x => x.code === 'COH-IDN-F-01' && x.rev === '01').status === 'Cancelled' && OL.isoRevs.find(x => x.code === 'COH-IDN-F-01' && x.rev === '00').status === 'Draft', 'older Sheet: F-01 back to its initial issue, Rev 01 draft cancelled');
+  ok(OL.isoDocs.filter(d => /^COH-IDN-F-1[01]$/.test(d.code)).length === 2 && OL.isoRevs.filter(x => /^COH-IDN-F-1[01]$/.test(x.code)).length === 2, 'older Sheet: F-10 and F-11 added');
+  const n1 = OL.isoDocs.length; delete old.gas._props.ISO_FIX;
+  ok(oc({ action: 'load' }).isoDocs.length === n1, 'running the fix again adds nothing twice');
+  // ISO folder in Drive: process flows and files
+  ok(oc({ action: 'isoLibrary' }).folder === null, 'no ISO folder set yet');
+  ok(/role \(Technician\)/.test(asTech({ action: 'saveIsoFolder', folder: 'x' }).error), 'only the Head sets the ISO folder');
+  ok(/cannot open/.test(oc({ action: 'saveIsoFolder', folder: 'https://drive.google.com/drive/folders/NOPE0000000000000' }).error), 'a folder the app cannot open is refused');
+  r = oc({ action: 'saveIsoFolder', folder: 'https://drive.google.com/drive/folders/ISOFOLDER0123456789abc?usp=sharing' });
+  ok(r.ok && r.folder.id === 'ISOFOLDER0123456789abc' && oc({ action: 'load' }).isoFolder.name === 'ISO (test)', 'ISO folder saved from its link');
+  const lib = oc({ action: 'isoLibrary', fresh: true });
+  ok(lib.files.length === 3 && lib.files.some(f => f.path === 'ICTU Forms DRF' && /DRF COH-IDN-F-01/.test(f.name)), 'every file in the folder and its subfolders is listed');
+  const pr = lib.procs[0];
+  ok(lib.procs.length === 1 && pr.code === 'COH-IDN-P-01' && pr.rev === '01' && pr.title === 'SAMPLE PROCEDURE FOR TESTS' && pr.sections.join('|') === 'REGISTERING ICT EQUIPMENT|JOB ORDER REQUEST (COH-IDN-F-01)', 'procedures are read for their processes: ' + JSON.stringify(pr));
+  const fl = oc({ action: 'isoFlow', id: pr.id, section: 0 });
+  ok(fl.ok && fl.section.steps.length === 4 && fl.section.steps[1].who === 'ICTU Personnel' && /masterlist & gives/.test(fl.section.steps[1].text) && /^data:image\/png;base64,/.test(fl.section.steps[1].pic), 'a process comes with its steps and shape pictures');
+  ok(fl.section.steps[0].kind === 'end' && fl.section.steps[2].kind === 'decision' && fl.purpose === 'To test the flow reader.' && fl.notes[0] === 'A sample note.', 'start/end and decision shapes, purpose and notes are read');
+  ok(/not in the ISO folder/.test(oc({ action: 'isoFlow', id: 'DRF000000000000001', section: 0 }).error), 'only a procedure in the folder can be opened as a flow');
+}
 ok(/already in the list/.test(call({ action: 'saveIsoDoc', item: { code: 'coh-idn-f-02', title: 'Dup', kind: 'Form' } }).error), 'duplicate document code refused');
 r = call({ action: 'saveIsoDoc', item: { code: 'coh-idn-wi-01', title: 'Backup work instruction', kind: 'Work Instruction' } });
-ok(r.ok && r.item.code === 'COH-IDN-WI-01' && r.item.rev === '00' && r.item.status === 'Draft' && r.item.id === 'ISO-014', 'document added: ' + r.error);
+ok(r.ok && r.item.code === 'COH-IDN-WI-01' && r.item.rev === '00' && r.item.status === 'Draft' && r.item.id === 'ISO-018', 'document added (after the 1.8.0 fix test added two): ' + (r.error || r.item.id));
 ok(/not in the list of ISO documents/.test(call({ action: 'saveIsoRev', item: { code: 'XYZ-1', rev: '1', nature: 'Revision', description: 'x' } }).error), 'revision of an unknown document refused');
 r = call({ action: 'saveIsoRev', item: { code: 'COH-IDN-WI-01', rev: '0', nature: 'New document', description: 'Initial issue', status: 'Submitted to DCO', drfDate: '2026-11-03' } });
 ok(r.ok && r.item.rev === '00' && /^REV-\d{4}-001$/.test(r.item.ref) && r.doc && r.doc.status === 'DRF filed', 'DRF filed marks the document: ' + r.error);

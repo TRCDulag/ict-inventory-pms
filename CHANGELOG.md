@@ -2,6 +2,14 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.8.0 (Nov 6, 2026)
+
+- Dashboard: "Equipment by type" (Desktop / PC, Laptop, Printer 3-in-1 / single function / generic, Photocopier, Server, Tablet, Scanner, Other ICT equipment) replaces "Equipment by age". Each bar opens the inventory filtered to that group; the inventory type filter has the same groups (`eqCat`).
+- Job orders: "Print JO request (blank)" on computers; "Share JO request form (PDF)" on phones uses the Web Share API with `forms/COH-IDN-F-01-blank.pdf` (made by the browser test from the app's own layout), or shows the link to copy.
+- ISO: COH-IDN-F-01 is Rev. 00 (initial issue, Draft) in the seed and on the printed form; one-time fix `isoFix_` (Script property ISO_FIX) corrects Sheets set up by 1.6.x, cancels the seeded F-01 Rev 01 draft and adds F-10 / F-11. Blank F-10 and F-11 in Blank forms and lists.
+- ISO: Process flows and ISO files from a Google Drive folder (Script property ISO_FOLDER_ID, set by the Head on the ISO Documents tab). Procedures (`*-P-nn*.docx` or Google Docs) are unzipped and read for their flow charts (who / shape picture / what is done), purpose, scope and notes; files open in a Drive preview inside the app. The list is cached 5 minutes; Refresh reads the folder again.
+- Phones: list tables become cards; dashboard charts are drawn at the panel's real width; browser test checks every screen at 390 px for anything running off the side.
+
 ## 1.7.7 (Nov 4, 2026)
 
 - Section notice and PMS result form: new "Date done" and "Done by" columns per unit, from the PM record or the job order. Names show as "Bro." plus first name, with James shown as Bro. Jhedd.

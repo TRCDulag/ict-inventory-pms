@@ -86,6 +86,38 @@
   .panel > h3 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
   .panel > h3 .sub { font-weight: 400; color: var(--muted); font-size: 14px; margin-left: 6px; }
   @media (max-width: 640px) { .panel { padding: 16px; } }
+  body.is-phone .desk-only, body:not(.is-phone) .phone-only { display: none !important; }
+  .filters.one { grid-template-columns: 1fr; }
+  body:not(.r1) .r1only { display: none; }
+  /* process flows: lane | shape | what is done, like the procedure's flow chart */
+  .flowview { margin-top: 14px; }
+  .flowview h4 { margin: 0 0 4px; font-size: 15px; }
+  .flowview .fsub { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  table.flow { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  table.flow td { border: 1px solid var(--line); padding: 0 10px; vertical-align: middle; font-size: 14px; line-height: 1.4; }
+  table.flow td.who { width: 22%; font-weight: 600; text-align: center; }
+  table.flow td.shp { width: 34%; padding: 0; text-align: center; background: #fff; }
+  table.flow td.shp img { display: block; width: 100%; height: auto; }
+  table.flow td.shp .box { margin: 8px auto; padding: 8px 10px; max-width: 80%; border: 1.5px solid #333; border-radius: 4px; color: #111; font-size: 13px; }
+  table.flow td.shp .box.end { border-radius: 999px; }
+  table.flow tr.decision td.what { background: var(--warnbg, #fff8e1); }
+  .flowview .notes { margin: 12px 0 0; padding-left: 20px; font-size: 13px; color: var(--muted); }
+  @media (max-width: 640px) {
+    table.flow, table.flow tbody, table.flow tr, table.flow td { display: block; width: 100% !important; }
+    table.flow tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+    table.flow td { border: 0; padding: 6px 12px; }
+    table.flow td.who { text-align: left; padding-top: 10px; color: var(--accent, #1E5BC6); }
+    table.flow td.shp img { max-width: 360px; margin: 0 auto; }
+    table.flow tr.endrow td.who, table.flow tr.endrow td.what { display: none; }
+  }
+  .liblist { margin-top: 10px; }
+  .liblist .dir { margin: 14px 0 6px; font-weight: 700; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  .liblist button.file { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card, #fff); color: inherit; font: inherit; margin-bottom: 6px; cursor: pointer; }
+  .liblist button.file:hover { border-color: var(--accent, #1E5BC6); }
+  .liblist .ext { flex: none; min-width: 42px; text-align: center; font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 6px; background: #E8EEF9; color: #1E5BC6; }
+  .liblist .ext.pdf { background: #FDECEA; color: #B3261E; }
+  .liblist .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .liblist .nm small { display: block; color: var(--muted); }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
   .grid .wide { grid-column: 1 / -1; }
   .stk { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -202,6 +234,17 @@
   .due-item .t b { display: block; color: var(--head); font-weight: 600; }
   .due-item .t span { color: var(--muted); font-size: 14px; }
   table.list tbody tr[tabindex]:focus-visible { outline: 3px solid rgba(11,75,170,.45); outline-offset: -3px; }
+  /* phones: the other lists become small cards too: reference and status on top, the rest below */
+  @media (max-width: 640px) {
+    table.list.cards, table.list.cards tbody { display: block; width: 100%; }
+    table.list.cards thead { display: none; }
+    table.list.cards tbody tr:not(:has(td[colspan])) { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; padding: 12px 14px; border-bottom: 1px solid var(--line-2); }
+    table.list.cards tbody tr:not(:has(td[colspan])) > td { display: block; padding: 0; border: 0; order: 2; flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
+    table.list.cards tbody tr:not(:has(td[colspan])) > td.hide-m { display: none; }
+    table.list.cards tbody tr:not(:has(td[colspan])) > td:first-child { order: 0; flex: 1 1 auto; width: auto; font-weight: 600; }
+    table.list.cards tbody tr:not(:has(td[colspan])) > td:last-child:not(:first-child) { order: 1; flex: 0 0 auto; width: auto; text-align: right; }
+    table.list.cards tbody tr > td[colspan] { display: block; }
+  }
   /* phones: each unit of the masterlist is a small card; the column headings stay as sort buttons */
   @media (max-width: 640px) {
     #iTable, #iTable thead, #iTable tbody { display: block; }
@@ -369,6 +412,7 @@
   .chart .hit:hover + .bar, .chart g.bh:hover .bar { fill: var(--brand-hover); }
   .chart g.go { cursor: pointer; } .chart g.go:focus { outline: none; } .chart g.go:focus .bar { fill: var(--brand-hover); }
   .chart text { font: 15px "Barlow", system-ui, sans-serif; fill: var(--muted); }
+  @media (max-width: 640px) { .chart text { font-size: 13px; } }
   .chart text.v { fill: var(--ink); font-weight: 600; }
   .chart .grid line { stroke: var(--line-2); }
   .chart .axis { stroke: #B9CCC4; }
@@ -389,6 +433,8 @@
   .sheet h3 { text-align: center; font-size: 11.5pt; margin: 1.5mm 0 1.2mm; letter-spacing: .02em; }
   .sheet .sub { text-align: center; font-size: 9pt; margin-bottom: 2mm; }
   .sheet table { width: 100%; border-collapse: collapse; margin-bottom: 1.2mm; }
+  .sheet table.flowp td { vertical-align: middle; } .sheet table.flowp tr { break-inside: avoid; } .sheet table.flowp td.shp { padding: 0; } .sheet table.flowp td.shp img { width: 100%; display: block; } .sheet table.flowp td.who { text-align: center; font-weight: bold; }
+  .sheet table.flowp .box { margin: 2mm auto; padding: 1mm 2mm; max-width: 80%; border: .8pt solid #000; text-align: center; } .sheet table.flowp .box.end { border-radius: 99px; }
   .sheet td, .sheet th { border: .6pt solid #000; padding: .45mm 1.2mm; vertical-align: top; }
   .sheet th { background: #e8e8e8; font-weight: bold; text-align: center; }
   .sheet .sec { font-weight: bold; margin: 1.3mm 0 .6mm; font-size: 8.6pt; }
@@ -825,7 +871,7 @@
         <label class="chk"><input type="checkbox" id="rVoid"> Show voided</label>
       </div>
     </div>
-    <div class="tablewrap"><table class="list" id="rTable"><thead><tr>
+    <div class="tablewrap"><table class="list cards" id="rTable"><thead><tr>
       <th>PM Ref. No.</th><th>Date</th><th>Equipment</th><th class="hide-m">Office / end user</th><th class="hide-m">By</th><th>Status</th>
     </tr></thead><tbody></tbody></table></div>
   </section>
@@ -841,14 +887,17 @@
         <label class="f">Priority<select id="jPri"><option value="">All priorities</option><option value="none">No priority yet</option></select></label>
         <label class="f">Month<select id="jMonth"></select></label>
       </div>
+      <p class="hint hidden" id="jShareMsg" style="margin:10px 0 0"></p>
       <div class="row" style="margin-top:12px">
         <button class="btn need2" id="newJo" type="button">Log a job order</button>
         <span class="hint" id="jCount" style="margin:0"></span><span class="spacer"></span>
+        <button class="btn ghost small desk-only" id="jBlank" type="button">Print JO request (blank)</button>
+        <button class="btn ghost small phone-only" id="jShare" type="button">Share JO request form (PDF)</button>
         <button class="btn ghost small" id="jPoster" type="button">Print request QR poster</button>
         <button class="btn ghost small" id="jCsv" type="button">Download for Excel</button>
       </div>
     </div>
-    <div class="tablewrap"><table class="list" id="jTable"><thead><tr>
+    <div class="tablewrap"><table class="list cards" id="jTable"><thead><tr>
       <th>JO No.</th><th>Logged</th><th>Requestor / section</th><th class="hide-m">Equipment / problem</th><th>Priority</th><th>Status</th><th class="hide-m">Target</th>
     </tr></thead><tbody></tbody></table></div>
   </section>
@@ -923,7 +972,7 @@
       <div class="panel chart"><h3>PM done <span class="sub">last 12 months</span></h3><div id="cPm"></div></div>
       <div class="panel chart"><h3>Job orders by type of request <span class="sub">last 12 months</span></h3><div id="cType"></div></div>
       <div class="panel chart"><h3>Equipment by condition <span class="sub">in service</span></h3><div id="cCond"></div></div>
-      <div class="panel chart"><h3>Equipment by age <span class="sub">from the date acquired</span></h3><div id="cAge"></div></div>
+      <div class="panel chart"><h3>Equipment by type <span class="sub">in service. Click a group to see its units</span></h3><div id="cKind"></div></div>
       <div class="panel chart"><h3>Equipment by section <span class="sub">top 10</span></h3><div id="cOff"></div></div>
     </div>
   </section>
@@ -937,13 +986,35 @@
       <label class="f">Kind<select id="tKind"></select></label>
       <label class="f">Year<select id="tYear"></select></label></div>
       <div class="row" style="margin-top:12px"><button class="btn need2" id="newTr" type="button">Record a transfer or turnover</button><span class="hint" id="tCount" style="margin:0"></span></div></div>
-    <div class="tablewrap"><table class="list" id="tTable"><thead><tr><th>Transfer no.</th><th>Date</th><th>Equipment</th><th>From</th><th>To</th><th class="hide-m">PAR / ICS / PTR</th></tr></thead><tbody></tbody></table></div>
+    <div class="tablewrap"><table class="list cards" id="tTable"><thead><tr><th>Transfer no.</th><th>Date</th><th>Equipment</th><th>From</th><th>To</th><th class="hide-m">PAR / ICS / PTR</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <!-- ISO DOCUMENTS -->
   <section class="view hidden" id="v-iso">
     <h2>ISO documents</h2>
     <p class="lead">The ICTU's controlled documents: procedures, forms, Context, ROA and APW. Each one shows its current revision, effectivity date and status, with every revision and DRF behind it. Print the lists for the audit.</p>
+    <div class="panel" id="flowPanel">
+      <h3>Process flows <span class="sub">read from the procedures in the ISO folder in Google Drive</span></h3>
+      <div id="libSetup" class="hidden">
+        <p class="hint" style="margin:0 0 10px">No ISO folder is set yet. Put the ICTU ISO folder (procedures, DRFs, form drafts, CARs) in Google Drive, then paste the folder's link here. The app reads the folder as it is, so a file you add or change there shows here after Refresh.</p>
+        <div class="row need3"><input id="libFolderIn" type="url" placeholder="https://drive.google.com/drive/folders/..." style="flex:1;min-width:0"><button class="btn small" id="libFolderSave" type="button">Use this folder</button></div>
+        <p class="hint r1only">Ask the Head of the ICT Unit to set the folder.</p>
+      </div>
+      <div id="libMain" class="hidden">
+        <div class="filters one"><label class="f q">Process<select id="flowPick"></select></label></div>
+        <div class="row" style="margin-top:10px"><span class="hint" id="libInfo" style="margin:0"></span><span class="spacer"></span>
+          <button class="btn ghost small" id="flowPrint" type="button">Print this flow</button>
+          <button class="btn ghost small" id="libRefresh" type="button">Refresh from Drive</button>
+          <button class="btn ghost small need3" id="libChange" type="button">Change folder</button></div>
+        <div id="flowView" class="flowview"></div>
+      </div>
+      <div class="msg" id="libMsg" role="status"></div>
+    </div>
+    <div class="panel hidden" id="libPanel">
+      <h3>ISO files <span class="sub">procedures, DRFs, form drafts, CARs and revisions in the Drive folder. Tap one to view it</span></h3>
+      <div class="filters"><label class="f q">Search<input id="libQ" type="search" placeholder="Code, title, DRF"></label><label class="f">Folder<select id="libDir"></select></label></div>
+      <div id="libList" class="liblist"></div>
+    </div>
     <div class="tiles" id="oTiles"></div>
     <div class="panel"><div class="filters">
       <label class="f q">Search<input id="oQ" type="search" placeholder="Code, title, procedure"></label>
@@ -952,9 +1023,9 @@
       <div class="row" style="margin-top:12px"><span class="hint" id="oCount" style="margin:0"></span><span class="spacer"></span>
         <button class="btn ghost small" id="oPrintList" type="button">Print master list of documents</button>
         <button class="btn ghost small" id="oPrintLog" type="button">Print DRF and revision log</button></div></div>
-    <div class="tablewrap"><table class="list" id="oTable"><thead><tr><th>Code</th><th>Title</th><th>Rev.</th><th class="hide-m">Effectivity</th><th>Status</th><th class="hide-m">Pending</th></tr></thead><tbody></tbody>
+    <div class="tablewrap"><table class="list cards" id="oTable"><thead><tr><th>Code</th><th>Title</th><th>Rev.</th><th class="hide-m">Effectivity</th><th>Status</th><th class="hide-m">Pending</th></tr></thead><tbody></tbody>
       <tfoot class="need2"><tr><td colspan="6"><button class="addrow" id="addIsoDoc" type="button"><span class="plus">+</span>Add a controlled document</button></td></tr></tfoot></table></div>
-    <div class="panel" style="margin-top:16px"><h3>Latest revisions and DRFs</h3><div class="tablewrap"><table class="list" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div></div>
+    <div class="panel" style="margin-top:16px"><h3>Latest revisions and DRFs</h3><div class="tablewrap"><table class="list cards" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div></div>
   </section>
 
   <!-- SPARE PARTS AND CONSUMABLES -->
@@ -968,9 +1039,9 @@
       <label class="chk"><input type="checkbox" id="kLow"> Low stock only</label></div>
       <div class="row" style="margin-top:12px"><span class="hint" id="kCount" style="margin:0"></span><span class="spacer"></span>
         <button class="btn ghost small" id="kPrint" type="button">Print stock list</button></div></div>
-    <div class="tablewrap"><table class="list" id="kTable"><thead><tr><th>Code</th><th>Item</th><th class="money">On hand</th><th class="hide-m money">Reorder at</th><th class="hide-m money">Unit cost</th><th class="hide-m money">Value</th><th></th></tr></thead><tbody></tbody>
+    <div class="tablewrap"><table class="list cards" id="kTable"><thead><tr><th>Code</th><th>Item</th><th class="money">On hand</th><th class="hide-m money">Reorder at</th><th class="hide-m money">Unit cost</th><th class="hide-m money">Value</th><th></th></tr></thead><tbody></tbody>
       <tfoot class="need2"><tr><td colspan="7"><button class="addrow" id="addStock" type="button"><span class="plus">+</span>Add a part or supply to the list</button></td></tr></tfoot></table></div>
-    <div class="panel" style="margin-top:16px"><h3>Latest movements</h3><div class="tablewrap"><table class="list" id="mTable"><thead><tr><th>Ref. no.</th><th>Date</th><th>Item</th><th>Movement</th><th class="money">Qty</th><th class="hide-m">For / reference</th><th class="hide-m">By</th></tr></thead><tbody></tbody></table></div></div>
+    <div class="panel" style="margin-top:16px"><h3>Latest movements</h3><div class="tablewrap"><table class="list cards" id="mTable"><thead><tr><th>Ref. no.</th><th>Date</th><th>Item</th><th>Movement</th><th class="money">Qty</th><th class="hide-m">For / reference</th><th class="hide-m">By</th></tr></thead><tbody></tbody></table></div></div>
   </section>
 
   <!-- NETWORK -->
@@ -982,7 +1053,7 @@
       <label class="f">Kind<select id="nKind"></select></label>
       <label class="f">Status<select id="nStatus"><option value="">Active and spare</option><option>Active</option><option>Spare</option><option>Retired</option><option value="*">Everything</option></select></label></div>
       <div class="row" style="margin-top:12px"><span class="hint" id="nCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="nPrint" type="button">Print the list</button></div></div>
-    <div class="tablewrap"><table class="list" id="nTable"><thead><tr><th>ID</th><th>Name / kind</th><th>IP address</th><th class="hide-m">MAC address</th><th class="hide-m">Location</th><th>Status</th></tr></thead><tbody></tbody>
+    <div class="tablewrap"><table class="list cards" id="nTable"><thead><tr><th>ID</th><th>Name / kind</th><th>IP address</th><th class="hide-m">MAC address</th><th class="hide-m">Location</th><th>Status</th></tr></thead><tbody></tbody>
       <tfoot class="need2"><tr><td colspan="6"><button class="addrow" id="addNet" type="button"><span class="plus">+</span>Add a network device, IP or internet line</button></td></tr></tfoot></table></div>
   </section>
 
@@ -994,7 +1065,7 @@
       <label class="f q">Search<input id="xQ" type="search" placeholder="Incident no., type, system, description"></label>
       <label class="f">Show<select id="xShow"><option value="open">Not yet closed</option><option value="">All incidents</option></select></label></div>
       <div class="row" style="margin-top:12px"><button class="btn need2" id="newInc" type="button">Record an incident</button><span class="hint" id="xCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="xPrint" type="button">Print the log</button></div></div>
-    <div class="tablewrap"><table class="list" id="xTable"><thead><tr><th>Incident no.</th><th>Discovered</th><th>Type / description</th><th>Severity</th><th>Status</th><th class="hide-m">Personal data</th></tr></thead><tbody></tbody></table></div>
+    <div class="tablewrap"><table class="list cards" id="xTable"><thead><tr><th>Incident no.</th><th>Discovered</th><th>Type / description</th><th>Severity</th><th>Status</th><th class="hide-m">Personal data</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <!-- INTERNET DOWNTIME -->
@@ -1008,7 +1079,7 @@
       <label class="f q">Search<input id="wQ" type="search" placeholder="Downtime no., cause, ticket, areas"></label></div>
       <div class="row" style="margin-top:12px"><button class="btn need2" id="newDown" type="button">Record downtime</button><span class="hint" id="wCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small need3" id="wRouter" type="button">Router setup</button><button class="btn ghost small" id="wPrint" type="button">Print monthly report</button></div></div>
     <div class="tiles" id="wTiles"></div>
-    <div class="tablewrap"><table class="list" id="wTable"><thead><tr><th>Downtime no.</th><th>Line</th><th>Went down</th><th>Came back</th><th>Hours</th><th class="hide-m">Cause</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+    <div class="tablewrap"><table class="list cards" id="wTable"><thead><tr><th>Downtime no.</th><th>Line</th><th>Went down</th><th>Came back</th><th>Hours</th><th class="hide-m">Cause</th><th>Status</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <!-- ACCOUNTS AND BACKUP (Head) -->
@@ -1017,7 +1088,7 @@
     <p class="lead">Only ICT Unit staff get an account. Other offices file job orders on the request page, and ask for reports through a "Data request" job order.</p>
     <div class="panel"><h3>ICTU accounts</h3>
       <p class="hint" style="margin:0 0 10px"><b>Head</b> does everything, including accounts, voiding PM records and backups. <b>Technician</b> records PMs, job orders, transfers, stock, incidents and the network list. <b>Viewer</b> can look and print, but not change anything.</p>
-      <div class="tablewrap"><table class="list" id="uTable"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th class="hide-m">Last sign-in</th></tr></thead><tbody></tbody>
+      <div class="tablewrap"><table class="list cards" id="uTable"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th class="hide-m">Last sign-in</th></tr></thead><tbody></tbody>
         <tfoot><tr><td colspan="5"><button class="addrow" id="addUser" type="button"><span class="plus">+</span>Add an ICTU staff account</button></td></tr></tfoot></table></div>
       <div class="msg" id="uMsg" role="status"></div></div>
     <div class="panel"><h3>Employee masterlist</h3>
@@ -1025,7 +1096,7 @@
       <div class="filters"><label class="f q">Search<input id="emQ" type="search" placeholder="Name, position or section"></label>
         <label class="f">Section<select id="emSec"></select></label>
         <label class="chk"><input type="checkbox" id="emInact"> Show inactive</label></div>
-      <div class="tablewrap" style="margin-top:10px;max-height:480px"><table class="list" id="emTable"><thead><tr><th>Name</th><th class="hide-m">Position</th><th>Section</th><th>Also assigned to</th><th>Status</th></tr></thead><tbody></tbody>
+      <div class="tablewrap" style="margin-top:10px;max-height:480px"><table class="list cards" id="emTable"><thead><tr><th>Name</th><th class="hide-m">Position</th><th>Section</th><th>Also assigned to</th><th>Status</th></tr></thead><tbody></tbody>
         <tfoot><tr><td colspan="5"><button class="addrow" id="emAdd" type="button"><span class="plus">+</span>Add an employee</button></td></tr></tfoot></table></div>
       <div class="row" style="margin-top:8px"><span class="hint" id="emCount" style="margin:0"></span><span class="spacer"></span><button class="btn ghost small" id="emAddSec" type="button">Add a section / unit</button><button class="btn ghost small" id="iRen" type="button">Rename a section</button><button class="btn ghost small" id="emRmSec" type="button">Remove a section</button></div></div>
     <div class="panel"><h3>New job order emails</h3>
@@ -1296,6 +1367,12 @@
   </form>
 </dialog>
 
+<dialog id="libDlg" class="wide">
+  <div class="dh"><h3 id="libTitle">File</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+  <div class="db" style="padding:0"><iframe id="libFrame" title="File preview" style="width:100%;height:min(78vh,1100px);border:0;display:block;background:#fff"></iframe></div>
+  <div class="df"><span class="hint" id="libWhen" style="margin:0"></span><span class="spacer"></span><a class="btn ghost small" id="libOpen" href="#" target="_blank" rel="noopener">Open in Google Drive</a></div>
+</dialog>
+
 <dialog id="rmDlg">
   <form id="rmForm" method="dialog" autocomplete="off">
     <div class="dh"><h3>Remove a section / unit</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
@@ -1446,7 +1523,7 @@
       <p class="hint">The current revision, effectivity date and status change by themselves when a revision below is marked Approved.</p>
       <div class="msg" id="oMsg" role="status"></div>
       <div id="oRevBox" class="hidden"><h4 style="margin:14px 0 6px">Revision history and DRFs</h4>
-        <div class="tablewrap"><table class="list" id="oRevTable"><thead><tr><th>Rev.</th><th>Description of change</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div>
+        <div class="tablewrap"><table class="list cards" id="oRevTable"><thead><tr><th>Rev.</th><th>Description of change</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div>
         <div class="row" style="margin-top:8px"><button class="btn ghost small need2" type="button" id="oAddRev">+ Add a revision or DRF</button><span class="spacer"></span>
           <button class="btn ghost small hidden" type="button" id="oPrintForm">Print the form</button>
           <button class="btn ghost small" type="button" id="oPrintHist">Print revision history</button></div></div></div>
@@ -1596,9 +1673,14 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.7.7";
+const APP_VERSION = "1.8.0";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.8.0", "Nov 6, 2026", ["Dashboard: Equipment by type replaces Equipment by age (Desktop / PC, Laptop, Printer 3-in-1, single function or generic, Photocopier, Server, Tablet, Scanner, Other ICT equipment). Click a group to see its units. The inventory filter has the same groups.",
+    "Job orders: Print JO request (blank) on a computer. On a phone, Share JO request form (PDF) opens the phone's share menu (Messenger, email, Drive and so on).",
+    "ISO documents: COH-IDN-F-01 is back to its initial issue (Rev. 00, not yet approved). F-10 Notice of PM and F-11 PM Result are in the list, and both print blank from Blank forms and lists.",
+    "ISO documents: Process flows. Paste the link of the ISO folder in Google Drive once, and the app reads the procedures in it, so you can view or print the flow of registering equipment, PM, a job order, or transfer and disposal. Every file in the folder (DRFs, form drafts, CARs, revisions) opens inside the app. Change a file in the folder and press Refresh.",
+    "Phones: lists show as cards, the dashboard charts are drawn at the phone's width so the words can be read, and no screen runs off the side."]],
   ["1.7.7", "Nov 4, 2026", ["The notice and the PMS result form now show, for each unit, the date it was done and who did it (Bro. Jhedd, Bro. Argie)."]],
   ["1.7.6", "Nov 4, 2026", ["Printed PMS schedule now has colors: green for done (PM or a job order with action taken), light red for overdue, and white with a blue P for planned. A color key is printed at the top."]],
   ["1.7.5", "Nov 4, 2026", ["Scan code now opens the camera on Windows and Mac browsers and on iPhones too, not only on Android. If the camera is blocked, the window says how to allow it.", "Scan code also takes or picks a photo of the QR label and reads it."]],
@@ -2278,6 +2360,7 @@ function show(v) {
   $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
   if (v === "pm") setTimeout(sizePad, 30);
   if (v === "dash") renderDash();
+  if (v === "iso") libLoad(false);
   if (v === "acc") { loadUsers(); renderEmps(); }
   try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) {}
   window.scrollTo(0, 0);
@@ -2307,7 +2390,8 @@ function fillPickers(keep) {
   const types = [...new Set(L.types.map(t => t[0]).concat(D.inventory.map(i => i.type)).filter(Boolean))];
   const keepVal = (id, html) => { const v = $(id).value; $(id).innerHTML = html; if (keep) $(id).value = v; };
   keepVal("iOffice", opts(offices, "All sections")); keepVal("sOffice", opts(offices, "All sections"));
-  keepVal("iType", opts(types, "All types")); keepVal("sType", opts(types, "All types"));
+  const catOpts = '<optgroup label="By category">' + EQ_CATS.map(c => `<option value="cat:${esc(c)}">${esc(c)}</option>`).join("") + '</optgroup><optgroup label="By equipment type">';
+  keepVal("iType", '<option value="">All types</option>' + catOpts + opts(types) + "</optgroup>"); keepVal("sType", opts(types, "All types"));
   keepVal("iCond", '<option value="">In service</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
   keepVal("eType", opts(L.types.map(t => t[0])));
   $("eFreq").innerHTML = '<option value="Quarterly">Quarterly</option><option value="Semi-Annual">Every 6 months</option><option value="">No PM</option>';
@@ -2349,7 +2433,7 @@ function fillPickers(keep) {
   const qs = [...new Set(D.pms.map(p => p.quarter).filter(Boolean))].sort().reverse();
   keepVal("rQtr", opts(qs, "All quarters"));
   $("aboutTxt").textContent = "Version " + (D.version || "") + ". The PM form follows " + (D.form.code || "COH-IDN-F-02") + " Rev. " + (D.form.rev || "01") +
-    " and the job order form follows " + (D.joForm.code || "COH-IDN-F-01") + " Rev. " + (D.joForm.rev || "01") + " (ADM-HIMS-P-03). Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of sections, equipment types, ICT staff and work types are in the Lists tab of the Sheet. " +
+    " and the job order form follows " + (D.joForm.code || "COH-IDN-F-01") + " Rev. " + (D.joForm.rev || "00") + " (ADM-HIMS-P-03). Records are kept in the Google Sheet register; every save is written to its Audit Trail tab. The lists of sections, equipment types, ICT staff and work types are in the Lists tab of the Sheet. " +
     (D.masterlist.found ? "Employee names come from the Masterlist tab (" + D.masterlist.count + " permanent staff) plus " + D.masterlist.added + " added in the app."
       : "No Masterlist tab was found in the Sheet, so only employees added in the app are listed. Paste the HR masterlist into a tab named Masterlist.");
 }
@@ -2407,9 +2491,26 @@ function bindRowButtons(root) {
 }
 
 // ---------- inventory ----------
+// Equipment categories for the dashboard and the inventory filter. Printers are split by what they do:
+// 3-in-1 (print, scan, copy), single function, or Generic (no brand / model known).
+const EQ_CATS = ["Desktop / PC", "Laptop", "Printer, 3-in-1", "Printer, single function", "Printer, generic", "Photocopier", "Server", "Tablet", "Scanner", "Other ICT equipment"];
+function eqCat(it) {
+  const t = String(it.type || "").toLowerCase(), b = String(it.brand || "").toLowerCase(), s = t + " " + b + " " + String(it.desc || "").toLowerCase();
+  if (/\bserver\b|\bnas\b/.test(t)) return "Server";
+  if (/photocopier|copier/.test(t) || /photocopier|\bcopier\b|\bineo\b|bizhub|imagerunner|\baficio\b/.test(b)) return "Photocopier";
+  if (/printer/.test(t)) {
+    if (!b.trim() || /^generic\b/.test(b)) return "Printer, generic";
+    return /3[ -]?in[ -]?1|all[ -]?in[ -]?one|\baio\b|multi[ -]?function|\bmfp?\b|\bmfc\b|\bdcp\b|print.{0,6}scan|\bl[3-6]\d{3}|\bg[2-7]\d{3}|\bm\d{4}\b|smart tank|ink tank (wireless )?[3-5]\d{2}|deskjet (plus )?(ink advantage )?[2-4]\d{3}|\bt[4-8]\d{2}w?\b/.test(s) ? "Printer, 3-in-1" : "Printer, single function";
+  }
+  if (/tablet|ipad|galaxy tab/.test(t)) return "Tablet";
+  if (/scanner/.test(t)) return "Scanner";
+  if (/laptop|notebook|netbook|chromebook/.test(t)) return "Laptop";
+  if (/desktop|computer|\bpc\b|\bcpu\b|workstation|all[ -]?in[ -]?one/.test(t)) return "Desktop / PC";
+  return "Other ICT equipment";
+}
 function invFiltered() {
   const q = $("iQ").value.trim().toLowerCase(), o = $("iOffice").value, t = $("iType").value, c = $("iCond").value;
-  return D.inventory.filter(it => (!o || it.office === o) && (!t || it.type === t) &&
+  return D.inventory.filter(it => (!o || it.office === o) && (!t || (t.startsWith("cat:") ? eqCat(it) === t.slice(4) : it.type === t)) &&
     (c === "*" ? true : c ? it.condition === c : active(it)) &&
     (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser, it.desc, it.compName, it.accountable].join(" ").toLowerCase().includes(q)));
 }
@@ -2896,12 +2997,12 @@ function svBy(sv) { return [...new Set(sv.map(s => broName(s.by)).filter(Boolean
 function printNotices(list) {
   doPrint(list.map(p => { const q = qFromKey(p.quarter), u = secUnits(p.section, p.quarter);
     return `<div class="sheet">${header()}<h3>NOTICE OF PREVENTIVE MAINTENANCE OF ICT EQUIPMENT</h3>
-    <p style="margin:2mm 0">To: <b>The Head, ${esc(p.section)}</b><br>Date: ${esc(longDate(todayStr()))}</p>
+    <p style="margin:2mm 0">To: <b>The Head, ${p.section ? esc(p.section) : "______________________________"}</b><br>Date: ${p.section ? esc(longDate(todayStr())) : "______________________"}</p>
     <p style="margin:2mm 0">Please be informed that the ICT Unit will do the preventive maintenance (PM) of your section's ICT equipment for ${esc(q.label)} on
-      <b>${esc(longDate(p.start))}${p.end !== p.start ? " to " + esc(longDate(p.end)) : ""}</b>. Kindly have the units below available, save your open work, and let the end users know.
+      <b>${p.start ? esc(longDate(p.start)) + (p.end !== p.start ? " to " + esc(longDate(p.end)) : "") : "______________________ to ______________________"}</b>. Kindly have the units below available, save your open work, and let the end users know.
       Units that already had a job order with action taken this quarter are marked Done and will only be checked quickly.</p>
     <table><thead><tr><th>No.</th><th>Equipment ID</th><th>Equipment</th><th>End User</th><th>Status this quarter</th><th>Date done</th><th>Done by</th></tr></thead><tbody>
-    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${x.sv.length ? "Done (" + esc(x.sv[x.sv.length - 1].ref) + ")" : "For PM"}</td><td>${esc(svDates(x.sv))}</td><td>${esc(svBy(x.sv))}</td></tr>`).join("") || '<tr><td colspan="7" class="c">No units due.</td></tr>'}
+    ${u.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.it.id)}</td><td>${esc(x.it.brand)} (${esc(x.it.type)})</td><td>${esc(x.it.endUser)}</td><td>${x.sv.length ? "Done (" + esc(x.sv[x.sv.length - 1].ref) + ")" : "For PM"}</td><td>${esc(svDates(x.sv))}</td><td>${esc(svBy(x.sv))}</td></tr>`).join("") || (p.section ? '<tr><td colspan="7" class="c">No units due.</td></tr>' : blankRows(12, 7, true))}
     </tbody></table>
     ${sigTable([["PREPARED BY", (D.lists.staff.find(s => !/head/i.test(s[1])) || [])[0], "ICT Personnel"], ["NOTED BY", headOf()[0], headOf()[1]], ["RECEIVED BY", "", "Section Head or Representative / Date"]])}</div>`; }).join('<div class="pagebreak"></div>'), false);
 }
@@ -3473,6 +3574,33 @@ function joExtras(j) {
   if ($("csmCopy")) $("csmCopy").onclick = () => { try { navigator.clipboard.writeText(link); $("csmCopy").textContent = "Copied"; } catch (e) {} };
 }
 $("blankJo").onclick = () => doPrint(joFormHtml(null), false);
+$("jBlank").onclick = () => doPrint(joFormHtml(null), false);
+// On a phone: share the blank job order form as a PDF through the phone's own share menu (Messenger, email, Drive and so on).
+// The PDF is kept with the app on GitHub Pages (forms/), made from the same print layout.
+// Phones and tablets share; computers print.
+const IS_PHONE = /Android|iPhone|iPod|iPad|Mobi/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && matchMedia("(pointer: coarse)").matches);
+document.body.classList.toggle("is-phone", IS_PHONE);
+const JO_PDF_NAME = "COH-IDN-F-01 ICTU Job Order Request Form (blank).pdf";
+const JO_PDF_URL = (/github\.io$|^localhost$|^127\./.test(location.hostname) ? new URL("forms/COH-IDN-F-01-blank.pdf", location.href).href : "https://trcdulag.github.io/ict-inventory-pms/forms/COH-IDN-F-01-blank.pdf");
+$("jShare").onclick = async () => {
+  const m = $("jShareMsg"), say = t => { m.innerHTML = t; m.classList.remove("hidden"); };
+  const title = "ICTU Job Order Request Form (COH-IDN-F-01)", text = "Blank ICTU Job Order Request Form. Please fill it out and send it back to the ICT Unit.";
+  $("jShare").disabled = true; say("Getting the PDF ready…");
+  try {
+    const r = await fetch(JO_PDF_URL);
+    if (!r.ok) throw new Error("not found");
+    const f = new File([await r.blob()], JO_PDF_NAME, { type: "application/pdf" });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title, text }); return say("Shared."); }
+    if (navigator.share) { await navigator.share({ title, text, url: JO_PDF_URL }); return say("Link shared."); }
+    throw new Error("no share");
+  } catch (err) {
+    if (err && err.name === "AbortError") return say("");
+    let copied = false;
+    try { await navigator.clipboard.writeText(JO_PDF_URL); copied = true; } catch (e) {}
+    say((copied ? "This browser cannot open the share menu here, so the link was copied. Paste it in Messenger, email or Drive: " : "This browser cannot open the share menu here. Copy this link and paste it in Messenger, email or Drive: ") +
+      `<a href="${esc(JO_PDF_URL)}" target="_blank" rel="noopener">${esc(JO_PDF_URL)}</a>`);
+  } finally { $("jShare").disabled = false; }
+};
 $("jCsv").onclick = () => csv("ICTU JO Log " + todayStr() + ".csv",
   ["JO No.", "Date/Time Logged", "Status", "Priority", "Requestor", "Position", "Section / Unit", "Mode of Request", "Equipment ID", "Equipment / System", "Brand / Model",
    "Property / Serial No.", "Type(s) of Request", "Others", "Brief Description", "Received By", "ICTU Personnel", "Date/Time Finished", "Target", "Within Target?",
@@ -3895,7 +4023,7 @@ function joFormHtml(j) {
   const F = D.joForm.code ? D.joForm : (PUB.joForm || {});
   return `<div class="sheet jo">${header()}<h3>ICTU JOB ORDER REQUEST FORM</h3>
     <table><tr><th>Form No.</th><th>Revision No.</th><th>Effectivity Date</th><th>JO No.</th><th>Priority (ICTU)</th></tr>
-      <tr><td class="c">${esc(F.code || "COH-IDN-F-01")}</td><td class="c">${esc(F.rev || "01")}</td><td class="c">${esc(F.effectivity || "")}</td>
+      <tr><td class="c">${esc(F.code || "COH-IDN-F-01")}</td><td class="c">${esc(F.rev || "00")}</td><td class="c">${esc(F.effectivity || "")}</td>
       <td class="c">${j.jo ? "<b>" + esc(j.jo) + "</b>" : "ICTU-" + new Date().getFullYear() + "-________"}</td><td class="c sm">${["P1", "P2", "P3", "P4"].map(x => cb(P === x, x)).join(" ")}</td></tr></table>
     <div class="sec">PART I.  REQUEST DETAILS  (to be accomplished by the Requesting Unit)</div>
     <table><colgroup><col style="width:20%"><col style="width:30.8%"><col style="width:18.4%"><col style="width:30.8%"></colgroup>
@@ -4346,7 +4474,8 @@ const pendingOf = code => revsOf(code).filter(r => !ISO_DONE.includes(r.status))
 const ISO_FORMS = {
   "COH-IDN-F-01": () => doPrint(joFormHtml(null), false), "COH-IDN-F-02": () => doPrint(formHtml(null), false),
   "COH-IDN-F-03": () => printTir({}), "COH-IDN-F-04": () => schedPrint(), "COH-IDN-F-05": () => $("qPrint").click(),
-  "COH-IDN-F-06": () => $("mrPrint").click(), "COH-IDN-F-07": () => printTr({}), "COH-IDN-F-08": () => printSm({ id: "", tag: "", type: "", brand: "", serial: "", office: "", endUser: "" }), "COH-IDN-F-09": () => $("rPrintInv").click() };
+  "COH-IDN-F-06": () => $("mrPrint").click(), "COH-IDN-F-07": () => printTr({}), "COH-IDN-F-08": () => printSm({ id: "", tag: "", type: "", brand: "", serial: "", office: "", endUser: "" }), "COH-IDN-F-09": () => $("rPrintInv").click(),
+  "COH-IDN-F-10": () => printNotices([{ section: "", quarter: qOf().key, start: "", end: "" }]), "COH-IDN-F-11": () => $("blankResult").click() };
 // The blank forms list on the Reports tab follows the ISO Documents list (forms that are not obsolete).
 function renderBlankIso() {
   const forms = (D.isoDocs || []).filter(d => d.kind === "Form" && d.status !== "Obsolete").sort((a, b) => a.code.localeCompare(b.code));
@@ -4355,7 +4484,7 @@ function renderBlankIso() {
   // then the section PM forms that have no form code yet.
   const keep = $("blankIso").value;
   $("blankIso").innerHTML = '<optgroup label="ISO forms">' + list.map(d => `<option value="${esc(d.code)}"${ISO_FORMS[d.code] ? "" : " disabled"}>${esc(d.code)} ${esc(d.title)}${ISO_FORMS[d.code] ? "" : " (no print layout yet)"}</option>`).join("") + "</optgroup>" +
-    '<optgroup label="Section PM (no form code yet)"><option value="x-result">PMS result form, blank (signed by the section)</option><option value="x-notice">Notice of PM to a section, this quarter (all sections)</option></optgroup>';
+    '<optgroup label="Section PM">' + (list.some(d => d.code === "COH-IDN-F-11") ? "" : '<option value="x-result">PMS result form, blank (signed by the section)</option>') + '<option value="x-notice">Notice of PM to every section, this quarter (filled in)</option></optgroup>';
   if (keep) $("blankIso").value = keep;
 }
 $("blankPrint").onclick = () => {
@@ -4365,6 +4494,94 @@ $("blankPrint").onclick = () => {
   if (ISO_FORMS[v]) ISO_FORMS[v]();
 };
 $("blankResult").onclick = () => printResult({ section: "", quarter: qOf().key, start: "", end: "", receivedBy: "", position: "", remarks: "" });
+// ---------- ISO folder in Google Drive: process flows and files ----------
+let LIB = null, libBusy = false;
+const libExt = f => f.mime === "application/vnd.google-apps.document" ? "DOC" : f.mime === "application/vnd.google-apps.spreadsheet" ? "SHEET" : ((f.name.match(/\.([a-z0-9]{2,5})$/i) || [])[1] || "FILE").toUpperCase();
+async function libLoad(fresh) {
+  if (libBusy || (LIB && !fresh)) return;
+  libBusy = true; msg("libMsg", fresh ? "Reading the ISO folder in Drive…" : "");
+  if (!LIB) $("libInfo").textContent = "Reading the ISO folder…";
+  try {
+    const j = await api({ action: "isoLibrary", fresh: !!fresh });
+    if (!j.ok) { msg("libMsg", j.error, "err"); return; }
+    LIB = j; renderLib(); msg("libMsg", fresh ? "Up to date with the folder." : "", fresh ? "ok" : "");
+  } catch (err) { msg("libMsg", errText(err), "err"); }
+  finally { libBusy = false; }
+}
+// "REGISTERING ICT EQUIPMENT" -> "Registering ICT equipment" (codes and short forms kept as they are)
+const KEEP_UP = new Set(["ICT", "ICTU", "PM", "PMS", "JO", "TIR", "QR", "IAR", "PAR", "ICS", "PTR", "MMU", "UPS", "AVR", "IT", "ISO", "DRF", "CAR", "HR", "IDADIN"]);
+function secCase(t) {
+  return String(t).split(" ").map((w, i) => { const bare = w.replace(/[^A-Za-z]/g, "");
+    const keep = KEEP_UP.has(bare.toUpperCase()) || /\d|-/.test(w) || w.length <= 1;
+    const x = keep ? w : w.toLowerCase(); return i === 0 && !keep ? x.charAt(0).toUpperCase() + x.slice(1) : x; }).join(" ");
+}
+function renderLib() {
+  const has = LIB && LIB.folder;
+  $("libSetup").classList.toggle("hidden", !!has); $("libMain").classList.toggle("hidden", !has); $("libPanel").classList.toggle("hidden", !has);
+  if (!has) return;
+  const procs = LIB.procs || [], keep = $("flowPick").value;
+  $("flowPick").innerHTML = procs.length ? procs.map(p => `<optgroup label="${esc((p.code ? p.code + " " : "") + (p.title || p.name))}">` +
+      (p.sections.length ? p.sections.map((t, i) => `<option value="${esc(p.id)}|${i}">${esc(secCase(t))}</option>`).join("") : `<option disabled>${esc(p.error || "No flow chart found in this file")}</option>`) + "</optgroup>").join("")
+    : '<option value="">No procedure (P-xx) in the folder yet</option>';
+  if (keep && [...$("flowPick").options].some(o => o.value === keep)) $("flowPick").value = keep;
+  $("libInfo").textContent = (LIB.files || []).length + " files in \u201c" + LIB.folder.name + "\u201d. Read " + niceDt(LIB.read) + ".";
+  const dirs = [...new Set((LIB.files || []).map(f => f.path || "(main folder)"))];
+  const kd = $("libDir").value; $("libDir").innerHTML = opts(dirs, "All folders"); if (dirs.includes(kd)) $("libDir").value = kd;
+  renderLibList(); showFlow();
+}
+function renderLibList() {
+  const q = $("libQ").value.trim().toLowerCase(), d = $("libDir").value;
+  const list = (LIB.files || []).filter(f => (!d || (f.path || "(main folder)") === d) && (!q || (f.name + " " + f.path).toLowerCase().includes(q)));
+  let last = null;
+  $("libList").innerHTML = list.length ? list.map(f => { const dir = f.path || "(main folder)", h = dir !== last ? `<div class="dir">${esc(dir)}</div>` : ""; last = dir; const x = libExt(f);
+    return h + `<button class="file" type="button" data-id="${esc(f.id)}"><span class="ext${x === "PDF" ? " pdf" : ""}">${esc(x)}</span><span class="nm">${esc(f.name)}<small>Changed ${esc(niceDt(f.modified))}</small></span></button>`; }).join("")
+    : '<p class="hint">No file matches.</p>';
+  $("libList").querySelectorAll("button.file").forEach(b => b.onclick = () => openLibFile(b.dataset.id));
+}
+function openLibFile(id) {
+  const f = (LIB.files || []).find(x => x.id === id); if (!f) return;
+  $("libTitle").textContent = f.name; $("libWhen").textContent = "Changed " + niceDt(f.modified);
+  $("libFrame").src = "https://drive.google.com/file/d/" + encodeURIComponent(f.id) + "/preview";
+  $("libOpen").href = f.url; $("libDlg").showModal();
+}
+$("libDlg").addEventListener("close", () => { $("libFrame").src = "about:blank"; });
+["libQ", "libDir"].forEach(id => $(id).addEventListener("input", renderLibList));
+const flowCache = {};
+let flowCur = null;
+async function showFlow() {
+  const v = $("flowPick").value; if (!v) { $("flowView").innerHTML = ""; flowCur = null; return; }
+  const [id, n] = v.split("|"), p = (LIB.procs || []).find(x => x.id === id), key = v + "|" + (p ? p.modified : "");
+  if (!flowCache[key]) {
+    $("flowView").innerHTML = '<p class="hint">Opening the flow chart…</p>';
+    try { const j = await api({ action: "isoFlow", id, section: +n }); if (!j.ok) { $("flowView").innerHTML = '<p class="msg err">' + esc(j.error) + "</p>"; return; } flowCache[key] = j; }
+    catch (err) { $("flowView").innerHTML = '<p class="msg err">' + esc(errText(err)) + "</p>"; return; }
+  }
+  if ($("flowPick").value !== v) return;
+  flowCur = flowCache[key]; $("flowView").innerHTML = flowHtml(flowCur, false);
+}
+function flowHtml(j, print) {
+  const sec = j.section, rows = sec.steps.map(x => {
+    const shape = x.pic ? `<img src="${x.pic}" alt="${esc(x.kind === "end" ? "Start or end" : x.text)}">` : `<div class="box${x.kind === "end" ? " end" : ""}">${x.kind === "end" ? "Start / End" : esc(x.text.split(/[.(]/)[0])}</div>`;
+    return `<tr class="${x.kind === "end" ? "endrow" : x.kind}"><td class="who">${esc(x.who)}</td><td class="shp">${shape}</td><td class="what">${esc(x.text)}</td></tr>`; }).join("");
+  const head = `${esc(j.code)}${j.rev ? " Rev. " + esc(j.rev) : ""}, ${esc(j.title)}`;
+  return print ? `<div class="sheet">${header()}<h3>${esc(sec.letter + ". " + sec.title)}</h3><div class="sub">${head}. From the procedure in the ISO folder, changed ${esc(niceDt(j.file.modified))}.</div>
+      <table class="flowp"><thead><tr><th style="width:22%">Who</th><th style="width:34%">Flow</th><th>What is done</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    : `<h4>${esc(sec.letter + ". " + sec.title)}</h4><p class="fsub">${head}. Changed ${esc(niceDt(j.file.modified))}.</p><div class="tablewrap" style="border:0"><table class="flow"><tbody>${rows}</tbody></table></div>` +
+      (j.notes && j.notes.length ? `<details style="margin-top:10px"><summary>Notes of the procedure</summary><ol class="notes">${j.notes.map(t => "<li>" + esc(t) + "</li>").join("")}</ol></details>` : "");
+}
+$("flowPick").onchange = showFlow;
+$("flowPrint").onclick = () => { if (flowCur) doPrint(flowHtml(flowCur, true), false); };
+$("libRefresh").onclick = () => libLoad(true);
+$("libChange").onclick = () => { $("libSetup").classList.remove("hidden"); $("libFolderIn").value = ""; $("libFolderIn").focus(); };
+$("libFolderSave").onclick = async () => {
+  $("libFolderSave").disabled = true; msg("libMsg", "Opening the folder…");
+  try {
+    const j = await api({ action: "saveIsoFolder", folder: $("libFolderIn").value });
+    if (!j.ok) return msg("libMsg", j.error, "err");
+    D.isoFolder = j.folder; LIB = null; await libLoad(true);
+  } catch (err) { msg("libMsg", errText(err), "err"); }
+  finally { $("libFolderSave").disabled = false; }
+};
 let isoFilled = false;
 function isoPickers() {
   if (isoFilled) return; isoFilled = true;
@@ -4958,8 +5175,11 @@ function niceMax(v) { if (v <= 4) return 4; const p = Math.pow(10, Math.floor(Ma
 // Rounded top corners only, anchored to the baseline.
 function barPath(x, y, w, h, r) { r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
 const units = (n, u) => n + " " + (n === 1 ? u[0] : u[1]);
+function chartW(el) { const w = Math.round(el.getBoundingClientRect().width); return w >= 280 ? Math.min(w, 900) : 560; }
+let dashResize = 0;
+window.addEventListener("resize", () => { clearTimeout(dashResize); dashResize = setTimeout(() => { if (!$("v-dash").classList.contains("hidden")) renderDash(); }, 200); });
 function vbars(el, data, unit) {
-  const W = 560, H = 220, L = 30, R = 8, T = 20, B = 30, max = niceMax(Math.max(1, ...data.map(d => d.v)));
+  const W = chartW(el), H = 220, L = 30, R = 8, T = 20, B = 30, max = niceMax(Math.max(1, ...data.map(d => d.v)));
   const band = (W - L - R) / data.length, bw = Math.min(28, band * .62), y = v => T + (H - T - B) * (1 - v / max);
   const ticks = [0, max / 4, max / 2, max * 3 / 4, max].filter(t => Number.isInteger(t));
   const last = data.length - 1, top = data.reduce((m, d, i) => d.v > data[m].v ? i : m, 0);
@@ -4974,19 +5194,22 @@ function vbars(el, data, unit) {
 // go(label): the bars can be clicked (or Enter on the keyboard) to open the matching list.
 function hbars(el, data, unit, go) {
   if (!data.length) { el.innerHTML = '<p class="hint">No data yet.</p>'; return; }
-  const W = 560, row = 32, L = 190, R = 44, H = data.length * row + 6, max = Math.max(1, ...data.map(d => d.v));
+  // drawn at the real width of the panel, so the words stay readable on a phone
+  const W = chartW(el), row = 32, L = Math.min(190, Math.round(W * .44)), R = 44, H = data.length * row + 6, max = Math.max(1, ...data.map(d => d.v));
+  const cut = Math.max(10, Math.floor((L - 14) / (W < 500 ? 6.6 : 7.4)));
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(data.map(d => d.label + " " + d.v).join(", "))}">
     ${data.map((d, i) => { const y = i * row + 6, w = (W - L - R) * d.v / max;
       return `<g class="bh${go && d.v ? " go" : ""}" data-tip="${esc(d.label)}: ${esc(units(d.v, unit))}${go && d.v ? ". Click to see them" : ""}" data-label="${esc(d.label)}"${go && d.v ? ' tabindex="0" role="button"' : ""}><rect x="0" y="${y - 3}" width="${W}" height="${row}" fill="transparent"/>
-        <text x="${L - 10}" y="${y + 17}" text-anchor="end">${esc(d.label.length > 22 ? d.label.slice(0, 21) + "…" : d.label)}</text>
+        <text x="${L - 10}" y="${y + 17}" text-anchor="end">${esc(d.label.length > cut ? d.label.slice(0, cut - 1) + "…" : d.label)}</text>
         ${d.v ? `<path class="bar" d="M${L},${y + 4}H${L + w - 4}Q${L + w},${y + 4} ${L + w},${y + 8}V${y + 16}Q${L + w},${y + 20} ${L + w - 4},${y + 20}H${L}Z"/>` : ""}
         <text class="v" x="${L + w + 6}" y="${y + 17}">${d.v}</text></g>`; }).join("")}
     <line class="axis" x1="${L}" x2="${L}" y1="0" y2="${H}"/></svg>`;
   if (go) el.querySelectorAll("g.go").forEach(g => { g.onclick = () => { tipEl.classList.add("hidden"); go(g.dataset.label); }; g.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); g.onclick(); } }; });
 }
 // Opens the inventory list filtered to one section or one condition.
-function invFilter(office, cond) {
-  $("iQ").value = ""; $("iType").value = "";
+function invFilter(office, cond, cat) {
+  $("iQ").value = ""; $("iType").value = cat ? "cat:" + cat : "";
+  if (cat) $("iOffice").value = "";
   if (office != null) { if (![...$("iOffice").options].some(o => o.value === office)) $("iOffice").insertAdjacentHTML("beforeend", `<option>${esc(office)}</option>`); $("iOffice").value = office; }
   $("iCond").value = cond || "";
   show("inv"); renderInv(); window.scrollTo(0, 0);
@@ -5007,9 +5230,7 @@ function renderDash() {
   hbars($("cType"), JO_TYPES.map(g => g[0]).concat(["OTHERS"]).map(g => ({ label: { "HARDWARE": "Hardware", "SOFTWARE & SYSTEMS": "Software and systems", "NETWORK": "Network", "ICTU SERVICES": "ICTU services", "OTHERS": "Others" }[g] || g, v: byType[g] || 0 })), ["job order", "job orders"]);
   const act = D.inventory.filter(active);
   hbars($("cCond"), D.lists.conditions.filter(c => c !== "Disposed").map(c => ({ label: c, v: act.filter(i => i.condition === c).length })), ["unit", "units"], c => { $("iOffice").value = ""; invFilter(null, c); });
-  const bands = [["Under 3 years", 0, 3], ["3 to 4 years", 3, 5], ["5 to 6 years", 5, 7], ["7 years or more", 7, 99]];
-  const ages = act.map(i => replOf(i).age);
-  hbars($("cAge"), bands.map(b => ({ label: b[0], v: ages.filter(a => a != null && a >= b[1] && a < b[2]).length })).concat([{ label: "No date acquired", v: ages.filter(a => a == null).length }]), ["unit", "units"]);
+  hbars($("cKind"), EQ_CATS.map(c => ({ label: c, v: act.filter(i => eqCat(i) === c).length })), ["unit", "units"], c => invFilter(null, "", c));
   const off = {}; act.forEach(i => off[i.office] = (off[i.office] || 0) + 1);
   hbars($("cOff"), Object.keys(off).sort((a, b) => off[b] - off[a]).slice(0, 10).map(o => ({ label: o, v: off[o] })), ["unit", "units"], o => invFilter(o, ""));
   // headline numbers

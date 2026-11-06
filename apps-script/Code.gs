@@ -2,7 +2,7 @@
  * ICT Inventory and PMS (ICTU) - backend for the "Index" page.
  * Keeps the ICT equipment masterlist, the PMS schedule and the PM records
  * (Form COH-IDN-F-02, ICT Equipment Preventive Maintenance Checklist, Rev. 01),
- * and the ICTU Job Order Log (Form COH-IDN-F-01, ICTU Job Order Request Form, Rev. 01;
+ * and the ICTU Job Order Log (Form COH-IDN-F-01, ICTU Job Order Request Form, Rev. 00 initial issue;
  * ADM-HIMS-P-03 ICTU Service Procedure).
  *
  * SETUP (one time, in the "ICT Inventory and PMS Register (ICTU)" Google Sheet):
@@ -65,10 +65,10 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.7.7';
+const VERSION = '1.8.0';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
-const JO_FORM = { code: 'COH-IDN-F-01', rev: '01', effectivity: '', title: 'ICTU Job Order Request Form' };
+const JO_FORM = { code: 'COH-IDN-F-01', rev: '00', effectivity: '', title: 'ICTU Job Order Request Form' };
 
 const INV = 'Inventory', PM = 'PM Log', CHK = 'Checklist Results', AUDIT = 'Audit Trail', LISTS = 'Lists';
 const MASTER = 'Masterlist', ADDED = 'Added Employees', JO = 'JO Log', PLAN = 'PM Plan', EMP_EDITS = 'Employee Changes';
@@ -154,7 +154,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
-  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', saveIsoFolder: 'Head', isoLibrary: 'Viewer', isoFlow: 'Viewer', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -261,6 +261,9 @@ function handle_(req) {
       case 'clearPmPlan':   return clearPmPlan_(req);
       case 'saveEmployee':  return saveEmployee_(req);
       case 'saveBackupEmail': return saveBackupEmail_(req);
+      case 'saveIsoFolder': return saveIsoFolder_(req);
+      case 'isoLibrary':    return isoLibrary_(req);
+      case 'isoFlow':       return isoFlow_(req);
       case 'renameOffice':  return renameOffice_(req);
       case 'removeOffice':  return removeOffice_(req);
       case 'tidyOffices':   return tidyOffices_(req);
@@ -282,6 +285,7 @@ function handle_(req) {
 function load_() {
   normalizeInventory_();
   pmRules_();
+  isoFix_();
   seedNetLines_();
   const inv = readRows_(INV, INV_HEADERS).map(toItem_);
   const pms = readRows_(PM, PM_HEADERS).map(toPM_);
@@ -299,6 +303,7 @@ function load_() {
            plans: tab(PLAN, PLAN_HEADERS).map(r => toObj_(REG.plan, r)),
            backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '', email: props.getProperty('BACKUP_EMAIL') || '',
              emailed: props.getProperty('LAST_BACKUP_EMAIL') || '' }, tirRecs: TIR_RECS,
+           isoFolder: { id: props.getProperty('ISO_FOLDER_ID') || '', name: props.getProperty('ISO_FOLDER_NAME') || '' },
            choices: { planStatus: PLAN_STATUS, transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS, downCause: DOWN_CAUSES, downScope: DOWN_SCOPES,
              isoKind: ISO_KINDS, isoDocStatus: ISO_DOC_STATUS, isoNature: ISO_NATURE, isoRevStatus: ISO_REV_STATUS } };
 }
@@ -1642,15 +1647,16 @@ function saveIsoRev_(req) {
   return res;
 }
 
+const P01_REV01 = 'Retitled. Now covers equipment registration, preventive maintenance, job orders, transfer and disposal done in the ICT Inventory and PMS App, with forms COH-IDN-F-01 to F-11.';
+const F01_REV00 = 'Initial issue. There was no approved Job Order Request Form before; this is the form printed from the ICT Inventory and PMS App.';
 // The ICTU documents known on 3 Nov 2026, put in the ISO tabs the first time setup runs. Codes F-03 to
 // F-09 are proposed and wait for the Document Control Officer. Dates left blank are not known yet.
 const ISO_SEED = [
   ['COH-IDN-P-01', 'ICT Equipment Management, Preventive Maintenance and Job Order', 'Procedure', '00', '2024-12-18', 'Approved (in use)', '',
     [['00', 'New document', 'Initial issue (Preventive Maintenance)', 'Approved', '2024-12-18'],
-     ['01', 'Revision', 'Retitled. Covers registration, PM, job orders, transfer and disposal done in the ICT Inventory and PMS App, with forms COH-IDN-F-01 to F-09.', 'Draft', '']]],
-  ['COH-IDN-F-01', 'ICTU Job Order Request Form', 'Form', '00', '', 'Approved (in use)', 'COH-IDN-P-01',
-    [['00', 'New document', 'Initial issue (ICTU Job Order Form)', 'Approved', ''],
-     ['01', 'Revision', 'Printed from the ICT Inventory and PMS App with the JO No., priority, ICTU assessment and client feedback. Wording kept.', 'Draft', '']]],
+     ['01', 'Revision', P01_REV01, 'Draft', '']]],
+  ['COH-IDN-F-01', 'ICTU Job Order Request Form', 'Form', '00', '', 'Draft', 'COH-IDN-P-01',
+    [['00', 'New document', F01_REV00, 'Draft', '']]],
   ['COH-IDN-F-02', 'ICT Equipment Preventive Maintenance Checklist', 'Form', '00', '2024-12-23', 'Approved (in use)', 'COH-IDN-P-01',
     [['00', 'New document', 'Initial issue', 'Approved', '2024-12-23'],
      ['01', 'Revision', 'Printed from the ICT Inventory and PMS App with the PM Ref. No. and the checklist items for the kind of equipment. Wording kept.', 'Draft', '']]],
@@ -1661,6 +1667,8 @@ const ISO_SEED = [
   ['COH-IDN-F-07', 'ICT Equipment Transfer / Turnover Slip', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
   ['COH-IDN-F-08', 'ICT Equipment Service and Maintenance History', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
   ['COH-IDN-F-09', 'ICT Equipment Inventory Masterlist', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-10', 'Notice of Preventive Maintenance of ICT Equipment', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
+  ['COH-IDN-F-11', 'Preventive Maintenance Result', 'Form', '00', '', 'Draft', 'COH-IDN-P-01', [['00', 'New document', 'Initial issue', 'Draft', '']]],
   ['COH-QMS-F-06 (ICTU)', 'Context of the Organization: Issues and Status (ICTU)', 'Context / Issues', '01', '', 'Approved (in use)', '',
     [['01', 'Revision', 'January 2025 issues (received 21 May 2025)', 'Approved', ''],
      ['02', 'Revision', 'Update as of 01 Jul 2025', 'Draft', '2025-07-01'], ['03', 'Revision', 'Update as of 01 Jan 2026', 'Draft', '2026-01-01'],
@@ -1687,6 +1695,53 @@ function seedIso_() {
   ds.getRange(2, 1, docs.length, ISO_DOC_HEADERS.length).setNumberFormat('@').setValues(docs);
   rs.getRange(2, 1, revs.length, ISO_REV_HEADERS.length).setNumberFormat('@').setValues(revs);
   return docs.length;
+}
+
+// 1.8.0, once: brings the ISO tabs made by an older setup in line with the ISO folder (5 Nov 2026).
+// F-01 is still its initial issue (Rev 00, not yet approved), P-01 Rev 01 covers F-01 to F-11, and F-10 and F-11 are added.
+// Only rows still as setup made them are changed, so anything typed in since is kept.
+function isoFix_() {
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('ISO_FIX') === '1.8.0') return;
+  const ss = SpreadsheetApp.getActive();
+  if (!ss.getSheetByName(ISO_DOCS) || !ss.getSheetByName(ISO_REVS)) return;
+  withLock_(() => {
+    const ds = sheet_(ISO_DOCS), rs = sheet_(ISO_REVS), DH = idx_(ISO_DOC_HEADERS), RH = idx_(ISO_REV_HEADERS), stamp = dt_(new Date());
+    // whole rows by their place in the tab (blank rows kept), so each change goes back to its own row
+    const all = (sh, h) => { const n = lastRow_(sh); return n < 2 ? [] : sh.getRange(2, 1, n - 1, h.length).getValues(); };
+    const docs = all(ds, ISO_DOC_HEADERS), revs = all(rs, ISO_REV_HEADERS);
+    if (!docs.some(d => d[0] !== '')) { props.setProperty('ISO_FIX', '1.8.0'); return; }
+    const notes = [];
+    const setDoc = (i, k, v) => { ds.getRange(i + 2, DH[k] + 1).setNumberFormat('@').setValue(v); };
+    const setRev = (i, k, v) => { rs.getRange(i + 2, RH[k] + 1).setNumberFormat('@').setValue(v); };
+    docs.forEach((d, i) => {
+      if (d[DH['Document Code']] === 'COH-IDN-F-01' && d[DH['Updated By']] === 'Setup' && d[DH['Status']] === 'Approved (in use)' && String(d[DH['Current Rev.']]) === '00') {
+        setDoc(i, 'Status', 'Draft'); setDoc(i, 'Updated At', stamp); notes.push('F-01 set to Draft (initial issue, not yet approved)');
+      }
+    });
+    revs.forEach((r, i) => {
+      if (!/^REV-SEED-/.test(r[0]) || r[RH['Updated By']]) return;
+      const code = r[RH['Document Code']], rev = String(r[RH['Rev. No.']]);
+      if (code === 'COH-IDN-F-01' && rev === '01' && r[RH['Status']] === 'Draft') {
+        setRev(i, 'Status', 'Cancelled'); setRev(i, 'Remarks', 'F-01 is still its initial issue (Rev 00).'); setRev(i, 'Updated At', stamp); setRev(i, 'Updated By', 'Setup'); notes.push('F-01 Rev 01 cancelled');
+      }
+      if (code === 'COH-IDN-F-01' && rev === '00' && r[RH['Status']] === 'Approved') {
+        setRev(i, 'Status', 'Draft'); setRev(i, 'Description of Change', F01_REV00); setRev(i, 'Date Approved', ''); setRev(i, 'Updated At', stamp); setRev(i, 'Updated By', 'Setup');
+      }
+      if (code === 'COH-IDN-P-01' && rev === '01' && r[RH['Status']] === 'Draft') setRev(i, 'Description of Change', P01_REV01);
+    });
+    const have = {}; docs.forEach(d => have[d[DH['Document Code']]] = 1);
+    let nd = docs.length, nr = revs.length, seedNo = revs.filter(r => /^REV-SEED-/.test(r[0])).length;
+    ISO_SEED.filter(d => /^COH-IDN-F-1[01]$/.test(d[0]) && !have[d[0]]).forEach(d => {
+      nd++; ds.getRange(nd + 1, 1, 1, ISO_DOC_HEADERS.length).setNumberFormat('@')
+        .setValues([[nextNo_(ds, 1, 'ISO-', 3), d[0], d[1], d[2], d[3], d[4], d[5], d[6], '', '', '', stamp, 'Setup']]);
+      d[7].forEach(r => { nr++; rs.getRange(nr + 1, 1, 1, ISO_REV_HEADERS.length).setNumberFormat('@')
+        .setValues([['REV-SEED-' + ('00' + (++seedNo)).slice(-3), d[0], r[0], r[1], r[2], 'J. ELONA', '', '', r[3], '', '', '', '', '', 'Setup', stamp, '', '', stamp + ' - Recorded at setup']]); });
+      notes.push(d[0] + ' added');
+    });
+    if (notes.length) audit_('', 'ISO LIST UPDATED', 'Setup', notes.join('; ') + '.', '');
+    props.setProperty('ISO_FIX', '1.8.0');
+  });
 }
 
 function checkEq_(id) { if (id && !findRow_(sheet_(INV), String(id))) throw new Error('Equipment ' + id + ' is not in the masterlist.'); }
@@ -2164,6 +2219,7 @@ function setup() {
   }
   if (!ss.getSheetByName(ADDED)) makeAddedTab_();
   seedIso_();
+  isoFix_();
   seedNetLines_();
   pmRules_();
   ss.getSheets().forEach(protect_);
@@ -2812,4 +2868,226 @@ function idx_(h) { const o = {}; h.forEach((k, i) => o[k] = i); return o; }
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+// ---------- ISO library from Google Drive (1.8.0) ----------
+// The ICTU's ISO folder (procedures, DRFs, form drafts, CARs, revisions) is kept in Google Drive. The app reads it
+// as it is each time, so a file added or changed in the folder shows up on the next refresh. Procedures are read
+// for their flow charts (the 3-column table: who / shape / what is done) so each process can be viewed in the app.
+const ISO_MAX_FILES = 400;
+
+function isoFolderId_(v) {
+  const s = String(v || '').trim(), m = s.match(/\/folders\/([\w-]{10,})/) || s.match(/[?&]id=([\w-]{10,})/) || s.match(/^([\w-]{10,})$/);
+  return m ? m[1] : '';
+}
+
+// Head only: the Drive folder that holds the ISO files (a link or the folder id; blank turns it off).
+function saveIsoFolder_(req) {
+  const props = PropertiesService.getScriptProperties(), raw = String(req.folder || '').trim();
+  if (!raw) {
+    props.setProperty('ISO_FOLDER_ID', ''); props.setProperty('ISO_FOLDER_NAME', '');
+    audit_('', 'ISO FOLDER CHANGED', req.by, 'ISO folder removed.', req.device);
+    return { ok: true, folder: { id: '', name: '' } };
+  }
+  const id = isoFolderId_(raw);
+  if (!id) throw new Error('Paste the link of the Drive folder (it looks like https://drive.google.com/drive/folders/...).');
+  let f;
+  try { f = DriveApp.getFolderById(id); f.getName(); }
+  catch (err) { throw new Error('The app cannot open that folder. Check the link, and that the folder is in (or shared with) the Google account that runs the app.'); }
+  props.setProperty('ISO_FOLDER_ID', id); props.setProperty('ISO_FOLDER_NAME', f.getName());
+  CacheService.getScriptCache().remove('isolib_' + id);
+  audit_('', 'ISO FOLDER CHANGED', req.by, 'ISO folder set to "' + f.getName() + '".', req.device);
+  return { ok: true, folder: { id: id, name: f.getName() } };
+}
+
+function isoFolder_() {
+  const id = PropertiesService.getScriptProperties().getProperty('ISO_FOLDER_ID');
+  if (!id) return null;
+  try { return DriveApp.getFolderById(id); } catch (err) { throw new Error('The ISO folder in Drive cannot be opened anymore. Set it again on the ISO Documents tab.'); }
+}
+
+// Every file in the folder and its subfolders (up to 5 levels), newest first within each folder.
+function isoWalk_(folder) {
+  const out = [];
+  (function walk(f, path, depth) {
+    const files = f.getFiles();
+    while (files.hasNext() && out.length < ISO_MAX_FILES) {
+      const x = files.next();
+      out.push({ id: x.getId(), name: x.getName(), path: path, mime: x.getMimeType(), size: x.getSize(),
+        modified: dt_(x.getLastUpdated()), url: x.getUrl() });
+    }
+    if (depth >= 5) return;
+    const subs = [], it = f.getFolders();
+    while (it.hasNext()) subs.push(it.next());
+    subs.sort((a, b) => a.getName().localeCompare(b.getName())).forEach(s => walk(s, path ? path + ' / ' + s.getName() : s.getName(), depth + 1));
+  })(folder, '', 0);
+  return out;
+}
+
+const isoIsProc_ = f => /-P-\d+/i.test(f.name) && (/\.docx$/i.test(f.name) || f.mime === 'application/vnd.google-apps.document');
+
+// The list of files, and the processes found in each procedure. Kept for 5 minutes; "Refresh" reads Drive again.
+function isoLibrary_(req) {
+  const folder = isoFolder_();
+  if (!folder) return { ok: true, folder: null, files: [], procs: [] };
+  const id = folder.getId(), cache = CacheService.getScriptCache(), key = 'isolib_' + id;
+  if (!req.fresh) { const hit = cache.get(key); if (hit) return JSON.parse(hit); }
+  const files = isoWalk_(folder);
+  const procs = files.filter(isoIsProc_).map(f => {
+    try { const d = isoReadProc_(f, false); return { id: f.id, name: f.name, path: f.path, modified: f.modified, code: d.code, title: d.title, rev: d.rev, sections: d.sections.map(x => x.title) }; }
+    catch (err) { return { id: f.id, name: f.name, path: f.path, modified: f.modified, error: String(err.message || err), sections: [] }; }
+  });
+  const res = { ok: true, folder: { id: id, name: folder.getName(), url: folder.getUrl() }, files: files, procs: procs, read: dt_(new Date()), full: files.length >= ISO_MAX_FILES };
+  const text = JSON.stringify(res);
+  if (text.length < 95000) cache.put(key, text, 300);
+  return res;
+}
+
+// One process (section) of a procedure, with the flow chart shapes as pictures.
+function isoFlow_(req) {
+  const folder = isoFolder_();
+  if (!folder) throw new Error('No ISO folder is set yet.');
+  const f = isoWalk_(folder).filter(x => x.id === String(req.id || ''))[0];
+  if (!f || !isoIsProc_(f)) throw new Error('That procedure is not in the ISO folder anymore. Press Refresh.');
+  const d = isoReadProc_(f, true), n = Number(req.section) || 0, sec = d.sections[n];
+  if (!sec) throw new Error('That part of the procedure is not there anymore. Press Refresh.');
+  return { ok: true, file: { id: f.id, name: f.name, url: f.url, modified: f.modified }, code: d.code, title: d.title, rev: d.rev,
+    purpose: d.purpose, scope: d.scope, notes: d.notes, index: n, section: sec };
+}
+
+// Reads a procedure (.docx, or a Google Doc exported as .docx) without changing it.
+function isoReadProc_(f, withPics) {
+  let blob;
+  if (f.mime === 'application/vnd.google-apps.document') {
+    const r = UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '/export?mimeType=' +
+      encodeURIComponent('application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+      { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) throw new Error('The Google Doc could not be read (' + r.getResponseCode() + ').');
+    blob = r.getBlob();
+  } else blob = DriveApp.getFileById(f.id).getBlob();
+  blob.setContentType('application/zip');
+  const parts = {};
+  Utilities.unzip(blob).forEach(b => { parts[b.getName()] = b; });
+  if (!parts['word/document.xml']) throw new Error('Not a Word file.');
+  const rels = {};
+  if (parts['word/_rels/document.xml.rels']) {
+    const t = parts['word/_rels/document.xml.rels'].getDataAsString(), re = /<Relationship\b[^>]*>/g;
+    let m;
+    while ((m = re.exec(t))) { const id = (m[0].match(/\bId="([^"]+)"/) || [])[1], tg = (m[0].match(/\bTarget="([^"]+)"/) || [])[1]; if (id && tg) rels[id] = 'word/' + tg.replace(/^\/?word\//, ''); }
+  }
+  const pics = {};
+  const pic = rid => {
+    if (!withPics || !rid || !rels[rid]) return '';
+    if (rid in pics) return pics[rid];
+    const b = parts[rels[rid]];
+    if (!b) return (pics[rid] = '');
+    const ext = (rels[rid].split('.').pop() || 'png').toLowerCase(), type = { jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', png: 'image/png' }[ext];
+    return (pics[rid] = type ? 'data:' + type + ';base64,' + Utilities.base64Encode(b.getBytes()) : '');
+  };
+  const res = isoParseDoc_(parts['word/document.xml'].getDataAsString(), pic, f.name);
+  // The document title is in the page header of the procedure template.
+  Object.keys(parts).filter(n => /^word\/header\d*\.xml$/.test(n)).sort().some(n => {
+    const t = isoHeadTitle_(parts[n].getDataAsString());
+    if (t) res.title = t;
+    return !!t;
+  });
+  return res;
+}
+
+const xmlText_ = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+
+// Splits the Word body into paragraphs and tables (top level only), with each table cell's text and pictures.
+function isoBlocks_(xml) {
+  const body = (xml.match(/<w:body\b[^>]*>([\s\S]*)<\/w:body>/) || [])[1] || xml;
+  const re = /<(\/?)(w:p|w:tbl|w:tr|w:tc|w:t|w:tab|w:br|a:blip|v:imagedata)\b([^>]*?)(\/?)>/g;
+  const out = [];
+  let tbl = 0, row = null, cell = null, table = null, para = null, inT = false, tStart = 0, m;
+  const add = t => { if (cell) cell.text += t; else if (para != null && !tbl) para += t; };
+  while ((m = re.exec(body))) {
+    const close = m[1] === '/', tag = m[2], attrs = m[3], self = m[4] === '/';
+    if (tag === 'w:t') {
+      if (!close && !self) { inT = true; tStart = re.lastIndex; }
+      else if (close && inT) { add(xmlText_(body.slice(tStart, m.index))); inT = false; }
+      continue;
+    }
+    if (tag === 'w:tab' && !close) { add(' '); continue; }
+    if (tag === 'w:br' && !close) { add('\n'); continue; }
+    if (tag === 'a:blip' || tag === 'v:imagedata') {
+      const rid = (attrs.match(/r:(?:embed|id)="([^"]+)"/) || [])[1];
+      if (rid && cell && tbl === 1) cell.pics.push(rid);
+      continue;
+    }
+    if (tag === 'w:tbl') {
+      if (!close) { tbl++; if (tbl === 1) table = { type: 'table', rows: [] }; }
+      else { if (tbl === 1 && table) { out.push(table); table = null; } tbl--; }
+      continue;
+    }
+    if (tbl === 1) {
+      if (tag === 'w:tr') { if (!close) row = []; else if (row) { table.rows.push(row); row = null; } }
+      else if (tag === 'w:tc') { if (!close && !self) cell = { text: '', pics: [] }; else if (close && cell && row) { row.push(cell); cell = null; } }
+      else if (tag === 'w:p' && close && cell && !self) cell.text += '\n';
+      continue;
+    }
+    if (tbl > 1) { if (tag === 'w:p' && close && cell) cell.text += '\n'; continue; }
+    if (tag === 'w:p') {
+      if (self) continue;
+      if (!close) para = ''; else { if (para != null) out.push({ type: 'p', text: para.replace(/\s+/g, ' ').trim() }); para = null; }
+    }
+  }
+  return out;
+}
+
+function isoHeadTitle_(xml) {
+  const cells = [];
+  isoBlocks_(xml).forEach(b => { if (b.type === 'table') b.rows.forEach(r => r.forEach(c => cells.push(String(c.text).replace(/\s+/g, ' ').trim()))); });
+  for (let k = 0; k < cells.length; k++) {
+    const m = cells[k].match(/^Document Title:?\s*(.*)$/i);
+    if (m) return m[1] || cells[k + 1] || '';
+  }
+  return '';
+}
+
+// Finds the code, title, revision, purpose, scope, notes and each flow chart ("A. REGISTERING ...") of a procedure.
+function isoParseDoc_(xml, pic, fileName) {
+  const blocks = isoBlocks_(xml), clean = t => String(t || '').replace(/\s+/g, ' ').trim();
+  const res = { code: ((fileName || '').match(/[A-Z]{2,5}-[A-Z]{2,5}-P-\d+/i) || [''])[0].toUpperCase(), title: '', rev: ((fileName || '').match(/\bRev\.?\s*(\d+)/i) || ['', ''])[1],
+    purpose: '', scope: '', notes: [], sections: [] };
+  let cur = null, inNotes = false;
+  blocks.forEach((b, i) => {
+    if (b.type === 'p') {
+      const t = b.text;
+      if (!t) return;
+      let m;
+      if ((m = t.match(/^I\.\s*PURPOSE\s*:?\s*(.*)$/i))) { res.purpose = m[1]; return; }
+      if ((m = t.match(/^II\.\s*SCOPE\s*:?\s*(.*)$/i))) { res.scope = m[1]; return; }
+      if (/^IV\.\s*NOTES/i.test(t)) { inNotes = true; cur = null; return; }
+      if (inNotes) { res.notes.push(t.replace(/^\d+\.\s*/, '')); return; }
+      if ((m = t.match(/^([A-H])\.\s+(.{3,})$/)) && blocks[i + 1] && blocks[i + 1].type === 'table') { cur = { letter: m[1], title: m[2], steps: [] }; res.sections.push(cur); return; }
+      return;
+    }
+    // tables: the header (document title, no. and revision), or a flow chart under its heading
+    const cells = b.rows.map(r => r.map(c => clean(c.text)));
+    const flat = cells.map(r => r.join(' | ')).join(' || ');
+    if (!res.title && /Document Title/i.test(flat)) {
+      const all = b.rows.reduce((a, r) => a.concat(r), []);
+      all.forEach((c, k) => {
+        const t = clean(c.text);
+        if (/^Document Title:?/i.test(t)) res.title = clean(t.replace(/^Document Title:?/i, '')) || clean((all[k + 1] || {}).text);
+      });
+      const code = flat.match(/[A-Z]{2,5}-[A-Z]{2,5}-P-\d+/); if (code) res.code = code[0];
+      const rev = cells.map(r => r.join(' ')).join(' ').match(/P-\d+\s+(\d{2})\b/); if (rev) res.rev = rev[1];
+      return;
+    }
+    if (cur && b.rows.length && b.rows[0].length >= 3 && !cur.steps.length) {
+      b.rows.forEach(r => {
+        const who = clean(r[0].text), text = clean(r.slice(2).map(c => c.text).join(' ')), rid = (r[1].pics || [])[0] || (r[0].pics || [])[0] || '';
+        if (!who && !text && !rid) return;
+        cur.steps.push({ who: who, text: text, pic: pic(rid), kind: !who && !text ? 'end' : /^If (yes|no)\b/i.test(text) ? 'decision' : 'step' });
+      });
+    }
+  });
+  res.sections.forEach(s => { s.title = s.title.replace(/\s+/g, ' ').trim(); });
+  if (!res.title) res.title = String(fileName || '').replace(/\.(docx|pdf)$/i, '').replace(/[A-Z]{2,5}-[A-Z]{2,5}-P-\d+/i, '').replace(/\bRev\.?\s*\d+/i, '').replace(/\s+/g, ' ').trim();
+  return res;
 }

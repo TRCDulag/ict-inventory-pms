@@ -2,6 +2,7 @@
 const { chromium } = require('playwright');
 const assert = require('assert');
 const path = require('path');
+const fs = require('fs');
 const { start } = require('./server');
 const shots = path.join(__dirname, 'screenshots');
 
@@ -452,6 +453,48 @@ const shots = path.join(__dirname, 'screenshots');
   await page.hover('#cJo g.bh >> nth=11');
   ok(await page.isVisible('.tip') && /job order/.test(await page.textContent('.tip')), 'chart hover shows the number');
   await page.screenshot({ path: path.join(shots, '23-dashboard.png'), fullPage: true });
+  ok(await page.isHidden('#cAge') && /Equipment by type/.test(await page.textContent('#v-dash')), 'dashboard: Equipment by type replaces Equipment by age');
+  ok(await page.evaluate(() => ['Epson L3210', 'Canon Pixma G4770', 'Epson EcoTank L121', 'Generic', 'Brother HL-L2350DW', 'Konica Minolta bizhub 287'].map(b => eqCat({ type: 'Printer', brand: b })).join('|'))
+    === 'Printer, 3-in-1|Printer, 3-in-1|Printer, single function|Printer, generic|Printer, single function|Photocopier', 'printers are split into 3-in-1, single function and generic');
+  const nDesk = await page.evaluate(() => D.inventory.filter(i => active(i) && eqCat(i) === 'Desktop / PC').length);
+  await page.click('#cKind g.go[data-label="Desktop / PC"]');
+  ok(await page.isVisible('#v-inv') && await page.inputValue('#iType') === 'cat:Desktop / PC' && await page.locator('#iTable tbody tr[data-id]').count() === nDesk && nDesk > 0, 'clicking Desktop / PC lists only the desktops: ' + nDesk);
+  const deskT = await page.locator('#iTable tbody tr[data-id] td:nth-child(2) .s').allTextContents();
+  ok(deskT.every(t => /desktop|computer|\bpc\b|cpu|workstation|all-in-one/i.test(t)), 'only desktop units in the list: ' + deskT.join(' / '));
+  await page.selectOption('#iType', '');
+
+  // job orders: a blank JO request prints on a computer; the PDF for phones is made from the same layout
+  await page.click('nav.tabs button[data-v="jo"]');
+  ok(await page.isVisible('#jBlank') && await page.isHidden('#jShare'), 'computer: Print JO request (blank), no share button');
+  await page.click('#jBlank');
+  const jb = await page.innerHTML('#printArea');
+  ok(/ICTU JOB ORDER REQUEST FORM/.test(jb) && /<td class="c">COH-IDN-F-01<\/td><td class="c">00<\/td>/.test(jb), 'blank JO request prints as COH-IDN-F-01 Rev. 00');
+  await page.evaluate(() => document.body.classList.add('printing'));
+  await page.emulateMedia({ media: 'print' });
+  fs.mkdirSync(path.join(__dirname, '..', 'forms'), { recursive: true });
+  // the shared PDF is shrunk by the PDF maker itself (same amount as the app's fit-to-page), not by CSS zoom
+  const jz = await page.evaluate(() => { const el = document.querySelector('#printArea .sheet'); const z = +el.style.zoom || 1; el.style.zoom = ''; el.style.width = ''; return z; });
+  await page.pdf({ path: path.join(__dirname, '..', 'forms', 'COH-IDN-F-01-blank.pdf'), format: 'A4', preferCSSPageSize: true, printBackground: true, scale: jz });
+  await page.emulateMedia({ media: 'screen' }); await page.evaluate(() => document.body.classList.remove('printing'));
+
+  // ISO: process flows and files from the ISO folder in Drive
+  await page.click('nav.tabs button[data-v="iso"]');
+  await page.waitForSelector('#libSetup:not(.hidden)');
+  ok(await page.isHidden('#libPanel'), 'ISO: asks for the Drive folder first');
+  await page.fill('#libFolderIn', 'https://drive.google.com/drive/folders/ISOFOLDER0123456789abc?usp=sharing');
+  await page.click('#libFolderSave');
+  await page.waitForSelector('#flowView table.flow');
+  ok(await page.locator('#flowPick option').count() === 2 && await page.locator('#flowView table.flow tr').count() === 4 && await page.locator('#flowView td.shp img').count() === 4, 'ISO: the processes of the procedure, with its flow chart');
+  ok(await page.locator('#libList button.file').count() === 3 && /ICTU Forms DRF/.test(await page.textContent('#libList')), 'ISO: the files of the folder, by subfolder');
+  await page.selectOption('#flowPick', { index: 1 });
+  await page.waitForFunction(() => /JOB ORDER/i.test($('flowView').textContent) && document.querySelectorAll('#flowView table.flow tr').length === 2);
+  ok(/Files a request/.test(await page.textContent('#flowView')) && await page.locator('#flowView .box').count() === 1, 'ISO: the job order process, a step with no picture gets a plain box');
+  await page.screenshot({ path: path.join(shots, '24-iso-flow.png'), fullPage: true });
+  await page.click('#flowPrint');
+  ok(/JOB ORDER REQUEST/.test(await page.innerHTML('#printArea')) && /table class="flowp"/.test(await page.innerHTML('#printArea')), 'ISO: the flow prints');
+  await page.click('#libList button.file[data-id="DRF000000000000001"]');
+  ok(await page.evaluate(() => $('libDlg').open && /drive\.google\.com\/file\/d\/DRF000000000000001\/preview$/.test($('libFrame').src)), 'ISO: a file opens inside the app (Drive preview)');
+  await page.evaluate(() => $('libDlg').close());
 
   // accounts: the Head adds a technician
   await page.click('nav.tabs button[data-v="acc"]');
@@ -515,7 +558,8 @@ const shots = path.join(__dirname, 'screenshots');
   await pub.close();
 
   // phone
-  const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' });
   phone.on('pageerror', e => errors.push(e.message));
   await phone.goto('http://localhost:8799/');
   await phone.fill('#urlIn', 'http://localhost:8799/api'); await phone.fill('#uIn', 'alopez'); await phone.fill('#pwIn', temp);
@@ -541,6 +585,26 @@ const shots = path.join(__dirname, 'screenshots');
   await phone.screenshot({ path: path.join(shots, '08-phone-pm.png'), fullPage: true });
   const overflow = await phone.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok(!overflow, 'no sideways scroll on phone');
+  // every screen on the phone: no sideways scroll, nothing wider than the screen
+  for (const v of ['home', 'inv', 'sched', 'recs', 'jo', 'reports', 'dash', 'tr', 'iso', 'stock', 'net', 'inc', 'down']) {
+    await phone.evaluate(v => show(v), v); await phone.waitForTimeout(150);
+    const wide = await phone.evaluate(() => { const W = window.innerWidth; return [...document.querySelectorAll('section.view:not(.hidden) *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > W + 1 || r.left < -1) && !e.closest('.tablewrap'); }).slice(0, 3).map(e => e.tagName + '#' + e.id + '.' + e.className).join(', '); });
+    ok(!wide, 'phone ' + v + ': nothing runs off the screen ' + wide);
+    await phone.screenshot({ path: path.join(shots, 'p-' + v + '.png'), fullPage: true });
+  }
+  await phone.evaluate(() => show('jo'));
+  ok(await phone.isVisible('#jShare') && await phone.isHidden('#jBlank'), 'phone: Share JO request form (PDF) instead of print');
+  await phone.evaluate(() => { navigator.canShare = d => !!(d.files && d.files.length); navigator.share = async d => { window.__shared = d.files[0].name + ' ' + d.files[0].type + ' ' + d.files[0].size; }; });
+  await phone.click('#jShare');
+  await phone.waitForFunction(() => window.__shared);
+  ok(/^COH-IDN-F-01 ICTU Job Order Request Form \(blank\)\.pdf application\/pdf \d{4,}$/.test(await phone.evaluate(() => window.__shared)), 'phone: the PDF goes to the phone share menu: ' + await phone.evaluate(() => window.__shared));
+  await phone.evaluate(() => { delete navigator.canShare; navigator.share = undefined; navigator.canShare = undefined; });
+  await phone.click('#jShare');
+  await phone.waitForFunction(() => /COH-IDN-F-01-blank\.pdf/.test($('jShareMsg').textContent));
+  ok(true, 'phone without a share menu: the link is shown to copy');
+  await phone.evaluate(() => show('iso'));
+  await phone.waitForSelector('#flowView table.flow');
+  await phone.screenshot({ path: path.join(shots, 'p-iso-flow.png'), fullPage: true });
 
   // new job order alerts, on the Head's laptop
   await page.bringToFront();

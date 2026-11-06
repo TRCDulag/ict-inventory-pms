@@ -52,6 +52,33 @@ function makeSheet(name) {
   return sheet;
 }
 
+// A made-up ISO folder in Drive: one procedure (.docx parts with a 3-column flow chart) and two other files.
+const PNG1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+const wp = t => `<w:p><w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
+const wtc = (t, pic) => `<w:tc><w:tcPr/>${pic ? `<w:p><w:r><w:drawing><a:graphic><a:blip r:embed="${pic}"/></a:graphic></w:drawing></w:r></w:p>` : '<w:p/>'}${t ? wp(t) : ''}</w:tc>`;
+const wrow = (who, pic, what) => `<w:tr>${wtc(who)}${wtc('', pic)}${wtc(what)}</w:tr>`;
+const PROC_XML = `<?xml version="1.0"?><w:document ${W}><w:body>${wp('REVISION HISTORY')}<w:tbl>${wrow('REV. NO.', '', 'DESCRIPTION')}</w:tbl>` +
+  wp('I. PURPOSE: To test the flow reader.') + wp('II. SCOPE: Sample only.') + wp('III. PROCEDURE / FLOW CHART:') +
+  wp('A. REGISTERING ICT EQUIPMENT') + `<w:tbl>${wrow('', 'rId1', '')}${wrow('ICTU Personnel', 'rId2', 'Adds the unit to the masterlist &amp; gives the Equipment ID.')}${wrow('ICTU Personnel', 'rId2', 'If yes, go on. If no, stop.')}${wrow('', 'rId1', '')}</w:tbl>` +
+  wp('B. JOB ORDER REQUEST (COH-IDN-F-01)') + `<w:tbl>${wrow('End User', 'rId2', 'Files a request.')}${wrow('ICTU Personnel', '', 'Works on it.')}</w:tbl>` +
+  wp('IV. NOTES') + wp('1. A sample note.') + `</w:body></w:document>`;
+const HEAD_XML = `<w:hdr ${W}><w:tbl><w:tr>${wtc('Document Title:')}${wtc('SAMPLE PROCEDURE FOR TESTS')}</w:tr></w:tbl></w:hdr>`;
+const RELS = '<Relationships><Relationship Id="rId1" Type="image" Target="media/image1.png"/><Relationship Id="rId2" Type="image" Target="media/image2.png"/></Relationships>';
+const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const ISO_TREE = { id: 'ISOFOLDER0123456789abc', name: 'ISO (test)', files: [{ id: 'README000000000001', name: 'Please read first.md', mime: 'text/markdown' }],
+  folders: [{ name: 'ICTU Procedures', files: [{ id: 'PROC00000000000001', name: 'COH-IDN-P-01 Rev 01 Sample Procedure.docx', mime: DOCX,
+      parts: { 'word/document.xml': PROC_XML, 'word/header2.xml': HEAD_XML, 'word/_rels/document.xml.rels': RELS, 'word/media/image1.png': PNG1, 'word/media/image2.png': PNG1 } }], folders: [] },
+    { name: 'ICTU Forms DRF', files: [{ id: 'DRF000000000000001', name: 'DRF COH-IDN-F-01 ICTU Job Order Request Form.pdf', mime: 'application/pdf' }], folders: [] }] };
+function isoFile(id, t) { t = t || ISO_TREE; return t.files.find(f => f.id === id) || t.folders.map(x => isoFile(id, x)).find(Boolean) || null; }
+function iter(list) { let i = 0; return { hasNext: () => i < list.length, next: () => list[i++] }; }
+function isoFolderObj(t) {
+  return { getId: () => t.id || 'sub' + t.name, getName: () => t.name, getUrl: () => 'https://drive.google.com/drive/folders/' + (t.id || 'sub'),
+    getFiles: () => iter(t.files.map(f => ({ getId: () => f.id, getName: () => f.name, getMimeType: () => f.mime, getSize: () => 1234,
+      getLastUpdated: () => new Date('2026-11-05T09:00:00+08:00'), getUrl: () => 'https://drive.google.com/file/d/' + f.id + '/view' }))),
+    getFolders: () => iter(t.folders.map(isoFolderObj)) };
+}
+
 function createGas() {
   const sheets = {}, order = [], props = {}, files = {}, cache = {}, triggers = [], copies = [], fetches = [], mails = [];
   let seq = 0;
@@ -100,9 +127,10 @@ function createGas() {
         files[id] = blob;
         return { getUrl: () => 'https://drive.google.com/file/d/' + id + '/view', getId: () => id };
       } }),
-      getFolderById: id => { throw new Error('not found'); },
+      getFolderById: id => { if (id === ISO_TREE.id) return isoFolderObj(ISO_TREE); throw new Error('not found'); },
       getFileById: id => {
         if (id === 'SHEETID') return { makeCopy: (name, folder) => { copies.push(name); return { getUrl: () => 'https://docs.google.com/spreadsheets/d/copy' + copies.length, getId: () => 'copy' + copies.length }; } };
+        const iso = isoFile(id); if (iso) return { getBlob: () => ({ _parts: iso.parts, setContentType() { return this; } }) };
         if (!files[id]) throw new Error('no file'); return { getBlob: () => files[id] };
       }
     },
@@ -114,6 +142,8 @@ function createGas() {
       base64Encode: b => Buffer.from(b).toString('base64'),
       computeDigest: (alg, text) => [...crypto.createHash('sha256').update(text, 'utf8').digest()].map(b => b > 127 ? b - 256 : b),
       getUuid: () => crypto.randomUUID(),
+      unzip: blob => { if (!blob._parts) throw new Error('not a zip'); return Object.keys(blob._parts).map(n => ({ getName: () => n,
+        getDataAsString: () => Buffer.from(blob._parts[n]).toString('utf8'), getBytes: () => [...Buffer.from(blob._parts[n])] })); },
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' }
     },
     _ss: ss, _props: props, _files: files, _cache: cache, _triggers: triggers, _copies: copies, _fetches: fetches, _mails: mails
