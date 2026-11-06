@@ -300,13 +300,28 @@ ok(['COH-IDN-F-10', 'COH-IDN-F-11'].every(c => L.isoDocs.some(d => d.code === c)
   r = oc({ action: 'saveIsoFolder', folder: 'https://drive.google.com/drive/folders/ISOFOLDER0123456789abc?usp=sharing' });
   ok(r.ok && r.folder.id === 'ISOFOLDER0123456789abc' && oc({ action: 'load' }).isoFolder.name === 'ISO (test)', 'ISO folder saved from its link');
   const lib = oc({ action: 'isoLibrary', fresh: true });
-  ok(lib.files.length === 3 && lib.files.some(f => f.path === 'ICTU Forms DRF' && /DRF COH-IDN-F-01/.test(f.name)), 'every file in the folder and its subfolders is listed');
+  ok(lib.files.length === 10 && lib.files.some(f => f.path === 'ICTU Forms DRF' && /DRF COH-IDN-F-01/.test(f.name)) && lib.files.some(f => f.path === 'ICTU Revisions 2025-2026 / Rev 03 (January 2026)'), 'every file in the folder and its subfolders is listed: ' + lib.files.length);
+  ok(!lib.files.some(f => /CAR|\.md$/.test(f.path + ' ' + f.name)), 'the CAR folder and the notes (.md) are left out');
+  const pv = lib.files.filter(f => /All DRFs \(preview\)/.test(f.name));
+  ok(pv.length === 1 && pv[0].id === 'PREVIEWNEW00000001', 'of two copies with the same name, only the newest is listed');
   const pr = lib.procs[0];
   ok(lib.procs.length === 1 && pr.code === 'COH-IDN-P-01' && pr.rev === '01' && pr.title === 'SAMPLE PROCEDURE FOR TESTS' && pr.sections.join('|') === 'REGISTERING ICT EQUIPMENT|JOB ORDER REQUEST (COH-IDN-F-01)', 'procedures are read for their processes: ' + JSON.stringify(pr));
   const fl = oc({ action: 'isoFlow', id: pr.id, section: 0 });
   ok(fl.ok && fl.section.steps.length === 4 && fl.section.steps[1].who === 'ICTU Personnel' && /masterlist & gives/.test(fl.section.steps[1].text) && /^data:image\/png;base64,/.test(fl.section.steps[1].pic), 'a process comes with its steps and shape pictures');
   ok(fl.section.steps[0].kind === 'end' && fl.section.steps[2].kind === 'decision' && fl.purpose === 'To test the flow reader.' && fl.notes[0] === 'A sample note.', 'start/end and decision shapes, purpose and notes are read');
   ok(/not in the ISO folder/.test(oc({ action: 'isoFlow', id: 'DRF000000000000001', section: 0 }).error), 'only a procedure in the folder can be opened as a flow');
+  // bulletin board and its calendar
+  r = asTech({ action: 'savePost', item: { title: 'Server room aircon is under repair', message: 'Please keep the door closed.', until: '2026-11-30' } });
+  ok(r.ok && /^BB-\d{4}-001$/.test(r.item.id) && r.item.status === 'Posted' && r.item.pinned === 'No' && r.item.recordedBy === 'Argie R. Lopez', 'a technician posts a notice: ' + r.error);
+  ok(/Title is required/.test(asTech({ action: 'savePost', item: { message: 'x' } }).error), 'a notice needs a title');
+  ok(call({ action: 'savePost', item: { id: r.item.id, pinned: 'Yes' } }).item.pinned === 'Yes', 'the notice can be pinned');
+  ok(call({ action: 'load' }).bulletin.length === 1, 'notices come back on load');
+  let ce = call({ action: 'calEvents', from: '2026-11-01', to: '2026-11-30' });
+  ok(ce.ok && ce.events.length === 2 && ce.events[0].title === 'Flag ceremony' && ce.events[0].start === '2026-11-09 07:30' && ce.events[1].allDay, 'the calendar shows the titles of the month\'s activities');
+  ok(/two months/.test(call({ action: 'calEvents', from: '2026-01-01', to: '2026-06-30' }).error), 'at most two months at a time');
+  ok(/role \(Technician\)/.test(asTech({ action: 'saveCalendar', id: 'jed@example.com' }).error), 'only the Head picks the calendar');
+  ok(/cannot open the calendar/.test(call({ action: 'saveCalendar', id: 'nobody@example.com' }).error), 'a calendar not shared with the app is refused');
+  ok(call({ action: 'saveCalendar', id: 'jed@example.com' }).calendar.name === 'Jed (test)' && call({ action: 'calEvents', from: '2026-12-01', to: '2026-12-31' }).calendar === 'Jed (test)', 'the Head sets the calendar to show');
 }
 ok(/already in the list/.test(call({ action: 'saveIsoDoc', item: { code: 'coh-idn-f-02', title: 'Dup', kind: 'Form' } }).error), 'duplicate document code refused');
 r = call({ action: 'saveIsoDoc', item: { code: 'coh-idn-wi-01', title: 'Backup work instruction', kind: 'Work Instruction' } });

@@ -88,6 +88,39 @@
   @media (max-width: 640px) { .panel { padding: 16px; } }
   body.is-phone .desk-only, body:not(.is-phone) .phone-only { display: none !important; }
   .filters.one { grid-template-columns: 1fr; }
+  /* dashboard: the bulletin board sits in the space on the right of a wide screen */
+  body.widedash main { max-width: 1640px; }
+  /* wide screens: board in its own column on the right. Smaller PC screens: board under the tiles, notices beside the calendar */
+  .dashgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .dashgrid > .tiles, .dashgrid > .charts { margin: 0; }
+  .dashgrid > .tiles { order: 1; } .dashgrid > .dashside { order: 2; } .dashgrid > .charts { order: 3; }
+  @media (min-width: 1440px) {
+    .dashgrid { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+    .dashgrid > .tiles { grid-column: 1; grid-row: 1; } .dashgrid > .charts { grid-column: 1; grid-row: 2; } .dashgrid > .dashside { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 86px; }
+  }
+  @media (min-width: 900px) and (max-width: 1439px) {
+    .dashside .bb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); column-gap: 20px; }
+    .dashside .bb .bbh { grid-column: 1 / -1; } .dashside .bb #bbPosts { grid-column: 1; } .dashside .bb .cal { grid-column: 2; grid-row: 2 / span 2; margin-top: 0; border-top: 0; padding-top: 0; }
+  }
+  @media (max-width: 899px) { #v-dash .dashside { display: none; } }
+  @media (min-width: 900px) { nav.tabs .m-only { display: none !important; } }
+  .bb .bbh { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; } .bb .bbh h3 { margin: 0; flex: 1; }
+  .bbpost { border: 1px solid var(--line); border-left: 4px solid #1E5BC6; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--card, #fff); }
+  .bbpost.pin { border-left-color: #E0A800; background: #FFFBEA; }
+  .bbpost b { display: block; color: var(--head); } .bbpost p { margin: 4px 0 0; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bbpost small { display: block; color: var(--muted); margin-top: 4px; font-size: 12px; }
+  .bbpost.edit { cursor: pointer; } .bbpost.edit:hover { border-color: #1E5BC6; }
+  .cal { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .calh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .calnav { border: 1px solid var(--line); background: transparent; border-radius: 8px; width: 34px; height: 30px; font-size: 18px; cursor: pointer; color: inherit; }
+  .calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+  .calgrid .dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 2px 0; }
+  .calgrid button { min-height: 44px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 12px; padding: 2px; text-align: left; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; }
+  .calgrid button.out { opacity: .35; } .calgrid button.today { border-color: #1E5BC6; } .calgrid button.sel { background: #E8EEF9; }
+  .calgrid button .n { font-weight: 600; } .calgrid button .t { font-size: 9.5px; line-height: 1.15; color: #1E5BC6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+  .callist { margin-top: 8px; font-size: 13px; } .callist .ev { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line-2); }
+  .callist .ev .d { flex: none; width: 72px; color: var(--muted); font-size: 12px; } .callist .ev .tt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .calsrc { margin: 8px 0 0; font-size: 12px; } .linkbtn { background: none; border: 0; padding: 0; color: #1E5BC6; font: inherit; cursor: pointer; text-decoration: underline; }
   body:not(.r1) .r1only { display: none; }
   /* process flows: lane | shape | what is done, like the procedure's flow chart */
   .flowview { margin-top: 14px; }
@@ -118,6 +151,7 @@
   .liblist .ext.pdf { background: #FDECEA; color: #B3261E; }
   .liblist .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .liblist .nm small { display: block; color: var(--muted); }
+  .liblist .libpick { flex-wrap: nowrap; gap: 8px; } .liblist .libpick select { flex: 1; min-width: 0; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
   .grid .wide { grid-column: 1 / -1; }
   .stk { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -657,6 +691,7 @@
 <div class="shell">
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" data-v="home" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
+    <button role="tab" data-v="bb" class="m-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6M3 8h18"/></svg>Bulletin board</button>
     <button role="tab" data-v="dash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Dashboard</button>
     <div class="grp">Equipment</div>
     <button role="tab" data-v="inv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>Inventory</button>
@@ -966,6 +1001,7 @@
   <section class="view hidden" id="v-dash">
     <h2>Dashboard</h2>
     <p class="lead">How the ICT Unit is doing. Hover or tap a bar to see its number.</p>
+    <div class="dashgrid">
     <div class="tiles" id="dTiles"></div>
     <div class="charts">
       <div class="panel chart"><h3>Job orders received <span class="sub">last 12 months</span></h3><div id="cJo"></div></div>
@@ -975,6 +1011,25 @@
       <div class="panel chart"><h3>Equipment by type <span class="sub">in service. Click a group to see its units</span></h3><div id="cKind"></div></div>
       <div class="panel chart"><h3>Equipment by section <span class="sub">top 10</span></h3><div id="cOff"></div></div>
     </div>
+    <aside class="dashside" id="bbHome">
+      <div class="panel bb" id="bbPanel">
+        <div class="bbh"><h3>Bulletin board</h3><button class="btn small need2" id="bbAdd" type="button">Post a notice</button></div>
+        <div id="bbPosts"></div>
+        <div class="cal" id="calBox">
+          <div class="calh"><button class="calnav" id="calPrev" type="button" aria-label="Previous month">‹</button><b id="calTitle"></b><button class="calnav" id="calNext" type="button" aria-label="Next month">›</button></div>
+          <div class="calgrid" id="calGrid"></div>
+          <div class="callist" id="calList"></div>
+          <p class="hint calsrc"><span id="calSrc"></span> <button class="linkbtn need3" id="calSet" type="button">Change calendar</button></p>
+        </div>
+      </div>
+    </aside></div>
+  </section>
+
+  <!-- BULLETIN BOARD (phones open it from the menu) -->
+  <section class="view hidden" id="v-bb">
+    <h2>Bulletin board</h2>
+    <p class="lead">ICTU notices and the activities in the calendar.</p>
+    <div id="bbPhone"></div>
   </section>
 
   <!-- TRANSFERS -->
@@ -1025,7 +1080,9 @@
         <button class="btn ghost small" id="oPrintLog" type="button">Print DRF and revision log</button></div></div>
     <div class="tablewrap"><table class="list cards" id="oTable"><thead><tr><th>Code</th><th>Title</th><th>Rev.</th><th class="hide-m">Effectivity</th><th>Status</th><th class="hide-m">Pending</th></tr></thead><tbody></tbody>
       <tfoot class="need2"><tr><td colspan="6"><button class="addrow" id="addIsoDoc" type="button"><span class="plus">+</span>Add a controlled document</button></td></tr></tfoot></table></div>
-    <div class="panel" style="margin-top:16px"><h3>Latest revisions and DRFs</h3><div class="tablewrap"><table class="list cards" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div></div>
+    <div class="panel" style="margin-top:16px"><h3>Latest revisions and DRFs</h3>
+      <div class="filters"><label class="f">Sort by<select id="orSort"><option value="new">Latest change first</option><option value="old">Oldest change first</option><option value="code">Document code</option><option value="status">Status</option><option value="eff">Effectivity date, newest first</option><option value="ref">Ref. No.</option></select></label>
+        <label class="f">Show<select id="orShow"><option value="12">The latest 12</option><option value="all">All revisions and DRFs</option></select></label></div><div class="tablewrap"><table class="list cards" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div></div>
   </section>
 
   <!-- SPARE PARTS AND CONSUMABLES -->
@@ -1367,6 +1424,33 @@
   </form>
 </dialog>
 
+<dialog id="bbDlg">
+  <form id="bbForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3 id="bbTitle">Post a notice</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <label class="f"><span class="req">Title</span><input id="bbT" maxlength="120" placeholder="For example: Internet will be down on Saturday"></label>
+      <label class="f">Message<textarea id="bbM" rows="4" maxlength="1500"></textarea></label>
+      <div class="grid g2"><label class="f">Show until<input id="bbU" type="date"></label>
+        <label class="f chk" style="align-self:end"><input id="bbP" type="checkbox"> Pin to the top</label></div>
+      <p class="hint" style="margin:6px 0 0">Leave Show until blank to keep the notice up until it is removed.</p>
+      <div class="msg" id="bbMsg" role="status"></div>
+    </div>
+    <div class="df"><button class="btn ghost danger hidden" id="bbDel" type="button">Remove</button><span class="spacer"></span><button class="btn" type="submit" id="bbSave">Post</button></div>
+  </form>
+</dialog>
+
+<dialog id="calDlg">
+  <form id="calForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Calendar on the bulletin board</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <p class="hint" style="margin:0 0 10px">The board shows the activities of one Google Calendar. Leave it blank to use the calendar of the Google account that runs the app. To show your own calendar: in Google Calendar, open Settings, pick your calendar, under "Share with specific people" add the app's account with "See all event details", then copy the Calendar ID (under "Integrate calendar") here.</p>
+      <label class="f">Calendar ID<input id="calId" type="text" placeholder="name@gmail.com"></label>
+      <div class="msg" id="calMsg" role="status"></div>
+    </div>
+    <div class="df"><span class="spacer"></span><button class="btn" type="submit" id="calSave">Use this calendar</button></div>
+  </form>
+</dialog>
+
 <dialog id="libDlg" class="wide">
   <div class="dh"><h3 id="libTitle">File</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
   <div class="db" style="padding:0"><iframe id="libFrame" title="File preview" style="width:100%;height:min(78vh,1100px);border:0;display:block;background:#fff"></iframe></div>
@@ -1673,9 +1757,13 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.8.0";
+const APP_VERSION = "1.8.1";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.8.1", "Nov 6, 2026", ["Dashboard: a bulletin board on the right with notices from ICTU (pin one to keep it on top) and a mini calendar with the titles of the activities in Google Calendar. On a phone, open it from the menu (Bulletin board).",
+    "Dashboard: Equipment by type shows one Printers bar and leaves out types with no unit. Open incidents is only shown when there is one.",
+    "ISO documents: the flow is shown only after you choose a process. ISO files leaves out the CAR folder and the notes, shows only the newest of two copies with the same name, and puts DRFs, Form drafts and Revisions in dropdowns. Latest revisions and DRFs can be sorted.",
+    "Fixed: the section PM plans now stay on the PMS Schedule after the app is opened again."]],
   ["1.8.0", "Nov 6, 2026", ["Dashboard: Equipment by type replaces Equipment by age (Desktop / PC, Laptop, Printer 3-in-1, single function or generic, Photocopier, Server, Tablet, Scanner, Other ICT equipment). Click a group to see its units. The inventory filter has the same groups.",
     "Job orders: Print JO request (blank) on a computer. On a phone, Share JO request form (PDF) opens the phone's share menu (Messenger, email, Drive and so on).",
     "ISO documents: COH-IDN-F-01 is back to its initial issue (Rev. 00, not yet approved). F-10 Notice of PM and F-11 PM Result are in the list, and both print blank from Blank forms and lists.",
@@ -2159,7 +2247,7 @@ function take(j) {
   D = { inventory: j.inventory || [], pms: j.pms || [], jos: j.jos || [], lists: j.lists, form: j.form || {}, joForm: j.joForm || {}, today: j.today || isoDate(new Date()),
     version: j.version, appUrl: j.appUrl, employees: j.employees || [], masterlist: j.masterlist || {},
     transfers: j.transfers || [], stock: j.stock || [], moves: j.moves || [], incidents: j.incidents || [], network: j.network || [], downtime: j.downtime || [],
-    isoDocs: j.isoDocs || [], isoRevs: j.isoRevs || [],
+    isoDocs: j.isoDocs || [], isoRevs: j.isoRevs || [], plans: j.plans || [], bulletin: j.bulletin || [], calendar: j.calendar || {}, isoFolder: j.isoFolder || {},
     backup: j.backup || {}, tirRecs: j.tirRecs || [], choices: j.choices || {} };
   D.jos.forEach(x => seenJo.add(x.jo));
   $("syncState").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -2360,6 +2448,8 @@ function show(v) {
   $("pmBar").classList.toggle("hidden", v !== "pm" || !pmItem);
   if (v === "pm") setTimeout(sizePad, 30);
   if (v === "dash") renderDash();
+  document.body.classList.toggle("widedash", v === "dash");
+  if (v === "bb" || v === "dash") { $(v === "bb" ? "bbPhone" : "bbHome").appendChild($("bbPanel")); renderBB(); }
   if (v === "iso") libLoad(false);
   if (v === "acc") { loadUsers(); renderEmps(); }
   try { if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); } catch (e) {}
@@ -2390,7 +2480,7 @@ function fillPickers(keep) {
   const types = [...new Set(L.types.map(t => t[0]).concat(D.inventory.map(i => i.type)).filter(Boolean))];
   const keepVal = (id, html) => { const v = $(id).value; $(id).innerHTML = html; if (keep) $(id).value = v; };
   keepVal("iOffice", opts(offices, "All sections")); keepVal("sOffice", opts(offices, "All sections"));
-  const catOpts = '<optgroup label="By category">' + EQ_CATS.map(c => `<option value="cat:${esc(c)}">${esc(c)}</option>`).join("") + '</optgroup><optgroup label="By equipment type">';
+  const catOpts = '<optgroup label="By category">' + EQ_CATS.map(c => (c === "Printer, 3-in-1" ? '<option value="cat:Printers">Printers (all)</option>' : "") + `<option value="cat:${esc(c)}">${c.startsWith("Printer") ? "\u00a0\u00a0" : ""}${esc(c)}</option>`).join("") + '</optgroup><optgroup label="By equipment type">';
   keepVal("iType", '<option value="">All types</option>' + catOpts + opts(types) + "</optgroup>"); keepVal("sType", opts(types, "All types"));
   keepVal("iCond", '<option value="">In service</option>' + opts(L.conditions) + '<option value="*">Everything, with disposed</option>');
   keepVal("eType", opts(L.types.map(t => t[0])));
@@ -2439,7 +2529,7 @@ function fillPickers(keep) {
 }
 $("qBy").onchange = () => { $("qPos").value = (D.lists.staff.find(s => s[0] === $("qBy").value) || [])[1] || ""; };
 
-function renderAll() { renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderDown(); renderIso(); renderRepl(); renderCost(); renderBackup(); renderEmps();
+function renderAll() { renderBB(); renderHome(); renderInv(); renderSched(); renderRecs(); renderPick(); renderJo(); renderTr(); renderStock(); renderNet(); renderInc(); renderDown(); renderIso(); renderRepl(); renderCost(); renderBackup(); renderEmps();
   if (!$("v-dash").classList.contains("hidden")) renderDash(); }
 
 // ---------- home ----------
@@ -2494,6 +2584,9 @@ function bindRowButtons(root) {
 // Equipment categories for the dashboard and the inventory filter. Printers are split by what they do:
 // 3-in-1 (print, scan, copy), single function, or Generic (no brand / model known).
 const EQ_CATS = ["Desktop / PC", "Laptop", "Printer, 3-in-1", "Printer, single function", "Printer, generic", "Photocopier", "Server", "Tablet", "Scanner", "Other ICT equipment"];
+// Dashboard groups: the three kinds of printer are counted together as Printers.
+const EQ_GROUPS = ["Desktop / PC", "Laptop", "Printers", "Photocopier", "Server", "Tablet", "Scanner", "Other ICT equipment"];
+const eqGroup = it => { const c = eqCat(it); return c.startsWith("Printer") ? "Printers" : c; };
 function eqCat(it) {
   const t = String(it.type || "").toLowerCase(), b = String(it.brand || "").toLowerCase(), s = t + " " + b + " " + String(it.desc || "").toLowerCase();
   if (/\bserver\b|\bnas\b/.test(t)) return "Server";
@@ -2510,7 +2603,7 @@ function eqCat(it) {
 }
 function invFiltered() {
   const q = $("iQ").value.trim().toLowerCase(), o = $("iOffice").value, t = $("iType").value, c = $("iCond").value;
-  return D.inventory.filter(it => (!o || it.office === o) && (!t || (t.startsWith("cat:") ? eqCat(it) === t.slice(4) : it.type === t)) &&
+  return D.inventory.filter(it => (!o || it.office === o) && (!t || (t.startsWith("cat:") ? (t === "cat:Printers" ? eqGroup(it) === "Printers" : eqCat(it) === t.slice(4)) : it.type === t)) &&
     (c === "*" ? true : c ? it.condition === c : active(it)) &&
     (!q || [it.id, it.brand, it.type, it.serial, it.tag, it.office, it.endUser, it.desc, it.compName, it.accountable].join(" ").toLowerCase().includes(q)));
 }
@@ -4494,6 +4587,92 @@ $("blankPrint").onclick = () => {
   if (ISO_FORMS[v]) ISO_FORMS[v]();
 };
 $("blankResult").onclick = () => printResult({ section: "", quarter: qOf().key, start: "", end: "", receivedBy: "", position: "", remarks: "" });
+// ---------- bulletin board and its calendar ----------
+let bbCur = null;
+function bbLive() {
+  const t = todayStr();
+  return (D.bulletin || []).filter(p => p.status !== "Removed" && (!p.until || p.until >= t))
+    .sort((a, b) => (b.pinned === "Yes") - (a.pinned === "Yes") || String(b.recordedAt).localeCompare(String(a.recordedAt)));
+}
+function renderBB() {
+  const list = bbLive(), can = !document.body.classList.contains("r1");
+  $("bbPosts").innerHTML = list.length ? list.map(p => `<div class="bbpost${p.pinned === "Yes" ? " pin" : ""}${can ? " edit" : ""}" data-id="${esc(p.id)}"${can ? ' tabindex="0" role="button"' : ""}><b>${p.pinned === "Yes" ? "📌 " : ""}${esc(p.title)}</b>${p.message ? "<p>" + esc(p.message) + "</p>" : ""}<small>${esc(nice(String(p.recordedAt).slice(0, 10)))}, ${esc(p.recordedBy)}${p.until ? ". Until " + esc(nice(p.until)) : ""}</small></div>`).join("")
+    : '<p class="hint" style="margin:4px 0 8px">No notices right now.</p>';
+  if (can) $("bbPosts").querySelectorAll(".bbpost").forEach(el => { el.onclick = () => openPost(el.dataset.id); el.onkeydown = e => { if (e.key === "Enter") openPost(el.dataset.id); }; });
+  renderCal();
+}
+function openPost(id) {
+  bbCur = id ? (D.bulletin || []).find(p => p.id === id) : null; const p = bbCur || {};
+  $("bbTitle").textContent = bbCur ? "Edit notice" : "Post a notice"; $("bbSave").textContent = bbCur ? "Save" : "Post";
+  $("bbT").value = p.title || ""; $("bbM").value = p.message || ""; $("bbU").value = p.until || ""; $("bbP").checked = p.pinned === "Yes";
+  $("bbDel").classList.toggle("hidden", !bbCur); msg("bbMsg", ""); $("bbDlg").showModal();
+}
+async function savePost(extra) {
+  const item = Object.assign({ title: $("bbT").value, message: $("bbM").value, until: $("bbU").value, pinned: $("bbP").checked ? "Yes" : "No" }, extra || {});
+  if (bbCur) item.id = bbCur.id;
+  if (!item.title.trim()) return msg("bbMsg", "Type a title.", "err");
+  $("bbSave").disabled = true; msg("bbMsg", "Saving…");
+  try {
+    const j = await api({ action: "savePost", item });
+    if (!j.ok) return msg("bbMsg", j.error, "err");
+    const L = D.bulletin = D.bulletin || [], i = L.findIndex(x => x.id === j.item.id);
+    if (i >= 0) L[i] = j.item; else L.push(j.item);
+    $("bbDlg").close(); renderBB();
+  } catch (err) { msg("bbMsg", errText(err), "err"); }
+  finally { $("bbSave").disabled = false; }
+}
+$("bbAdd").onclick = () => openPost(null);
+$("bbForm").onsubmit = e => { e.preventDefault(); savePost(); };
+$("bbDel").onclick = () => { if (confirm("Remove this notice from the board?")) savePost({ status: "Removed" }); };
+// mini calendar: one month at a time, titles from Google Calendar
+const cal = { y: 0, m: 0, sel: "", data: {}, busy: {} };
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+async function calLoad(key, from, to) {
+  if (cal.data[key] || cal.busy[key]) return;
+  cal.busy[key] = true;
+  try { const j = await api({ action: "calEvents", from, to }); cal.data[key] = j.ok ? j : { error: j.error, events: [] }; }
+  catch (err) { cal.data[key] = { error: errText(err), events: [] }; }
+  finally { cal.busy[key] = false; }
+  if (key === cal.y + "-" + cal.m) renderCal();
+}
+function renderCal() {
+  if (!cal.y) { const t = parse(todayStr()); cal.y = t.getFullYear(); cal.m = t.getMonth(); }
+  const key = cal.y + "-" + cal.m, first = new Date(cal.y, cal.m, 1, 12), last = new Date(cal.y, cal.m + 1, 0, 12);
+  $("calTitle").textContent = MONTHS_LONG[cal.m] + " " + cal.y;
+  const data = cal.data[key];
+  if (!data && $("bbPanel").offsetParent) calLoad(key, ymd(first), ymd(last));
+  const evs = (data && data.events) || [], byDay = {};
+  evs.forEach(e => { const a = parse(e.start.slice(0, 10)), b = parse((e.allDay ? ymd(new Date(dtOf(e.end).getTime() - 1)) : e.end).slice(0, 10)) || a;
+    for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) (byDay[ymd(d)] = byDay[ymd(d)] || []).push(e); });
+  const start = new Date(first); start.setDate(1 - first.getDay());
+  const today = todayStr(); let h = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => `<div class="dow">${d.slice(0, 2)}</div>`).join("");
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i); const k = ymd(d), e = byDay[k] || [];
+    if (i >= 35 && d.getMonth() !== cal.m) break;
+    h += `<button type="button" data-d="${k}" class="${d.getMonth() !== cal.m ? "out " : ""}${k === today ? "today " : ""}${k === cal.sel ? "sel" : ""}" title="${esc(e.map(x => x.title).join("\n"))}"><span class="n">${d.getDate()}</span>${e.slice(0, 2).map(x => `<span class="t">${esc(x.title)}</span>`).join("")}</button>`;
+  }
+  $("calGrid").innerHTML = h;
+  $("calGrid").querySelectorAll("button[data-d]").forEach(b => b.onclick = () => { cal.sel = cal.sel === b.dataset.d ? "" : b.dataset.d; renderCal(); });
+  const tm = e => e.allDay ? "All day" : time12(e.start.slice(11));
+  const shown = cal.sel ? (byDay[cal.sel] || []) : evs.filter(e => (e.allDay ? ymd(new Date(dtOf(e.end).getTime() - 1)) : e.end.slice(0, 10)) >= (cal.y === +today.slice(0, 4) && cal.m === +today.slice(5, 7) - 1 ? today : "0"));
+  $("calList").innerHTML = !data ? '<p class="hint">Reading the calendar…</p>' : data.error ? '<p class="msg err" style="margin:0">' + esc(data.error) + "</p>"
+    : shown.length ? (cal.sel ? `<div class="hint" style="margin:0 0 4px">${esc(longDate(cal.sel))}</div>` : "") + shown.slice(0, 12).map(e => `<div class="ev"><span class="d">${esc(cal.sel ? tm(e) : nice(e.start.slice(0, 10)).replace(/, \d{4}$/, "") + (e.allDay ? "" : ", " + tm(e)))}</span><span class="tt">${esc(e.title)}${e.location ? '<small style="display:block;color:var(--muted)">' + esc(e.location) + "</small>" : ""}</span></div>`).join("")
+    : '<p class="hint" style="margin:4px 0">' + (cal.sel ? "Nothing on " + esc(longDate(cal.sel)) + "." : "No more activities this month.") + "</p>";
+  $("calSrc").textContent = data && data.calendar ? "From " + data.calendar + "." : "";
+}
+$("calPrev").onclick = () => { cal.m--; if (cal.m < 0) { cal.m = 11; cal.y--; } cal.sel = ""; renderCal(); };
+$("calNext").onclick = () => { cal.m++; if (cal.m > 11) { cal.m = 0; cal.y++; } cal.sel = ""; renderCal(); };
+$("calSet").onclick = () => { $("calId").value = (D.calendar || {}).id || ""; msg("calMsg", ""); $("calDlg").showModal(); };
+$("calForm").onsubmit = async e => {
+  e.preventDefault(); $("calSave").disabled = true; msg("calMsg", "Opening the calendar…");
+  try {
+    const j = await api({ action: "saveCalendar", id: $("calId").value });
+    if (!j.ok) return msg("calMsg", j.error, "err");
+    D.calendar = j.calendar; cal.data = {}; $("calDlg").close(); renderCal();
+  } catch (err) { msg("calMsg", errText(err), "err"); }
+  finally { $("calSave").disabled = false; }
+};
+
 // ---------- ISO folder in Google Drive: process flows and files ----------
 let LIB = null, libBusy = false;
 const libExt = f => f.mime === "application/vnd.google-apps.document" ? "DOC" : f.mime === "application/vnd.google-apps.spreadsheet" ? "SHEET" : ((f.name.match(/\.([a-z0-9]{2,5})$/i) || [])[1] || "FILE").toUpperCase();
@@ -4520,23 +4699,39 @@ function renderLib() {
   $("libSetup").classList.toggle("hidden", !!has); $("libMain").classList.toggle("hidden", !has); $("libPanel").classList.toggle("hidden", !has);
   if (!has) return;
   const procs = LIB.procs || [], keep = $("flowPick").value;
-  $("flowPick").innerHTML = procs.length ? procs.map(p => `<optgroup label="${esc((p.code ? p.code + " " : "") + (p.title || p.name))}">` +
+  $("flowPick").innerHTML = (procs.length ? '<option value="">Choose a process to see its flow</option>' : "") + (procs.length ? procs.map(p => `<optgroup label="${esc((p.code ? p.code + " " : "") + (p.title || p.name))}">` +
       (p.sections.length ? p.sections.map((t, i) => `<option value="${esc(p.id)}|${i}">${esc(secCase(t))}</option>`).join("") : `<option disabled>${esc(p.error || "No flow chart found in this file")}</option>`) + "</optgroup>").join("")
-    : '<option value="">No procedure (P-xx) in the folder yet</option>';
-  if (keep && [...$("flowPick").options].some(o => o.value === keep)) $("flowPick").value = keep;
+    : '<option value="">No procedure (P-xx) in the folder yet</option>');
+  $("flowPick").value = keep && [...$("flowPick").options].some(o => o.value === keep) ? keep : "";
+  $("flowPrint").classList.toggle("hidden", !$("flowPick").value);
   $("libInfo").textContent = (LIB.files || []).length + " files in \u201c" + LIB.folder.name + "\u201d. Read " + niceDt(LIB.read) + ".";
   const dirs = [...new Set((LIB.files || []).map(f => f.path || "(main folder)"))];
   const kd = $("libDir").value; $("libDir").innerHTML = opts(dirs, "All folders"); if (dirs.includes(kd)) $("libDir").value = kd;
   renderLibList(); showFlow();
 }
+// Files by folder. A folder with no files of its own (like ICTU Revisions) takes in its subfolders as one group.
+// A group of more than 2 files is a dropdown; 1 or 2 files are shown as buttons.
+function libGroups(list) {
+  const own = new Set((LIB.files || []).map(f => f.path));
+  const groupOf = path => { let g = path; while (g.includes(" / ")) { const up = g.slice(0, g.lastIndexOf(" / ")); if (own.has(up)) break; g = up; } return g; };
+  const out = [];
+  list.forEach(f => { const g = groupOf(f.path || ""); let x = out.find(o => o.g === g); if (!x) out.push(x = { g, files: [] }); x.files.push(f); });
+  return out;
+}
 function renderLibList() {
   const q = $("libQ").value.trim().toLowerCase(), d = $("libDir").value;
   const list = (LIB.files || []).filter(f => (!d || (f.path || "(main folder)") === d) && (!q || (f.name + " " + f.path).toLowerCase().includes(q)));
-  let last = null;
-  $("libList").innerHTML = list.length ? list.map(f => { const dir = f.path || "(main folder)", h = dir !== last ? `<div class="dir">${esc(dir)}</div>` : ""; last = dir; const x = libExt(f);
-    return h + `<button class="file" type="button" data-id="${esc(f.id)}"><span class="ext${x === "PDF" ? " pdf" : ""}">${esc(x)}</span><span class="nm">${esc(f.name)}<small>Changed ${esc(niceDt(f.modified))}</small></span></button>`; }).join("")
-    : '<p class="hint">No file matches.</p>';
+  const btn = f => { const x = libExt(f); return `<button class="file" type="button" data-id="${esc(f.id)}"><span class="ext${x === "PDF" ? " pdf" : ""}">${esc(x)}</span><span class="nm">${esc(f.name)}<small>Changed ${esc(niceDt(f.modified))}</small></span></button>`; };
+  const opt = f => `<option value="${esc(f.id)}">${esc(f.name.replace(/\.(docx?|pdf|xlsx?)$/i, ""))}</option>`;
+  $("libList").innerHTML = list.length ? libGroups(list).map(G => {
+    const head = `<div class="dir">${esc(G.g || "(main folder)")}</div>`;
+    if (G.files.length <= 2) return head + G.files.map(btn).join("");
+    const subs = [...new Set(G.files.map(f => f.path))];
+    const body = subs.length > 1 ? subs.map(p => `<optgroup label="${esc(p === G.g ? "(this folder)" : p.slice(G.g.length + 3))}">${G.files.filter(f => f.path === p).map(opt).join("")}</optgroup>`).join("") : G.files.map(opt).join("");
+    return head + `<div class="row libpick"><select data-g aria-label="${esc(G.g)}"><option value="">${G.files.length} files. Choose one to view</option>${body}</select><button class="btn ghost small" type="button" data-open>View</button></div>`;
+  }).join("") : '<p class="hint">No file matches.</p>';
   $("libList").querySelectorAll("button.file").forEach(b => b.onclick = () => openLibFile(b.dataset.id));
+  $("libList").querySelectorAll(".libpick").forEach(r => { const sel = r.querySelector("select"); sel.onchange = () => sel.value && openLibFile(sel.value); r.querySelector("[data-open]").onclick = () => sel.value ? openLibFile(sel.value) : sel.focus(); });
 }
 function openLibFile(id) {
   const f = (LIB.files || []).find(x => x.id === id); if (!f) return;
@@ -4549,7 +4744,8 @@ $("libDlg").addEventListener("close", () => { $("libFrame").src = "about:blank";
 const flowCache = {};
 let flowCur = null;
 async function showFlow() {
-  const v = $("flowPick").value; if (!v) { $("flowView").innerHTML = ""; flowCur = null; return; }
+  const v = $("flowPick").value; $("flowPrint").classList.toggle("hidden", !v);
+  if (!v) { $("flowView").innerHTML = ""; flowCur = null; return; }
   const [id, n] = v.split("|"), p = (LIB.procs || []).find(x => x.id === id), key = v + "|" + (p ? p.modified : "");
   if (!flowCache[key]) {
     $("flowView").innerHTML = '<p class="hint">Opening the flow chart…</p>';
@@ -4610,13 +4806,19 @@ function renderIso() {
       <td class="hide-m">${esc(nice(d.effectivity))}</td><td>${isoChip(d.status)}</td><td class="hide-m">${p.map(r => "Rev. " + esc(r.rev) + " " + isoChip(r.status)).join("<br>")}</td></tr>`; }).join("")
     : '<tr><td colspan="6" class="empty">' + (D.isoDocs.length ? "Nothing matches." : "No documents yet. Run setup in Apps Script once to add the ICTU documents, or add one below.") + "</td></tr>";
   $("oTable").querySelectorAll("tbody tr[data-o]").forEach(tr => tr.onclick = () => openIsoDoc(tr.dataset.o));
-  const latest = D.isoRevs.slice().sort((a, b) => String(b.updatedAt || b.recordedAt).localeCompare(String(a.updatedAt || a.recordedAt))).slice(0, 12);
+  const when = r => String(r.updatedAt || r.recordedAt), how = $("orSort").value || "new";
+  const byNew = (a, b) => when(b).localeCompare(when(a));
+  const SORTS = { new: byNew, old: (a, b) => when(a).localeCompare(when(b)), code: (a, b) => a.code.localeCompare(b.code) || String(a.rev).localeCompare(String(b.rev)),
+    status: (a, b) => a.status.localeCompare(b.status) || byNew(a, b), eff: (a, b) => String(b.effectivity || "").localeCompare(String(a.effectivity || "")) || byNew(a, b), ref: (a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true }) };
+  let latest = D.isoRevs.slice().sort(byNew);
+  if ($("orShow").value !== "all") latest = latest.slice(0, 12);
+  latest.sort(SORTS[how] || byNew);
   $("orTable").tBodies[0].innerHTML = latest.length ? latest.map(r => `<tr data-r="${esc(r.ref)}"><td>${esc(r.ref)}</td><td><b>${esc(r.code)}</b><div class="s">${esc(r.description)}</div></td>
     <td class="num">${esc(r.rev)}</td><td class="hide-m">${esc(r.nature)}</td><td>${isoChip(r.status)}</td><td class="hide-m">${esc(nice(r.effectivity))}</td></tr>`).join("")
     : '<tr><td colspan="6" class="empty">No revisions recorded yet.</td></tr>';
   $("orTable").querySelectorAll("tbody tr[data-r]").forEach(tr => tr.onclick = () => openIsoRev(tr.dataset.r));
 }
-["oQ", "oKind", "oStatus"].forEach(id => $(id).addEventListener("input", renderIso));
+["oQ", "oKind", "oStatus", "orSort", "orShow"].forEach(id => $(id).addEventListener("input", renderIso));
 let oCur = null, ovCur = null, ovCode = "";
 const ISO_DOC_FIELDS = { oCode: "code", oTitleIn: "title", oKindIn: "kind", oRev: "rev", oEff: "effectivity", oStat: "status", oProc: "procedure", oRet: "retention", oLoc: "location", oRem: "remarks" };
 function openIsoDoc(id) {
@@ -5230,7 +5432,7 @@ function renderDash() {
   hbars($("cType"), JO_TYPES.map(g => g[0]).concat(["OTHERS"]).map(g => ({ label: { "HARDWARE": "Hardware", "SOFTWARE & SYSTEMS": "Software and systems", "NETWORK": "Network", "ICTU SERVICES": "ICTU services", "OTHERS": "Others" }[g] || g, v: byType[g] || 0 })), ["job order", "job orders"]);
   const act = D.inventory.filter(active);
   hbars($("cCond"), D.lists.conditions.filter(c => c !== "Disposed").map(c => ({ label: c, v: act.filter(i => i.condition === c).length })), ["unit", "units"], c => { $("iOffice").value = ""; invFilter(null, c); });
-  hbars($("cKind"), EQ_CATS.map(c => ({ label: c, v: act.filter(i => eqCat(i) === c).length })), ["unit", "units"], c => invFilter(null, "", c));
+  hbars($("cKind"), EQ_GROUPS.map(c => ({ label: c, v: act.filter(i => eqGroup(i) === c).length })).filter(d => d.v), ["unit", "units"], c => invFilter(null, "", c));
   const off = {}; act.forEach(i => off[i.office] = (off[i.office] || 0) + 1);
   hbars($("cOff"), Object.keys(off).sort((a, b) => off[b] - off[a]).slice(0, 10).map(o => ({ label: o, v: off[o] })), ["unit", "units"], o => invFilter(o, ""));
   // headline numbers
@@ -5245,7 +5447,7 @@ function renderDash() {
   $("dTiles").innerHTML = `<div class="tile"><div class="lb">PM up to date</div><div class="val">${pct(onTime, sch.length)}</div><div class="sm">${onTime} of ${sch.length} scheduled units.${never ? " " + never + " never had a PM yet" + (overdue ? ", " + overdue + " overdue" : "") + "." : ""}</div></div>
     <div class="tile"><div class="lb">JOs within target</div><div class="val">${pct(met, closed90.length)}</div><div class="sm">${met} of ${closed90.length} closed in 90 days. Target 90%</div></div>
     <div class="tile"><div class="lb">Client satisfaction</div><div class="val">${pct(happy, rated.length)}</div><div class="sm">${rated.length} ratings in 12 months</div></div>
-    <button class="tile${openInc ? " bad" : ""}" data-go="inc"><div class="lb">Open incidents</div><div class="val">${openInc}</div><div class="sm">not yet resolved</div></button>
+    ${openInc ? `<button class="tile bad" data-go="inc"><div class="lb">Open incidents</div><div class="val">${openInc}</div><div class="sm">not yet resolved</div></button>` : ""}
     <button class="tile${now.rows.length || nod ? " warn" : ""}" data-go="due"><div class="lb">Due for replacement</div><div class="val">${now.rows.length}</div><div class="sm">${now.rows.length ? esc(peso(now.cost) || "") + (nod ? ". " : "") : ""}${nod ? nod + " unit" + (nod === 1 ? " has" : "s have") + " no date acquired, so not counted" : (now.rows.length ? "" : "None past its useful life")}</div></button>`;
   $("dTiles").querySelectorAll("[data-go]").forEach(b => b.onclick = () => b.dataset.go === "due" ? showDue() : show(b.dataset.go));
 }

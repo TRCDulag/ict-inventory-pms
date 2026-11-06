@@ -2,6 +2,14 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.8.1 (Nov 6, 2026)
+
+- Dashboard bulletin board (new tab "Bulletin", BB-YYYY-NNN; `savePost` Technician): notices with pin and show-until, in a right column on wide screens, under the tiles on smaller PC screens, and as "Bulletin board" in the phone menu.
+- Mini calendar on the board from Google Calendar (`calEvents`, cached 10 minutes; `saveCalendar` Head sets Script property CALENDAR_ID, default is the app account's own calendar). Needs the Calendar permission: run `setup` once in Apps Script and allow it.
+- Equipment by type: printers counted as one Printers bar (the inventory filter keeps the 3-in-1 / single / generic split plus "Printers (all)"); groups with no unit are hidden. Open incidents tile hidden at 0.
+- ISO: no flow until a process is chosen; ISO files skip the CAR folder and .md/.txt notes and keep only the newest of same-named files; groups of more than 2 files are dropdowns (a folder with no files of its own, like ICTU Revisions, groups its subfolders); Latest revisions and DRFs: sort and show all.
+- Fixed: `plans` (and the new bulletin, calendar and ISO folder settings) were not kept from the load, so section PM plans disappeared after the app was opened again.
+
 ## 1.8.0 (Nov 6, 2026)
 
 - Dashboard: "Equipment by type" (Desktop / PC, Laptop, Printer 3-in-1 / single function / generic, Photocopier, Server, Tablet, Scanner, Other ICT equipment) replaces "Equipment by age". Each bar opens the inventory filtered to that group; the inventory type filter has the same groups (`eqCat`).

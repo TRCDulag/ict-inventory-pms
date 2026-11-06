@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.8.0';
+const VERSION = '1.8.1';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '00', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -76,6 +76,8 @@ const USERS = 'Users', TRANSFERS = 'Transfers', STOCK = 'Stock Items', MOVES = '
 const BACKUP_FOLDER = 'ICT Inventory and PMS Backups';
 const ISO_DOCS = 'ISO Documents', ISO_REVS = 'ISO Revisions';
 const DOWNTIME = 'Internet Downtime';
+const BULLETIN = 'Bulletin';
+const BULLETIN_HEADERS = ['Post ID', 'Title', 'Message', 'Pinned?', 'Show Until', 'Status', 'Recorded By', 'Recorded At', 'Updated At', 'Updated By'];
 
 const INV_HEADERS = ['Equipment ID', 'Property Tag No.', 'Equipment Type', 'Brand / Model', 'Description / Specs',
   'Serial No.', 'Office / Section', 'End User', 'Accountable Officer', 'Source Document (RIS / PAR / ICS)',
@@ -154,7 +156,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
-  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', saveIsoFolder: 'Head', isoLibrary: 'Viewer', isoFlow: 'Viewer', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', saveIsoFolder: 'Head', isoLibrary: 'Viewer', isoFlow: 'Viewer', savePost: 'Technician', calEvents: 'Viewer', saveCalendar: 'Head', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -264,6 +266,9 @@ function handle_(req) {
       case 'saveIsoFolder': return saveIsoFolder_(req);
       case 'isoLibrary':    return isoLibrary_(req);
       case 'isoFlow':       return isoFlow_(req);
+      case 'savePost':      ensureTab_(BULLETIN, BULLETIN_HEADERS); return saveReg_(REG.bulletin, req.item, req);
+      case 'calEvents':     return calEvents_(req);
+      case 'saveCalendar':  return saveCalendar_(req);
       case 'renameOffice':  return renameOffice_(req);
       case 'removeOffice':  return removeOffice_(req);
       case 'tidyOffices':   return tidyOffices_(req);
@@ -304,6 +309,8 @@ function load_() {
            backup: { last: props.getProperty('LAST_BACKUP') || '', url: props.getProperty('LAST_BACKUP_URL') || '', email: props.getProperty('BACKUP_EMAIL') || '',
              emailed: props.getProperty('LAST_BACKUP_EMAIL') || '' }, tirRecs: TIR_RECS,
            isoFolder: { id: props.getProperty('ISO_FOLDER_ID') || '', name: props.getProperty('ISO_FOLDER_NAME') || '' },
+           bulletin: tab(BULLETIN, BULLETIN_HEADERS).map(r => toObj_(REG.bulletin, r)),
+           calendar: { id: props.getProperty('CALENDAR_ID') || '', name: props.getProperty('CALENDAR_NAME') || '' },
            choices: { planStatus: PLAN_STATUS, transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS, downCause: DOWN_CAUSES, downScope: DOWN_SCOPES,
              isoKind: ISO_KINDS, isoDocStatus: ISO_DOC_STATUS, isoNature: ISO_NATURE, isoRevStatus: ISO_REV_STATUS } };
 }
@@ -1572,6 +1579,11 @@ const REG = {
     choices: { status: PLAN_STATUS }, defaults: { status: 'Planned' },
     next: (sh, now) => nextNo_(sh, 1, 'PP-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3),
     check: (row, H) => planCheck_(row, H) },
+  bulletin: { tab: BULLETIN, h: BULLETIN_HEADERS, label: 'BULLETIN POST',
+    map: { id: 'Post ID', title: 'Title', message: 'Message', pinned: 'Pinned?', until: 'Show Until', status: 'Status',
+      recordedBy: 'Recorded By', recordedAt: 'Recorded At', updatedAt: 'Updated At', updatedBy: 'Updated By' },
+    days: ['until'], required: ['title'], choices: { pinned: ['Yes', 'No'], status: ['Posted', 'Removed'] }, defaults: { status: 'Posted', pinned: 'No' },
+    next: (sh, now) => nextNo_(sh, 1, 'BB-' + Utilities.formatDate(now, TZ, 'yyyy') + '-', 3) },
   isoDoc: { tab: ISO_DOCS, h: ISO_DOC_HEADERS, label: 'ISO DOCUMENT',
     map: { id: 'Doc ID', code: 'Document Code', title: 'Title', kind: 'Kind', rev: 'Current Rev.', effectivity: 'Effectivity Date',
       status: 'Status', procedure: 'Related Procedure', location: 'File / Copy Location', retention: 'Retention', remarks: 'Remarks',
@@ -2187,7 +2199,7 @@ function setup() {
   const ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone(TZ);
   [[INV, INV_HEADERS], [PM, PM_HEADERS], [CHK, CHK_HEADERS], [AUDIT, AUDIT_HEADERS], [JO, JO_HEADERS], [USERS, USER_HEADERS],
-   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [DOWNTIME, DOWN_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS], [PLAN, PLAN_HEADERS], [EMP_EDITS, EMP_EDIT_HEADERS]].forEach(([name, h]) => {
+   [TRANSFERS, TRANSFER_HEADERS], [STOCK, STOCK_HEADERS], [MOVES, MOVE_HEADERS], [INCIDENTS, INCIDENT_HEADERS], [NETWORK, NET_HEADERS], [DOWNTIME, DOWN_HEADERS], [ISO_DOCS, ISO_DOC_HEADERS], [ISO_REVS, ISO_REV_HEADERS], [PLAN, PLAN_HEADERS], [EMP_EDITS, EMP_EDIT_HEADERS], [BULLETIN, BULLETIN_HEADERS]].forEach(([name, h]) => {
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
     // Writes the header row when it is missing, and adds new columns to an older tab (such as a pasted JO Log).
     const have = sh.getRange(1, 1, 1, h.length).getValues()[0];
@@ -2876,6 +2888,8 @@ function json_(obj) {
 // as it is each time, so a file added or changed in the folder shows up on the next refresh. Procedures are read
 // for their flow charts (the 3-column table: who / shape / what is done) so each process can be viewed in the app.
 const ISO_MAX_FILES = 400;
+// Not shown in the app: the CAR folder (Jed, 6 Nov 2026) and notes such as "Please read first.md".
+const ISO_SKIP_FOLDER = /^CARs?\b/i, ISO_SKIP_FILE = /\.(md|txt)$|^~\$|^desktop\.ini$/i;
 
 function isoFolderId_(v) {
   const s = String(v || '').trim(), m = s.match(/\/folders\/([\w-]{10,})/) || s.match(/[?&]id=([\w-]{10,})/) || s.match(/^([\w-]{10,})$/);
@@ -2911,15 +2925,19 @@ function isoFolder_() {
 function isoWalk_(folder) {
   const out = [];
   (function walk(f, path, depth) {
-    const files = f.getFiles();
+    const files = f.getFiles(), here = {};
     while (files.hasNext() && out.length < ISO_MAX_FILES) {
-      const x = files.next();
-      out.push({ id: x.getId(), name: x.getName(), path: path, mime: x.getMimeType(), size: x.getSize(),
-        modified: dt_(x.getLastUpdated()), url: x.getUrl() });
+      const x = files.next(), name = x.getName();
+      if (ISO_SKIP_FILE.test(name)) continue;
+      // two copies with the same name (an upload done twice): keep the newest only
+      const t = x.getLastUpdated().getTime() * 1000 + (x.getDateCreated ? x.getDateCreated().getTime() % 1000 : 0), key = name.toLowerCase();
+      if (here[key] && here[key].t >= t) continue;
+      here[key] = { t: t, f: { id: x.getId(), name: name, path: path, mime: x.getMimeType(), size: x.getSize(), modified: dt_(x.getLastUpdated()), url: x.getUrl() } };
     }
+    Object.keys(here).map(k => here[k].f).sort((a, b) => a.name.localeCompare(b.name)).forEach(x => out.push(x));
     if (depth >= 5) return;
     const subs = [], it = f.getFolders();
-    while (it.hasNext()) subs.push(it.next());
+    while (it.hasNext()) { const sf = it.next(); if (!ISO_SKIP_FOLDER.test(sf.getName())) subs.push(sf); }
     subs.sort((a, b) => a.getName().localeCompare(b.getName())).forEach(s => walk(s, path ? path + ' / ' + s.getName() : s.getName(), depth + 1));
   })(folder, '', 0);
   return out;
@@ -3089,5 +3107,51 @@ function isoParseDoc_(xml, pic, fileName) {
   });
   res.sections.forEach(s => { s.title = s.title.replace(/\s+/g, ' ').trim(); });
   if (!res.title) res.title = String(fileName || '').replace(/\.(docx|pdf)$/i, '').replace(/[A-Z]{2,5}-[A-Z]{2,5}-P-\d+/i, '').replace(/\bRev\.?\s*\d+/i, '').replace(/\s+/g, ' ').trim();
+  return res;
+}
+
+
+// ---------- bulletin board calendar (1.8.1) ----------
+// The mini calendar on the bulletin board shows the titles of the activities in one Google Calendar:
+// the calendar of the account that runs the app, or the one whose ID the Head sets (it must be shared with that account).
+function calendar_() {
+  const id = PropertiesService.getScriptProperties().getProperty('CALENDAR_ID');
+  if (!id) return CalendarApp.getDefaultCalendar();
+  const c = CalendarApp.getCalendarById(id);
+  if (!c) throw new Error('The calendar ' + id + ' cannot be opened. Share it with the Google account that runs the app ("See all event details"), then try again.');
+  return c;
+}
+
+function saveCalendar_(req) {
+  const props = PropertiesService.getScriptProperties(), id = String(req.id || '').trim();
+  if (id && !/^[^\s@]+@[^\s@]+$/.test(id)) throw new Error('The calendar ID looks like an email address, for example name@gmail.com or ...@group.calendar.google.com.');
+  let name = '';
+  if (id) {
+    const c = CalendarApp.getCalendarById(id);
+    if (!c) throw new Error('The app cannot open the calendar ' + id + '. In Google Calendar, share it with the account that runs the app, then try again.');
+    name = c.getName();
+  }
+  props.setProperty('CALENDAR_ID', id); props.setProperty('CALENDAR_NAME', name);
+  audit_('', 'CALENDAR CHANGED', req.by, id ? 'Bulletin board calendar set to ' + name + ' (' + id + ').' : 'Bulletin board calendar set back to the app account\'s own calendar.', req.device);
+  return { ok: true, calendar: { id: id, name: name } };
+}
+
+// Events from `from` to `to` (YYYY-MM-DD, up to 62 days): title, start, end, all day, location. Kept 10 minutes.
+function calEvents_(req) {
+  const from = day_(req.from), to = day_(req.to);
+  if (!from || !to || to < from) throw new Error('Pick the dates to show.');
+  const a = new Date(from + 'T00:00:00+08:00'), b = new Date(new Date(to + 'T00:00:00+08:00').getTime() + 864e5);
+  if ((b - a) / 864e5 > 62) throw new Error('Up to two months at a time.');
+  const props = PropertiesService.getScriptProperties(), key = 'cal_' + (props.getProperty('CALENDAR_ID') || 'default') + '_' + from + '_' + to;
+  const cache = CacheService.getScriptCache();
+  if (!req.fresh) { const hit = cache.get(key); if (hit) return JSON.parse(hit); }
+  let cal;
+  try { cal = calendar_(); } catch (err) { return { ok: false, error: String(err.message || err) }; }
+  const evs = cal.getEvents(a, b).slice(0, 300).map(e => ({ title: e.getTitle() || '(no title)', allDay: e.isAllDayEvent(),
+    start: Utilities.formatDate(e.getStartTime(), TZ, 'yyyy-MM-dd HH:mm'), end: Utilities.formatDate(e.getEndTime(), TZ, 'yyyy-MM-dd HH:mm'),
+    location: e.getLocation() || '' }));
+  const res = { ok: true, calendar: cal.getName(), events: evs };
+  const text = JSON.stringify(res);
+  if (text.length < 95000) cache.put(key, text, 600);
   return res;
 }
