@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.8.1';
+const VERSION = '1.8.2';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '00', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -156,7 +156,7 @@ const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
-  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', saveIsoFolder: 'Head', isoLibrary: 'Viewer', isoFlow: 'Viewer', savePost: 'Technician', calEvents: 'Viewer', saveCalendar: 'Head', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
+  savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', saveIsoFolder: 'Head', isoLibrary: 'Viewer', isoFlow: 'Viewer', savePost: 'Technician', calEvents: 'Viewer', saveCalendar: 'Head', saveEvent: 'Technician', removeEvent: 'Technician', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
 const SESSION_SECONDS = 6 * 3600;
 const TIR_RECS = ['Repair in-house', 'Repair with parts to be procured', 'Send to supplier / warranty service',
   'Beyond economical repair: for condemnation', 'For replacement'];
@@ -269,6 +269,8 @@ function handle_(req) {
       case 'savePost':      ensureTab_(BULLETIN, BULLETIN_HEADERS); return saveReg_(REG.bulletin, req.item, req);
       case 'calEvents':     return calEvents_(req);
       case 'saveCalendar':  return saveCalendar_(req);
+      case 'saveEvent':     return saveEvent_(req);
+      case 'removeEvent':   return removeEvent_(req);
       case 'renameOffice':  return renameOffice_(req);
       case 'removeOffice':  return removeOffice_(req);
       case 'tidyOffices':   return tidyOffices_(req);
@@ -310,7 +312,7 @@ function load_() {
              emailed: props.getProperty('LAST_BACKUP_EMAIL') || '' }, tirRecs: TIR_RECS,
            isoFolder: { id: props.getProperty('ISO_FOLDER_ID') || '', name: props.getProperty('ISO_FOLDER_NAME') || '' },
            bulletin: tab(BULLETIN, BULLETIN_HEADERS).map(r => toObj_(REG.bulletin, r)),
-           calendar: { id: props.getProperty('CALENDAR_ID') || '', name: props.getProperty('CALENDAR_NAME') || '' },
+           calendar: { id: props.getProperty('CALENDAR_ID') || '', name: props.getProperty('CALENDAR_NAME') || '', holidays: props.getProperty('CAL_HOLIDAYS') !== 'no' },
            choices: { planStatus: PLAN_STATUS, transfer: TRANSFER_KINDS, move: MOVE_KINDS, incType: INC_TYPES, netKind: NET_KINDS, downCause: DOWN_CAUSES, downScope: DOWN_SCOPES,
              isoKind: ISO_KINDS, isoDocStatus: ISO_DOC_STATUS, isoNature: ISO_NATURE, isoRevStatus: ISO_REV_STATUS } };
 }
@@ -2238,6 +2240,7 @@ function setup() {
   sigFolder_();
   backupFolder_();
   installBackupTrigger_();
+  holidayCal_(); // asks for the calendar permission once and adds the Philippine holidays calendar
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('ICTU_PASSCODE')) props.setProperty('ICTU_PASSCODE', '1234');
   normalizeInventory_();
@@ -3131,27 +3134,92 @@ function saveCalendar_(req) {
     if (!c) throw new Error('The app cannot open the calendar ' + id + '. In Google Calendar, share it with the account that runs the app, then try again.');
     name = c.getName();
   }
-  props.setProperty('CALENDAR_ID', id); props.setProperty('CALENDAR_NAME', name);
-  audit_('', 'CALENDAR CHANGED', req.by, id ? 'Bulletin board calendar set to ' + name + ' (' + id + ').' : 'Bulletin board calendar set back to the app account\'s own calendar.', req.device);
-  return { ok: true, calendar: { id: id, name: name } };
+  const hol = req.holidays !== false && req.holidays !== 'no';
+  props.setProperty('CALENDAR_ID', id); props.setProperty('CALENDAR_NAME', name); props.setProperty('CAL_HOLIDAYS', hol ? 'yes' : 'no'); calBump_();
+  audit_('', 'CALENDAR CHANGED', req.by, (id ? 'Bulletin board calendar set to ' + name + ' (' + id + ').' : 'Bulletin board calendar set back to the app account\'s own calendar.') + (hol ? ' Philippine holidays shown.' : ' Holidays not shown.'), req.device);
+  return { ok: true, calendar: { id: id, name: name, holidays: hol } };
 }
 
-// Events from `from` to `to` (YYYY-MM-DD, up to 62 days): title, start, end, all day, location. Kept 10 minutes.
+// Philippine holidays come from Google's public holiday calendar, shown next to the activities (1.8.2).
+const HOLIDAY_CAL = 'en.philippines#holiday@group.v.calendar.google.com';
+const CAL_TAG = 'ictpms';
+function calBump_() { const p = PropertiesService.getScriptProperties(); p.setProperty('CAL_VER', String((Number(p.getProperty('CAL_VER')) || 0) + 1)); }
+function holidayCal_() {
+  try { return CalendarApp.getCalendarById(HOLIDAY_CAL) || CalendarApp.subscribeToCalendar(HOLIDAY_CAL, { hidden: true, selected: false }); }
+  catch (err) { return null; }
+}
+
+// Events from `from` to `to` (YYYY-MM-DD, up to 62 days): title, start, end, all day, location, plus Philippine holidays. Kept 10 minutes.
 function calEvents_(req) {
   const from = day_(req.from), to = day_(req.to);
   if (!from || !to || to < from) throw new Error('Pick the dates to show.');
   const a = new Date(from + 'T00:00:00+08:00'), b = new Date(new Date(to + 'T00:00:00+08:00').getTime() + 864e5);
   if ((b - a) / 864e5 > 62) throw new Error('Up to two months at a time.');
-  const props = PropertiesService.getScriptProperties(), key = 'cal_' + (props.getProperty('CALENDAR_ID') || 'default') + '_' + from + '_' + to;
+  const props = PropertiesService.getScriptProperties(), hol = props.getProperty('CAL_HOLIDAYS') !== 'no';
+  const key = 'cal_' + (props.getProperty('CALENDAR_ID') || 'default') + '_' + (props.getProperty('CAL_VER') || 0) + (hol ? 'h' : '') + '_' + from + '_' + to;
   const cache = CacheService.getScriptCache();
   if (!req.fresh) { const hit = cache.get(key); if (hit) return JSON.parse(hit); }
   let cal;
   try { cal = calendar_(); } catch (err) { return { ok: false, error: String(err.message || err) }; }
-  const evs = cal.getEvents(a, b).slice(0, 300).map(e => ({ title: e.getTitle() || '(no title)', allDay: e.isAllDayEvent(),
+  const one = (e, holiday) => ({ id: holiday ? '' : e.getId(), title: e.getTitle() || '(no title)', allDay: e.isAllDayEvent(),
     start: Utilities.formatDate(e.getStartTime(), TZ, 'yyyy-MM-dd HH:mm'), end: Utilities.formatDate(e.getEndTime(), TZ, 'yyyy-MM-dd HH:mm'),
-    location: e.getLocation() || '' }));
-  const res = { ok: true, calendar: cal.getName(), events: evs };
+    location: holiday ? '' : (e.getLocation() || ''), holiday: !!holiday, mine: !holiday && e.getTag && e.getTag(CAL_TAG) === '1' });
+  const evs = cal.getEvents(a, b).slice(0, 300).map(e => one(e, false));
+  let holidays = false;
+  if (hol) {
+    const hc = holidayCal_();
+    if (hc) {
+      holidays = true;
+      const seen = {}; evs.forEach(e => { seen[e.start.slice(0, 10) + '|' + e.title.toLowerCase()] = 1; });
+      hc.getEvents(a, b).slice(0, 60).forEach(e => { const x = one(e, true); if (!seen[x.start.slice(0, 10) + '|' + x.title.toLowerCase()]) evs.push(x); });
+      evs.sort((x, y) => x.start.localeCompare(y.start) || (y.holiday ? 1 : 0) - (x.holiday ? 1 : 0));
+    }
+  }
+  const res = { ok: true, calendar: cal.getName(), holidays: holidays, events: evs };
   const text = JSON.stringify(res);
   if (text.length < 95000) cache.put(key, text, 600);
   return res;
+}
+
+// Adds an activity to the bulletin board's Google Calendar (it shows in Google Calendar on phones too).
+function saveEvent_(req) {
+  const e = req.item || {}, title = String(e.title || '').trim().slice(0, 120), date = day_(e.date), endDate = day_(e.endDate) || date;
+  if (!title) throw new Error('Type what the activity is.');
+  if (!date) throw new Error('Pick the date of the activity.');
+  if (endDate < date) throw new Error('The last day cannot be before the first day.');
+  const tm = v => { const m = String(v || '').match(/^(\d{1,2}):(\d{2})$/); return m && +m[1] < 24 && +m[2] < 60 ? ('0' + m[1]).slice(-2) + ':' + m[2] : ''; };
+  const allDay = e.allDay === true || e.allDay === 'Yes';
+  const opts = { location: String(e.location || '').trim().slice(0, 200),
+    description: (String(e.notes || '').trim().slice(0, 1500) + '\n\nAdded from the ICT Inventory and PMS app by ' + req.by + '.').trim() };
+  let cal;
+  try { cal = calendar_(); } catch (err) { return { ok: false, error: String(err.message || err) }; }
+  let ev;
+  if (allDay) {
+    const next = new Date(new Date(endDate + 'T00:00:00+08:00').getTime() + 864e5);
+    ev = cal.createAllDayEvent(title, new Date(date + 'T00:00:00+08:00'), next, opts);
+  } else {
+    const s = tm(e.start), f = tm(e.end);
+    if (!s) throw new Error('Type the start time, or tick All day.');
+    const a = new Date(date + 'T' + s + ':00+08:00'), b = f ? new Date(endDate + 'T' + f + ':00+08:00') : new Date(a.getTime() + 36e5);
+    if (b <= a) throw new Error('The end time must be after the start time.');
+    ev = cal.createEvent(title, a, b, opts);
+  }
+  try { ev.setTag(CAL_TAG, '1'); } catch (err) { /* tags are optional */ }
+  calBump_();
+  audit_('', 'ACTIVITY ADDED', req.by, title + ' on ' + date + (endDate !== date ? ' to ' + endDate : '') + ' (' + cal.getName() + ').', req.device);
+  return { ok: true, id: ev.getId() };
+}
+
+// Removes an activity, only one that was added from the app.
+function removeEvent_(req) {
+  const id = String(req.id || '');
+  let cal;
+  try { cal = calendar_(); } catch (err) { return { ok: false, error: String(err.message || err) }; }
+  const ev = id ? cal.getEventById(id) : null;
+  if (!ev) throw new Error('That activity is not in the calendar anymore.');
+  if (ev.getTag(CAL_TAG) !== '1') throw new Error('Only activities added from the app can be removed here. Remove the others in Google Calendar.');
+  const title = ev.getTitle();
+  ev.deleteEvent(); calBump_();
+  audit_('', 'ACTIVITY REMOVED', req.by, title + ' (' + cal.getName() + ').', req.device);
+  return { ok: true };
 }

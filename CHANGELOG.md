@@ -2,6 +2,13 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.8.2 (Nov 6, 2026)
+
+- Calendar on the bulletin board stays synced with Google Calendar. New `saveEvent` (Technician) adds an activity (timed, all day, or several days) to the board's calendar; `removeEvent` (Technician) removes only activities the app added (tagged `ictpms`). The cache is cleared on each change (Script property CAL_VER).
+- Philippine holidays from Google's public calendar (en.philippines#holiday@group.v.calendar.google.com), merged into `calEvents` and shown in red. `setup` subscribes the app account to it. The Head can hide them in Calendar settings (Script property CAL_HOLIDAYS). Adding events needs the full Calendar permission: run `setup` once and allow it.
+- ISO files: a folder with loose files and subfolders (ICTU Forms DRF) shows two lists, ICTU Forms DRF (the DRFs subfolder, loose files such as the all-in-one preview at the bottom) and ICTU Forms (Drafts). Year ranges are left out of folder names (ICTU Revisions 2025-2026 shows as ICTU Revisions), and merged subfolders are listed newest first.
+- Latest revisions and DRFs: 6 per page with page numbers (replaces "latest 12 / all"); the sort applies to the whole list.
+
 ## 1.8.1 (Nov 6, 2026)
 
 - Dashboard bulletin board (new tab "Bulletin", BB-YYYY-NNN; `savePost` Technician): notices with pin and show-until, in a right column on wide screens, under the tiles on smaller PC screens, and as "Bulletin board" in the phone menu.

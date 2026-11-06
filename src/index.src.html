@@ -120,6 +120,11 @@
   .calgrid button .n { font-weight: 600; } .calgrid button .t { font-size: 9.5px; line-height: 1.15; color: #1E5BC6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
   .callist { margin-top: 8px; font-size: 13px; } .callist .ev { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line-2); }
   .callist .ev .d { flex: none; width: 72px; color: var(--muted); font-size: 12px; } .callist .ev .tt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .pager { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 10px; }
+  .pager .pg { min-width: 36px; height: 34px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  .pager .pg.on { background: #1E5BC6; border-color: #1E5BC6; color: #fff; font-weight: 700; } .pager .pg:disabled { opacity: .35; cursor: default; } .pager .pgdots { align-self: center; padding: 0 2px; color: var(--muted); }
+  .calgrid button .t.hol, .callist .ev.hol .tt { color: #C5221F; } .calgrid button.hasHol .n { color: #C5221F; }
+  .callist .ev .rm { margin-left: 6px; font-size: 12px; }
   .calsrc { margin: 8px 0 0; font-size: 12px; } .linkbtn { background: none; border: 0; padding: 0; color: #1E5BC6; font: inherit; cursor: pointer; text-decoration: underline; }
   body:not(.r1) .r1only { display: none; }
   /* process flows: lane | shape | what is done, like the procedure's flow chart */
@@ -1019,7 +1024,7 @@
           <div class="calh"><button class="calnav" id="calPrev" type="button" aria-label="Previous month">‹</button><b id="calTitle"></b><button class="calnav" id="calNext" type="button" aria-label="Next month">›</button></div>
           <div class="calgrid" id="calGrid"></div>
           <div class="callist" id="calList"></div>
-          <p class="hint calsrc"><span id="calSrc"></span> <button class="linkbtn need3" id="calSet" type="button">Change calendar</button></p>
+          <p class="hint calsrc"><button class="btn small ghost need2" id="calAdd" type="button">Add activity</button> <span id="calSrc"></span> <button class="linkbtn need3" id="calSet" type="button">Calendar settings</button></p>
         </div>
       </div>
     </aside></div>
@@ -1082,7 +1087,8 @@
       <tfoot class="need2"><tr><td colspan="6"><button class="addrow" id="addIsoDoc" type="button"><span class="plus">+</span>Add a controlled document</button></td></tr></tfoot></table></div>
     <div class="panel" style="margin-top:16px"><h3>Latest revisions and DRFs</h3>
       <div class="filters"><label class="f">Sort by<select id="orSort"><option value="new">Latest change first</option><option value="old">Oldest change first</option><option value="code">Document code</option><option value="status">Status</option><option value="eff">Effectivity date, newest first</option><option value="ref">Ref. No.</option></select></label>
-        <label class="f">Show<select id="orShow"><option value="12">The latest 12</option><option value="all">All revisions and DRFs</option></select></label></div><div class="tablewrap"><table class="list cards" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div></div>
+        <span class="hint" id="orCount" style="align-self:end;margin:0 0 8px"></span></div><div class="tablewrap"><table class="list cards" id="orTable"><thead><tr><th>Ref.</th><th>Document</th><th>Rev.</th><th class="hide-m">Nature</th><th>Status</th><th class="hide-m">Effectivity</th></tr></thead><tbody></tbody></table></div>
+      <div class="pager" id="orPager" aria-label="Pages"></div></div>
   </section>
 
   <!-- SPARE PARTS AND CONSUMABLES -->
@@ -1445,9 +1451,28 @@
     <div class="db">
       <p class="hint" style="margin:0 0 10px">The board shows the activities of one Google Calendar. Leave it blank to use the calendar of the Google account that runs the app. To show your own calendar: in Google Calendar, open Settings, pick your calendar, under "Share with specific people" add the app's account with "See all event details", then copy the Calendar ID (under "Integrate calendar") here.</p>
       <label class="f">Calendar ID<input id="calId" type="text" placeholder="name@gmail.com"></label>
+      <label class="f chk"><input id="calHol" type="checkbox" checked> Show Philippine holidays</label>
       <div class="msg" id="calMsg" role="status"></div>
     </div>
     <div class="df"><span class="spacer"></span><button class="btn" type="submit" id="calSave">Use this calendar</button></div>
+  </form>
+</dialog>
+
+<dialog id="evDlg">
+  <form id="evForm" method="dialog" autocomplete="off">
+    <div class="dh"><h3>Add an activity</h3><button class="x" type="button" data-close aria-label="Close">×</button></div>
+    <div class="db">
+      <label class="f"><span class="req">Activity</span><input id="evT" maxlength="120" placeholder="For example: Network cabling, 2nd floor"></label>
+      <div class="grid g2"><label class="f"><span class="req">Date</span><input id="evD" type="date"></label>
+        <label class="f chk" style="align-self:end"><input id="evAll" type="checkbox"> All day</label></div>
+      <div class="grid g2" id="evTimes"><label class="f">Starts<input id="evS" type="time" value="08:00"></label><label class="f">Ends<input id="evE" type="time" value="09:00"></label></div>
+      <label class="f" id="evLastW">Last day (for an activity of more than one day)<input id="evL" type="date"></label>
+      <label class="f">Where<input id="evW" maxlength="200" placeholder="Optional"></label>
+      <label class="f">Notes<textarea id="evN" rows="3" maxlength="1500" placeholder="Optional"></textarea></label>
+      <p class="hint" style="margin:6px 0 0" id="evWhere"></p>
+      <div class="msg" id="evMsg" role="status"></div>
+    </div>
+    <div class="df"><span class="spacer"></span><button class="btn" type="submit" id="evSave">Add to the calendar</button></div>
   </form>
 </dialog>
 
@@ -1757,9 +1782,15 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.8.1";
+const APP_VERSION = "1.8.2";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.8.2", "Nov 6, 2026", [
+    "Bulletin board: add activities to the calendar from the app (technicians and the Head). They go to the Google Calendar, so they show on phones too. Activities added here can also be removed here.",
+    "The calendar now shows Philippine holidays in red. The Head can turn them off in Calendar settings.",
+    "ISO files: ICTU Forms DRF and ICTU Forms (Drafts) are the only two lists for that folder, with the all-in-one preview at the bottom of ICTU Forms DRF.",
+    "ISO files: ICTU Revisions no longer shows the years in its name, and the newest revision comes first in the dropdown.",
+    "Latest revisions and DRFs: 6 at a time, with page numbers 1, 2, 3 and so on."]],
   ["1.8.1", "Nov 6, 2026", ["Dashboard: a bulletin board on the right with notices from ICTU (pin one to keep it on top) and a mini calendar with the titles of the activities in Google Calendar. On a phone, open it from the menu (Bulletin board).",
     "Dashboard: Equipment by type shows one Printers bar and leaves out types with no unit. Open incidents is only shown when there is one.",
     "ISO documents: the flow is shown only after you choose a process. ISO files leaves out the CAR folder and the notes, shows only the newest of two copies with the same name, and puts DRFs, Form drafts and Revisions in dropdowns. Latest revisions and DRFs can be sorted.",
@@ -4649,24 +4680,52 @@ function renderCal() {
   for (let i = 0; i < 42; i++) {
     const d = new Date(start); d.setDate(start.getDate() + i); const k = ymd(d), e = byDay[k] || [];
     if (i >= 35 && d.getMonth() !== cal.m) break;
-    h += `<button type="button" data-d="${k}" class="${d.getMonth() !== cal.m ? "out " : ""}${k === today ? "today " : ""}${k === cal.sel ? "sel" : ""}" title="${esc(e.map(x => x.title).join("\n"))}"><span class="n">${d.getDate()}</span>${e.slice(0, 2).map(x => `<span class="t">${esc(x.title)}</span>`).join("")}</button>`;
+    h += `<button type="button" data-d="${k}" class="${d.getMonth() !== cal.m ? "out " : ""}${k === today ? "today " : ""}${k === cal.sel ? "sel " : ""}${e.some(x => x.holiday) ? "hasHol" : ""}" title="${esc(e.map(x => x.title + (x.holiday ? " (holiday)" : "")).join("\n"))}"><span class="n">${d.getDate()}</span>${e.slice(0, 2).map(x => `<span class="t${x.holiday ? " hol" : ""}">${esc(x.title)}</span>`).join("")}</button>`;
   }
   $("calGrid").innerHTML = h;
   $("calGrid").querySelectorAll("button[data-d]").forEach(b => b.onclick = () => { cal.sel = cal.sel === b.dataset.d ? "" : b.dataset.d; renderCal(); });
   const tm = e => e.allDay ? "All day" : time12(e.start.slice(11));
   const shown = cal.sel ? (byDay[cal.sel] || []) : evs.filter(e => (e.allDay ? ymd(new Date(dtOf(e.end).getTime() - 1)) : e.end.slice(0, 10)) >= (cal.y === +today.slice(0, 4) && cal.m === +today.slice(5, 7) - 1 ? today : "0"));
   $("calList").innerHTML = !data ? '<p class="hint">Reading the calendar…</p>' : data.error ? '<p class="msg err" style="margin:0">' + esc(data.error) + "</p>"
-    : shown.length ? (cal.sel ? `<div class="hint" style="margin:0 0 4px">${esc(longDate(cal.sel))}</div>` : "") + shown.slice(0, 12).map(e => `<div class="ev"><span class="d">${esc(cal.sel ? tm(e) : nice(e.start.slice(0, 10)).replace(/, \d{4}$/, "") + (e.allDay ? "" : ", " + tm(e)))}</span><span class="tt">${esc(e.title)}${e.location ? '<small style="display:block;color:var(--muted)">' + esc(e.location) + "</small>" : ""}</span></div>`).join("")
+    : shown.length ? (cal.sel ? `<div class="hint" style="margin:0 0 4px">${esc(longDate(cal.sel))}</div>` : "") + shown.slice(0, 12).map(e => `<div class="ev${e.holiday ? " hol" : ""}"><span class="d">${esc(cal.sel ? tm(e) : nice(e.start.slice(0, 10)).replace(/, \d{4}$/, "") + (e.allDay ? "" : ", " + tm(e)))}</span><span class="tt">${esc(e.title)}${e.holiday ? '<small style="display:block;color:var(--muted)">Holiday</small>' : ""}${e.location ? '<small style="display:block;color:var(--muted)">' + esc(e.location) + "</small>" : ""}${e.mine ? `<button type="button" class="linkbtn rm need2" data-rm="${esc(e.id)}" data-t="${esc(e.title)}">Remove</button>` : ""}</span></div>`).join("")
     : '<p class="hint" style="margin:4px 0">' + (cal.sel ? "Nothing on " + esc(longDate(cal.sel)) + "." : "No more activities this month.") + "</p>";
-  $("calSrc").textContent = data && data.calendar ? "From " + data.calendar + "." : "";
+  $("calSrc").textContent = data && data.calendar ? "From " + data.calendar + (data.holidays ? ", with Philippine holidays." : ".") : "";
+  $("calList").querySelectorAll("button[data-rm]").forEach(b => b.onclick = () => removeEvent(b.dataset.rm, b.dataset.t));
 }
+function calReload() { cal.data = {}; renderCal(); }
+async function removeEvent(id, title) {
+  if (!confirm("Remove \u201c" + title + "\u201d from the calendar?")) return;
+  try { const j = await api({ action: "removeEvent", id }); if (!j.ok) return alert(j.error); calReload(); }
+  catch (err) { alert(errText(err)); }
+}
+function evTimes() { const all = $("evAll").checked; $("evTimes").classList.toggle("hidden", all); }
+$("evAll").onchange = evTimes;
+$("calAdd").onclick = () => {
+  ["evT", "evL", "evW", "evN"].forEach(id => $(id).value = ""); $("evAll").checked = false; $("evS").value = "08:00"; $("evE").value = "09:00";
+  $("evD").value = cal.sel || todayStr(); evTimes(); msg("evMsg", "");
+  $("evWhere").textContent = "It goes to " + ((D.calendar || {}).name || "the app's Google Calendar") + ", so it also shows in Google Calendar on phones.";
+  $("evDlg").showModal(); $("evT").focus();
+};
+$("evForm").onsubmit = async e => {
+  e.preventDefault();
+  const item = { title: $("evT").value, date: $("evD").value, endDate: $("evL").value, allDay: $("evAll").checked, start: $("evS").value, end: $("evE").value, location: $("evW").value, notes: $("evN").value };
+  if (!item.title.trim()) return msg("evMsg", "Type what the activity is.", "err");
+  if (!item.date) return msg("evMsg", "Pick the date.", "err");
+  $("evSave").disabled = true; msg("evMsg", "Adding…");
+  try {
+    const j = await api({ action: "saveEvent", item });
+    if (!j.ok) return msg("evMsg", j.error, "err");
+    $("evDlg").close(); const d = parse(item.date); cal.y = d.getFullYear(); cal.m = d.getMonth(); cal.sel = item.date; calReload();
+  } catch (err) { msg("evMsg", errText(err), "err"); }
+  finally { $("evSave").disabled = false; }
+};
 $("calPrev").onclick = () => { cal.m--; if (cal.m < 0) { cal.m = 11; cal.y--; } cal.sel = ""; renderCal(); };
 $("calNext").onclick = () => { cal.m++; if (cal.m > 11) { cal.m = 0; cal.y++; } cal.sel = ""; renderCal(); };
-$("calSet").onclick = () => { $("calId").value = (D.calendar || {}).id || ""; msg("calMsg", ""); $("calDlg").showModal(); };
+$("calSet").onclick = () => { $("calId").value = (D.calendar || {}).id || ""; $("calHol").checked = (D.calendar || {}).holidays !== false; msg("calMsg", ""); $("calDlg").showModal(); };
 $("calForm").onsubmit = async e => {
   e.preventDefault(); $("calSave").disabled = true; msg("calMsg", "Opening the calendar…");
   try {
-    const j = await api({ action: "saveCalendar", id: $("calId").value });
+    const j = await api({ action: "saveCalendar", id: $("calId").value, holidays: $("calHol").checked });
     if (!j.ok) return msg("calMsg", j.error, "err");
     D.calendar = j.calendar; cal.data = {}; $("calDlg").close(); renderCal();
   } catch (err) { msg("calMsg", errText(err), "err"); }
@@ -4706,16 +4765,30 @@ function renderLib() {
   $("flowPrint").classList.toggle("hidden", !$("flowPick").value);
   $("libInfo").textContent = (LIB.files || []).length + " files in \u201c" + LIB.folder.name + "\u201d. Read " + niceDt(LIB.read) + ".";
   const dirs = [...new Set((LIB.files || []).map(f => f.path || "(main folder)"))];
-  const kd = $("libDir").value; $("libDir").innerHTML = opts(dirs, "All folders"); if (dirs.includes(kd)) $("libDir").value = kd;
+  const kd = $("libDir").value; $("libDir").innerHTML = '<option value="">All folders</option>' + dirs.map(x => `<option value="${esc(x)}">${esc(noYears(x))}</option>`).join(""); if (dirs.includes(kd)) $("libDir").value = kd;
   renderLibList(); showFlow();
 }
-// Files by folder. A folder with no files of its own (like ICTU Revisions) takes in its subfolders as one group.
+// Files by folder. A folder with no files of its own (like ICTU Revisions) takes in its subfolders as one group, newest folder first.
+// A folder with loose files and subfolders (ICTU Forms DRF): the loose files go at the bottom of its DRFs subfolder, which takes the
+// folder's name; a drafts subfolder becomes "ICTU Forms (Drafts)". Year ranges in folder names are not shown, so the names still fit next year.
 // A group of more than 2 files is a dropdown; 1 or 2 files are shown as buttons.
+const noYears = t => String(t).replace(/\s*\(?\b(?:19|20)\d{2}\s*(?:-|–|to)\s*(?:19|20)\d{2}\)?/gi, "").replace(/\s{2,}/g, " ").trim();
+const byLatest = (a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: "base" });
 function libGroups(list) {
   const own = new Set((LIB.files || []).map(f => f.path));
   const groupOf = path => { let g = path; while (g.includes(" / ")) { const up = g.slice(0, g.lastIndexOf(" / ")); if (own.has(up)) break; g = up; } return g; };
   const out = [];
   list.forEach(f => { const g = groupOf(f.path || ""); let x = out.find(o => o.g === g); if (!x) out.push(x = { g, files: [] }); x.files.push(f); });
+  out.slice().forEach(G => {
+    if (!G.g) return;
+    const kids = out.filter(o => o.g.startsWith(G.g + " / ") && !o.g.slice(G.g.length + 3).includes(" / "));
+    if (!kids.length) return;
+    const sub = k => k.g.slice(G.g.length + 3), main = kids.find(k => /\bDRFs?\b/i.test(sub(k))) || kids[0];
+    main.files.push(...G.files); main.flat = true; main.label = G.g;
+    kids.forEach(k => { if (k !== main) k.label = /draft/i.test(sub(k)) ? G.g.replace(/\s+DRFs?$/i, "") + " (Drafts)" : G.g + " / " + sub(k); });
+    out.splice(out.indexOf(G), 1);
+  });
+  out.forEach(G => { G.label = noYears(G.label || G.g); });
   return out;
 }
 function renderLibList() {
@@ -4724,11 +4797,11 @@ function renderLibList() {
   const btn = f => { const x = libExt(f); return `<button class="file" type="button" data-id="${esc(f.id)}"><span class="ext${x === "PDF" ? " pdf" : ""}">${esc(x)}</span><span class="nm">${esc(f.name)}<small>Changed ${esc(niceDt(f.modified))}</small></span></button>`; };
   const opt = f => `<option value="${esc(f.id)}">${esc(f.name.replace(/\.(docx?|pdf|xlsx?)$/i, ""))}</option>`;
   $("libList").innerHTML = list.length ? libGroups(list).map(G => {
-    const head = `<div class="dir">${esc(G.g || "(main folder)")}</div>`;
+    const head = `<div class="dir">${esc(G.label || "(main folder)")}</div>`;
     if (G.files.length <= 2) return head + G.files.map(btn).join("");
-    const subs = [...new Set(G.files.map(f => f.path))];
-    const body = subs.length > 1 ? subs.map(p => `<optgroup label="${esc(p === G.g ? "(this folder)" : p.slice(G.g.length + 3))}">${G.files.filter(f => f.path === p).map(opt).join("")}</optgroup>`).join("") : G.files.map(opt).join("");
-    return head + `<div class="row libpick"><select data-g aria-label="${esc(G.g)}"><option value="">${G.files.length} files. Choose one to view</option>${body}</select><button class="btn ghost small" type="button" data-open>View</button></div>`;
+    const subs = G.flat ? [] : [...new Set(G.files.map(f => f.path))].sort(byLatest);
+    const body = subs.length > 1 ? subs.map(p => `<optgroup label="${esc(noYears(p === G.g ? "(this folder)" : p.slice(G.g.length + 3)))}">${G.files.filter(f => f.path === p).map(opt).join("")}</optgroup>`).join("") : G.files.map(opt).join("");
+    return head + `<div class="row libpick"><select data-g aria-label="${esc(G.label)}"><option value="">${G.files.length} files. Choose one to view</option>${body}</select><button class="btn ghost small" type="button" data-open>View</button></div>`;
   }).join("") : '<p class="hint">No file matches.</p>';
   $("libList").querySelectorAll("button.file").forEach(b => b.onclick = () => openLibFile(b.dataset.id));
   $("libList").querySelectorAll(".libpick").forEach(r => { const sel = r.querySelector("select"); sel.onchange = () => sel.value && openLibFile(sel.value); r.querySelector("[data-open]").onclick = () => sel.value ? openLibFile(sel.value) : sel.focus(); });
@@ -4810,15 +4883,30 @@ function renderIso() {
   const byNew = (a, b) => when(b).localeCompare(when(a));
   const SORTS = { new: byNew, old: (a, b) => when(a).localeCompare(when(b)), code: (a, b) => a.code.localeCompare(b.code) || String(a.rev).localeCompare(String(b.rev)),
     status: (a, b) => a.status.localeCompare(b.status) || byNew(a, b), eff: (a, b) => String(b.effectivity || "").localeCompare(String(a.effectivity || "")) || byNew(a, b), ref: (a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true }) };
-  let latest = D.isoRevs.slice().sort(byNew);
-  if ($("orShow").value !== "all") latest = latest.slice(0, 12);
-  latest.sort(SORTS[how] || byNew);
+  const all = D.isoRevs.slice().sort(SORTS[how] || byNew), pages = Math.max(1, Math.ceil(all.length / OR_PER));
+  orPage = Math.min(Math.max(1, orPage), pages);
+  const latest = all.slice((orPage - 1) * OR_PER, orPage * OR_PER);
+  $("orCount").textContent = all.length ? "Showing " + ((orPage - 1) * OR_PER + 1) + " to " + ((orPage - 1) * OR_PER + latest.length) + " of " + all.length : "";
+  $("orPager").innerHTML = pages > 1 ? pagerHtml(orPage, pages) : "";
+  $("orPager").querySelectorAll("button[data-p]").forEach(b => b.onclick = () => { orPage = +b.dataset.p; renderIso(); });
   $("orTable").tBodies[0].innerHTML = latest.length ? latest.map(r => `<tr data-r="${esc(r.ref)}"><td>${esc(r.ref)}</td><td><b>${esc(r.code)}</b><div class="s">${esc(r.description)}</div></td>
     <td class="num">${esc(r.rev)}</td><td class="hide-m">${esc(r.nature)}</td><td>${isoChip(r.status)}</td><td class="hide-m">${esc(nice(r.effectivity))}</td></tr>`).join("")
     : '<tr><td colspan="6" class="empty">No revisions recorded yet.</td></tr>';
   $("orTable").querySelectorAll("tbody tr[data-r]").forEach(tr => tr.onclick = () => openIsoRev(tr.dataset.r));
 }
-["oQ", "oKind", "oStatus", "orSort", "orShow"].forEach(id => $(id).addEventListener("input", renderIso));
+["oQ", "oKind", "oStatus"].forEach(id => $(id).addEventListener("input", renderIso));
+$("orSort").addEventListener("input", () => { orPage = 1; renderIso(); });
+// Latest revisions and DRFs: 6 at a time, with page numbers 1 2 3 ...
+const OR_PER = 6;
+let orPage = 1;
+function pagerHtml(cur, pages) {
+  let nums = [];
+  if (pages <= 9) for (let i = 1; i <= pages; i++) nums.push(i);
+  else { const a = Math.max(2, Math.min(cur - 2, pages - 5)), b = Math.min(pages - 1, a + 4); nums = [1, a > 2 ? "…" : null]; for (let i = a; i <= b; i++) nums.push(i); nums.push(b < pages - 1 ? "…" : null, pages); nums = nums.filter(x => x !== null); }
+  return `<button type="button" class="pg" data-p="${cur - 1}" ${cur === 1 ? "disabled" : ""} aria-label="Previous page">‹</button>` +
+    nums.map(n => n === "…" ? '<span class="pgdots">…</span>' : `<button type="button" class="pg${n === cur ? " on" : ""}" data-p="${n}"${n === cur ? ' aria-current="page"' : ""}>${n}</button>`).join("") +
+    `<button type="button" class="pg" data-p="${cur + 1}" ${cur === pages ? "disabled" : ""} aria-label="Next page">›</button>`;
+}
 let oCur = null, ovCur = null, ovCode = "";
 const ISO_DOC_FIELDS = { oCode: "code", oTitleIn: "title", oKindIn: "kind", oRev: "rev", oEff: "effectivity", oStat: "status", oProc: "procedure", oRet: "retention", oLoc: "location", oRem: "remarks" };
 function openIsoDoc(id) {

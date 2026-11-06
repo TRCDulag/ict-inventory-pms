@@ -69,12 +69,12 @@ const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.doc
 const ISO_TREE = { id: 'ISOFOLDER0123456789abc', name: 'ISO (test)', files: [{ id: 'README000000000001', name: 'Please read first.md', mime: 'text/markdown' }],
   folders: [{ name: 'ICTU Procedures', files: [{ id: 'PROC00000000000001', name: 'COH-IDN-P-01 Rev 01 Sample Procedure.docx', mime: DOCX,
       parts: { 'word/document.xml': PROC_XML, 'word/header2.xml': HEAD_XML, 'word/_rels/document.xml.rels': RELS, 'word/media/image1.png': PNG1, 'word/media/image2.png': PNG1 } }], folders: [] },
-    { name: 'ICTU Forms DRF', files: [{ id: 'DRF000000000000001', name: 'DRF COH-IDN-F-01 ICTU Job Order Request Form.pdf', mime: 'application/pdf' },
-      { id: 'PREVIEWOLD00000001', name: 'All DRFs (preview).pdf', mime: 'application/pdf', modified: '2026-11-04T09:00:00+08:00' },
+    { name: 'ICTU Forms DRF', files: [{ id: 'PREVIEWOLD00000001', name: 'All DRFs (preview).pdf', mime: 'application/pdf', modified: '2026-11-04T09:00:00+08:00' },
       { id: 'PREVIEWNEW00000001', name: 'All DRFs (preview).pdf', mime: 'application/pdf', modified: '2026-11-05T10:00:00+08:00' },
       { id: 'NOTE00000000000001', name: 'Please read first.md', mime: 'text/markdown' }],
-      folders: [{ name: 'DRFs', files: ['01', '02', '03'].map(n => ({ id: 'DRFF' + n + '0000000000001', name: 'DRF COH-IDN-F-' + n + '.docx', mime: DOCX })), folders: [] }] },
-    { name: 'ICTU Revisions 2025-2026', files: [], folders: ['Rev 02 (July 2025)', 'Rev 03 (January 2026)'].map((n, i) => ({ name: n, files: [{ id: 'REVF' + i + '00000000000001', name: 'COH-QMS-F-06 Context ICTU Rev 0' + (i + 2) + '.docx', mime: DOCX }, { id: 'REVG' + i + '00000000000001', name: 'COH-QMS-F-07 ROA ICTU Rev 0' + (i + 2) + '.docx', mime: DOCX }], folders: [] })) },
+      folders: [{ name: 'DRFs', files: [{ id: 'DRF000000000000001', name: 'DRF COH-IDN-F-01 ICTU Job Order Request Form.pdf', mime: 'application/pdf' }].concat(['02', '03'].map(n => ({ id: 'DRFF' + n + '0000000000001', name: 'DRF COH-IDN-F-' + n + '.docx', mime: DOCX }))), folders: [] },
+        { name: 'Form drafts', files: ['10', '11', '12'].map(n => ({ id: 'FDR' + n + '00000000000001', name: 'COH-IDN-F-' + n + ' draft.docx', mime: DOCX })), folders: [] }] },
+    { name: 'ICTU Revisions 2025-2026', files: [{ id: 'NOTE00000000000002', name: 'Please check before printing.md', mime: 'text/markdown' }], folders: ['Rev 02 (July 2025)', 'Rev 03 (January 2026)', 'Rev 04 (July 2026)'].map((n, i) => ({ name: n, files: [{ id: 'REVF' + i + '00000000000001', name: 'COH-QMS-F-06 Context ICTU Rev 0' + (i + 2) + '.docx', mime: DOCX }, { id: 'REVG' + i + '00000000000001', name: 'COH-QMS-F-07 ROA ICTU Rev 0' + (i + 2) + '.docx', mime: DOCX }], folders: [] })) },
     { name: 'CAR', files: [{ id: 'CAR000000000000001', name: 'COH-QMS-F-12 CAR (answered).pdf', mime: 'application/pdf' }], folders: [] }] };
 function isoFile(id, t) { t = t || ISO_TREE; return t.files.find(f => f.id === id) || t.folders.map(x => isoFile(id, x)).find(Boolean) || null; }
 function iter(list) { let i = 0; return { hasNext: () => i < list.length, next: () => list[i++] }; }
@@ -125,10 +125,21 @@ function createGas() {
       const text = JSON.stringify({ type: 'Laptop', brand: 'Lenovo', propertyNo: 'SEICT-HV-25-11-102', icsNo: '2025-11-212', parNo: '', accountable: 'JA Elona', cost: 'Php 45,500.00', eulYears: 5, serial: '', dateAcquired: '' });
       return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] }) }; } },
     CalendarApp: (() => {
-      const ev = (t, a, b, all) => ({ getTitle: () => t, isAllDayEvent: () => !!all, getStartTime: () => new Date(a), getEndTime: () => new Date(b), getLocation: () => '' });
-      const cal = name => ({ getName: () => name, getEvents: (a, b) => [ev('Flag ceremony', '2026-11-09T07:30:00+08:00', '2026-11-09T08:30:00+08:00'), ev('ISO internal audit', '2026-11-12T00:00:00+08:00', '2026-11-13T00:00:00+08:00', true), ev('ICTU planning', '2026-12-02T13:00:00+08:00', '2026-12-02T15:00:00+08:00')]
-        .filter(e => e.getStartTime() >= a && e.getStartTime() < b) });
-      return { getDefaultCalendar: () => cal('salagfacility@gmail.com'), getCalendarById: id => /^jed@example\.com$/.test(id) ? cal('Jed (test)') : null };
+      let n = 0;
+      const ev = (t, a, b, all, o) => { const tags = {}; return { id: 'EV' + (++n), getId() { return this.id; }, getTitle: () => t, isAllDayEvent: () => !!all, getStartTime: () => new Date(a), getEndTime: () => new Date(b),
+        getLocation: () => (o && o.location) || '', getDescription: () => (o && o.description) || '', setTag: (k, v) => { tags[k] = v; }, getTag: k => (k in tags ? tags[k] : null) }; };
+      const cal = (name, list) => ({ getName: () => name, _list: list,
+        getEvents: (a, b) => list.filter(e => e.getStartTime() >= a && e.getStartTime() < b).sort((x, y) => x.getStartTime() - y.getStartTime()),
+        createEvent(t, a, b, o) { const e = ev(t, a, b, false, o); e.deleteEvent = () => list.splice(list.indexOf(e), 1); list.push(e); return e; },
+        createAllDayEvent(t, a, b, o) { const e = ev(t, a, b, true, o); e.deleteEvent = () => list.splice(list.indexOf(e), 1); list.push(e); return e; },
+        getEventById: id => list.find(e => e.id === id) || null });
+      const own = cal('salagfacility@gmail.com', [ev('Flag ceremony', '2026-11-09T07:30:00+08:00', '2026-11-09T08:30:00+08:00'), ev('ISO internal audit', '2026-11-12T00:00:00+08:00', '2026-11-13T00:00:00+08:00', true), ev('ICTU planning', '2026-12-02T13:00:00+08:00', '2026-12-02T15:00:00+08:00')]);
+      const jed = cal('Jed (test)', [ev('ICTU planning', '2026-12-02T13:00:00+08:00', '2026-12-02T15:00:00+08:00')]);
+      const hol = cal('Holidays in the Philippines', [ev("All Saints' Day", '2026-11-01T00:00:00+08:00', '2026-11-02T00:00:00+08:00', true), ev('Bonifacio Day', '2026-11-30T00:00:00+08:00', '2026-12-01T00:00:00+08:00', true), ev('Christmas Day', '2026-12-25T00:00:00+08:00', '2026-12-26T00:00:00+08:00', true)]);
+      let subscribed = false;
+      return { getDefaultCalendar: () => own,
+        getCalendarById: id => /^jed@example\.com$/.test(id) ? jed : id === 'en.philippines#holiday@group.v.calendar.google.com' && subscribed ? hol : null,
+        subscribeToCalendar: id => { if (id !== 'en.philippines#holiday@group.v.calendar.google.com') throw new Error('no such calendar'); subscribed = true; return hol; } };
     })(),
     MailApp: { getRemainingDailyQuota: () => 100 - mails.length, sendEmail: o => { mails.push(o); } },
     HtmlService: { createHtmlOutputFromFile: () => { const o = { setTitle: () => o, setFaviconUrl: () => o, addMetaTag: () => o, setXFrameOptionsMode: () => o }; return o; }, XFrameOptionsMode: { ALLOWALL: 1 } },
