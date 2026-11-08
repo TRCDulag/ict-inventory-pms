@@ -620,9 +620,22 @@ ok(r.ok && r.jo, 'a failed email never stops the request');
 ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'ALERT EMAIL NOT SENT'), 'a failed email is noted in the Audit Trail');
 ok(call({ action: 'saveAlerts', emails: '' }).ok && !call({ action: 'listUsers' }).alerts.emails, 'blank turns the emails off');
 
+// HRMIS "Need Help?" messages (public action, shared key)
+ok(!pub({ action: 'hrmisHelp', key: 'x', msg: { from: 'A', text: 'B' } }).ok, 'HRMIS help is refused while no key is set');
+be.gas._props.HRMIS_HELP_KEY = 'k'.repeat(32);
+ok(pub({ action: 'hrmisHelp', key: 'wrong', msg: { from: 'A', text: 'B' } }).error === 'Not allowed.', 'a wrong HRMIS key is refused');
+ok(!pub({ action: 'hrmisHelp', key: 'k'.repeat(32), msg: { from: 'A', text: '' } }).ok, 'an empty HRMIS message is refused');
+be.gas._props.HRMIS_HELP_EMAILS = 'ictu@example.com';
+mails0 = be.gas._mails.length;
+r = pub({ action: 'hrmisHelp', key: 'k'.repeat(32), msg: { from: 'Juan Tester', office: 'HRDU', topic: 'Account or password', text: 'Locked <out>', page: '/x', ref: 'HM-2026-0001' } });
+const hm = be.gas._mails[be.gas._mails.length - 1];
+ok(r.ok && /^HH-\d{4}-0001$/.test(r.ref) && r.emailed && be.gas._mails.length === mails0 + 1 && hm.to === 'ictu@example.com' && /Locked &lt;out&gt;/.test(hm.htmlBody), 'an HRMIS help message is kept and emailed: ' + JSON.stringify(r));
+ok(be.gas._ss.getSheetByName('HRMIS Help')._data.some(x => x[2] === 'Juan Tester' && x[0] === r.ref), 'the HRMIS Help tab has the message');
+ok(!JSON.stringify(r).includes('ictu@example.com'), 'the reply never shows the ICTU addresses');
+
 const aud4 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['USER ADDED', 'USER UPDATED', 'SIGNED IN', 'SIGN-IN FAILED', 'PASSWORD CHANGED', 'CSM RATING', 'TRANSFER', 'STOCK ITEM ADDED', 'STOCK RECEIVED', 'STOCK ISSUED',
- 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED', 'ALERT EMAILS CHANGED', 'ALERT EMAIL TEST'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
+ 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED', 'ALERT EMAILS CHANGED', 'ALERT EMAIL TEST', 'HRMIS HELP MESSAGE'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
 const byCol = be.gas._ss.getSheetByName('Audit Trail')._data.filter(r => r[2] === 'TRANSFER').map(r => r[3]);
 ok(byCol[0] === 'Argie R. Lopez', 'audit names the signed-in person, not what the page sends');
 console.log('backend: ' + n + ' checks passed');

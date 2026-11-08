@@ -2,6 +2,10 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.8.3 (Nov 8, 2026)
+
+- New public action `hrmisHelp` for the office HRMIS "Need Help?" button. The HRMIS server sends the message with a shared key (Script property HRMIS_HELP_KEY, at least 20 characters, same as in the HRMIS under Accounts > Help button); a wrong or missing key is refused. Each message gets an HH-YYYY-NNNN number, is kept on a new "HRMIS Help" tab (made on first use) and is emailed to Script property HRMIS_HELP_EMAILS, or to the job order alert emails when that is blank. At most 30 messages an hour. The reply never shows the ICTU addresses.
+
 ## 1.8.2 (Nov 6, 2026)
 
 - Calendar on the bulletin board stays synced with Google Calendar. New `saveEvent` (Technician) adds an activity (timed, all day, or several days) to the board's calendar; `removeEvent` (Technician) removes only activities the app added (tagged `ictpms`). The cache is cleared on each change (Script property CAL_VER).

@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.8.2';
+const VERSION = '1.8.3';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '00', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -226,6 +226,7 @@ function handle_(req) {
     if (req.action === 'rateJO')     return rateJO_(req);
     if (req.action === 'signIn')     return signIn_(req);
     if (req.action === 'firstHead')  return firstHead_(req);
+    if (req.action === 'hrmisHelp')  return hrmisHelp_(req);   // from the HRMIS server, with its shared key
     // Everything else is for a signed-in ICTU user whose role allows it.
     const me = session_(req.token);
     if (!NEED[req.action]) return { ok: false, error: 'Unknown action.' };
@@ -1134,6 +1135,65 @@ function joAlert_(rec, test) {
     audit_(rec.jo, 'ALERT EMAIL NOT SENT', 'System', String(err.message || err).slice(0, 200), '');
     return false;
   }
+}
+
+// ---------- HRMIS "Need Help?" messages ----------
+// The office HRMIS server sends what an employee wrote under Contact Info. It must carry the shared key
+// (Script property HRMIS_HELP_KEY, the same text as in the HRMIS under Accounts > Help button).
+// The message is kept on the "HRMIS Help" tab and emailed to HRMIS_HELP_EMAILS (or the job order alert emails).
+const HRMIS_HELP = 'HRMIS Help';
+const HRMIS_HELP_HEADERS = ['Ref No.', 'Received', 'From', 'Office', 'Contact', 'Topic', 'Message', 'HRMIS Page', 'HRMIS Ref', 'Emailed To'];
+
+function hrmisHelp_(req) {
+  const props = PropertiesService.getScriptProperties();
+  const key = String(props.getProperty('HRMIS_HELP_KEY') || '');
+  if (key.length < 20 || String(req.key || '') !== key) return { ok: false, error: 'Not allowed.' };
+  const cache = CacheService.getScriptCache();
+  const hits = Number(cache.get('hrmisHelpHits') || 0);
+  if (hits >= 30) return { ok: false, error: 'Too many messages in the last hour. Please try again later.' };
+  cache.put('hrmisHelpHits', String(hits + 1), 3600);
+  const t = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  const m = req.msg || {};
+  const msg = { from: t(m.from, 120), office: t(m.office, 150), contact: t(m.contact, 80), topic: t(m.topic, 80),
+    text: String(m.text == null ? '' : m.text).replace(/\r\n/g, '\n').trim().slice(0, 2000), page: t(m.page, 300), ref: t(m.ref, 30) };
+  if (!msg.from || !msg.text) return { ok: false, error: 'Name and message are needed.' };
+  return withLock_(() => {
+    const ss = SpreadsheetApp.getActive();
+    let sh = ss.getSheetByName(HRMIS_HELP);
+    if (!sh) {
+      sh = ss.insertSheet(HRMIS_HELP);
+      sh.getRange(1, 1, 1, HRMIS_HELP_HEADERS.length).setValues([HRMIS_HELP_HEADERS]).setFontWeight('bold');
+      sh.setFrozenRows(1);
+    }
+    const r = lastRow_(sh) + 1;
+    const ref = 'HH-' + Utilities.formatDate(new Date(), TZ, 'yyyy') + '-' + String(r - 1).padStart(4, '0');
+    const to = String(props.getProperty('HRMIS_HELP_EMAILS') || '').split(/[\s,;]+/).map(e => e.trim().toLowerCase())
+      .filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+    const list = to.length ? to : alertEmails_();
+    let sent = '';
+    try {
+      if (list.length && typeof MailApp !== 'undefined' && MailApp.getRemainingDailyQuota() > 0) {
+        const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const lines = [['Ref No.', ref], ['From', msg.from], ['Office', msg.office], ['Contact', msg.contact], ['Topic', msg.topic],
+          ['HRMIS page', msg.page], ['HRMIS ref', msg.ref]].filter(l => l[1]);
+        const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#202124">' +
+          '<p>A help message came in from the HRMIS "Need Help?" button.</p>' +
+          '<p style="white-space:pre-wrap;border-left:3px solid #0b4fa8;padding:6px 12px;background:#f3f6fb">' + e(msg.text) + '</p>' +
+          '<table style="border-collapse:collapse">' + lines.map(l => '<tr><td style="padding:3px 18px 3px 0;color:#5f6368">' + e(l[0]) +
+            '</td><td style="padding:3px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>' +
+          '<p style="font-size:12px;color:#5f6368">Kept on the HRMIS Help tab of the ICT Inventory and PMS Sheet. Reply to the person directly; this address does not read replies.</p></div>';
+        MailApp.sendEmail({ to: list.join(','), subject: 'HRMIS help ' + ref + ': ' + (msg.topic || 'Message') + ' (' + msg.from + ')',
+          body: msg.text + '\n\n' + lines.map(l => l[0] + ': ' + l[1]).join('\n'), htmlBody: html, name: 'TRC Dulag HRMIS Help' });
+        sent = list.join(', ');
+      }
+    } catch (err) {
+      audit_(ref, 'HRMIS HELP EMAIL NOT SENT', 'HRMIS', String(err.message || err).slice(0, 200), '');
+    }
+    sh.getRange(r, 1, 1, HRMIS_HELP_HEADERS.length).setNumberFormat('@')
+      .setValues([[ref, Utilities.formatDate(new Date(), TZ, 'MMM d, yyyy h:mm a'), msg.from, msg.office, msg.contact, msg.topic, msg.text, msg.page, msg.ref, sent]]);
+    audit_(ref, 'HRMIS HELP MESSAGE', 'HRMIS', msg.topic + ' from ' + msg.from + (sent ? '; emailed to ' + sent : '; not emailed'), 'HRMIS server');
+    return { ok: true, ref: ref, emailed: !!sent };
+  });
 }
 
 // Head: send a sample email to check the setup.
