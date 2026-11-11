@@ -2,6 +2,11 @@
 
 What changed in each version of the ICT Inventory and PMS app. The app shows the same list under *What's new*.
 
+## 1.8.4 (Nov 11, 2026)
+
+- `submitJO` and `hrmisHelp` accept one optional `screenshot: { name, type, data }` (PNG, JPG or WEBP, base64 or a data: URL, at most 3 MB). The picture is checked by its first bytes before a JO No. is used up, saved to the Drive folder "ICT Job Order Screenshots" (Script property SHOT_FOLDER_ID, made on first use, private to the app account), listed on a new "Screenshots" tab (Ref No. = JO No. or HH No.) and attached to the alert email. If Drive fails, the request is still saved and the Audit Trail notes SCREENSHOT NOT SAVED. The reply only says `screenshot: true/false`, never the file.
+- New `joShot` (Viewer) returns the screenshots of one JO No. or HH No. as pictures; `load` returns `shots`, the numbers that have one. The job order window shows "Show the screenshot" when there is one.
+
 ## 1.8.3 (Nov 8, 2026)
 
 - New public action `hrmisHelp` for the office HRMIS "Need Help?" button. The HRMIS server sends the message with a shared key (Script property HRMIS_HELP_KEY, at least 20 characters, same as in the HRMIS under Accounts > Help button); a wrong or missing key is refused. Each message gets an HH-YYYY-NNNN number, is kept on a new "HRMIS Help" tab (made on first use) and is emailed to Script property HRMIS_HELP_EMAILS, or to the job order alert emails when that is blank. At most 30 messages an hour. The reply never shows the ICTU addresses.
