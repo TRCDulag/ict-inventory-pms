@@ -65,7 +65,7 @@
 
 const TZ = 'Asia/Manila';
 const SIG_FOLDER = 'ICT PMS Signatures';
-const VERSION = '1.8.2';
+const VERSION = '1.8.4';
 
 const FORM = { code: 'COH-IDN-F-02', rev: '01', effectivity: '', title: 'ICT Equipment Preventive Maintenance Checklist' };
 const JO_FORM = { code: 'COH-IDN-F-01', rev: '00', effectivity: '', title: 'ICTU Job Order Request Form' };
@@ -153,7 +153,7 @@ const ISO_REV_STATUS = ['Draft', 'Submitted to DCO', 'Under review', 'Approved',
 
 const ROLES = { 'Viewer': 1, 'Technician': 2, 'Head': 3 };
 // The lowest role that may do each action. Anything not listed is refused.
-const NEED = { load: 'Viewer', joPeek: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
+const NEED = { load: 'Viewer', joPeek: 'Viewer', joShot: 'Viewer', getPM: 'Viewer', me: 'Viewer', signOut: 'Viewer', changePassword: 'Viewer',
   saveEquipment: 'Technician', readSticker: 'Technician', savePM: 'Technician', saveJO: 'Technician', addOffice: 'Technician', addEmployee: 'Technician',
   saveTransfer: 'Technician', saveStockItem: 'Technician', saveMove: 'Technician', saveIncident: 'Technician', saveNetwork: 'Technician', saveIsoDoc: 'Technician', saveIsoRev: 'Technician', saveDowntime: 'Technician', routerSetup: 'Head',
   savePMRound: 'Technician', voidPM: 'Head', savePmPlan: 'Technician', makePmPlan: 'Head', clearPmPlan: 'Head', saveEmployee: 'Head', saveBackupEmail: 'Head', saveIsoFolder: 'Head', isoLibrary: 'Viewer', isoFlow: 'Viewer', savePost: 'Technician', calEvents: 'Viewer', saveCalendar: 'Head', saveEvent: 'Technician', removeEvent: 'Technician', renameOffice: 'Head', removeOffice: 'Head', tidyOffices: 'Head', disposeUnits: 'Head', importRows: 'Head', listUsers: 'Head', saveUser: 'Head', backupNow: 'Head', saveAlerts: 'Head', testAlert: 'Head' };
@@ -226,6 +226,7 @@ function handle_(req) {
     if (req.action === 'rateJO')     return rateJO_(req);
     if (req.action === 'signIn')     return signIn_(req);
     if (req.action === 'firstHead')  return firstHead_(req);
+    if (req.action === 'hrmisHelp')  return hrmisHelp_(req);   // from the HRMIS server, with its shared key
     // Everything else is for a signed-in ICTU user whose role allows it.
     const me = session_(req.token);
     if (!NEED[req.action]) return { ok: false, error: 'Unknown action.' };
@@ -251,6 +252,7 @@ function handle_(req) {
       case 'saveIsoRev':    return saveIsoRev_(req);
       case 'load':          return Object.assign(load_(), { me: publicMe_(me) });
       case 'joPeek':        return joPeek_();
+      case 'joShot':        return joShot_(req.ref);
       case 'saveAlerts':    return saveAlerts_(req);
       case 'testAlert':     return testAlert_(me.name);
       case 'saveEquipment': return saveEquipment_(req);
@@ -300,7 +302,7 @@ function load_() {
   const jos = jobSheet_() ? readRows_(JO, JO_HEADERS).map(toJO_) : [];
   const tab = (name, h) => SpreadsheetApp.getActive().getSheetByName(name) ? readRows_(name, h) : [];
   const props = PropertiesService.getScriptProperties();
-  return { ok: true, version: VERSION, form: FORM, joForm: JO_FORM, lists: lists_(), inventory: inv, pms: pms, jos: jos, employees: emp.list,
+  return { ok: true, version: VERSION, form: FORM, joForm: JO_FORM, lists: lists_(), inventory: inv, pms: pms, jos: jos, employees: emp.list, shots: shotRefs_(),
            masterlist: { found: emp.found, count: emp.count, added: emp.added }, today: fmtDate_(new Date()), appUrl: appUrl_(),
            transfers: tab(TRANSFERS, TRANSFER_HEADERS).map(r => toObj_(REG.transfer, r)),
            stock: tab(STOCK, STOCK_HEADERS).map(r => toObj_(REG.stock, r)), moves: tab(MOVES, MOVE_HEADERS).map(r => toObj_(REG.move, r)),
@@ -839,11 +841,14 @@ function submitJO_(req) {
   if (!(j.types || []).length && !clean_(j.others)) throw new Error('Pick at least one type of request, or describe it under Others.');
   if (j.urgent === 'Yes' && !clean_(j.urgentReason)) throw new Error('Say why it is urgent.');
   throttle_();
+  const shot = checkShot_(req.screenshot);   // refuses a bad picture before a JO No. is used up
   const res = withLock_(() => {
     const out = createJO_(j, 'Submitted on the request page', 'Requestor', req.device);
     return { ok: true, jo: out.jo, request: out.record };
   });
-  joAlert_(res.request);
+  const blob = shot ? saveShot_(shot, res.jo, req.device) : null;
+  if (shot) res.screenshot = !!blob;
+  joAlert_(res.request, false, blob);
   return res;
 }
 
@@ -1106,7 +1111,7 @@ function alertsInfo_() {
 }
 
 // Sends the email for a new request. Never stops the request itself: a failed email is only noted in the Audit Trail.
-function joAlert_(rec, test) {
+function joAlert_(rec, test, shot) {
   const to = alertEmails_();
   if (!rec || !to.length || typeof MailApp === 'undefined') return false;
   try {
@@ -1122,18 +1127,176 @@ function joAlert_(rec, test) {
     const link = APP_PAGE + '#jo=' + encodeURIComponent(rec.jo);
     const subject = (test ? '[TEST] ' : '') + (urgent ? '[URGENT] ' : '') + 'New job order ' + rec.jo + ': ' + what.slice(0, 60) + (rec.unit ? ', ' + rec.unit : '');
     const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#202124">' +
-      '<p>' + (test ? 'This is a test email from the ICT Inventory and PMS app. ' : '') + 'A new job order request came in from the request page.</p>' +
+      '<p>' + (test ? 'This is a test email from the ICT Inventory and PMS app. ' : '') + 'A new job order request came in from the request page.' +
+      (shot ? ' The requestor added a screenshot; it is attached to this email.' : '') + '</p>' +
       '<table style="border-collapse:collapse">' + lines.map(l => '<tr><td style="padding:4px 18px 4px 0;color:#5f6368;vertical-align:top">' + e(l[0]) +
         '</td><td style="padding:4px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>' +
       '<p style="margin:18px 0"><a href="' + e(link) + '" style="background:#0b4fa8;color:#fff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Open in the app</a></p>' +
       '<p style="font-size:12px;color:#5f6368">Sent by the ICT Inventory and PMS app of the ICT Unit, DOH TRC Dulag. For ICTU use only.</p></div>';
     const text = lines.map(l => l[0] + ': ' + l[1]).join('\n') + '\n\nOpen in the app: ' + link;
-    MailApp.sendEmail({ to: to.join(','), subject: subject, body: text, htmlBody: html, name: 'ICT Inventory and PMS' });
+    const mail = { to: to.join(','), subject: subject, body: text, htmlBody: html, name: 'ICT Inventory and PMS' };
+    if (shot) mail.attachments = [shot];   // the requestor's screenshot
+    MailApp.sendEmail(mail);
     return true;
   } catch (err) {
     audit_(rec.jo, 'ALERT EMAIL NOT SENT', 'System', String(err.message || err).slice(0, 200), '');
     return false;
   }
+}
+
+// ---------- HRMIS "Need Help?" messages ----------
+// The office HRMIS server sends what an employee wrote under Contact Info. It must carry the shared key
+// (Script property HRMIS_HELP_KEY, the same text as in the HRMIS under Accounts > Help button).
+// The message is kept on the "HRMIS Help" tab and emailed to HRMIS_HELP_EMAILS (or the job order alert emails).
+const HRMIS_HELP = 'HRMIS Help';
+const HRMIS_HELP_HEADERS = ['Ref No.', 'Received', 'From', 'Office', 'Contact', 'Topic', 'Message', 'HRMIS Page', 'HRMIS Ref', 'Emailed To'];
+
+function hrmisHelp_(req) {
+  const props = PropertiesService.getScriptProperties();
+  const key = String(props.getProperty('HRMIS_HELP_KEY') || '');
+  if (key.length < 20 || String(req.key || '') !== key) return { ok: false, error: 'Not allowed.' };
+  const cache = CacheService.getScriptCache();
+  const hits = Number(cache.get('hrmisHelpHits') || 0);
+  if (hits >= 30) return { ok: false, error: 'Too many messages in the last hour. Please try again later.' };
+  cache.put('hrmisHelpHits', String(hits + 1), 3600);
+  const t = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  const m = req.msg || {};
+  const msg = { from: t(m.from, 120), office: t(m.office, 150), contact: t(m.contact, 80), topic: t(m.topic, 80),
+    text: String(m.text == null ? '' : m.text).replace(/\r\n/g, '\n').trim().slice(0, 2000), page: t(m.page, 300), ref: t(m.ref, 30) };
+  if (!msg.from || !msg.text) return { ok: false, error: 'Name and message are needed.' };
+  const shot = checkShot_(m.screenshot || req.screenshot);
+  return withLock_(() => {
+    const ss = SpreadsheetApp.getActive();
+    let sh = ss.getSheetByName(HRMIS_HELP);
+    if (!sh) {
+      sh = ss.insertSheet(HRMIS_HELP);
+      sh.getRange(1, 1, 1, HRMIS_HELP_HEADERS.length).setValues([HRMIS_HELP_HEADERS]).setFontWeight('bold');
+      sh.setFrozenRows(1);
+    }
+    const r = lastRow_(sh) + 1;
+    const ref = 'HH-' + Utilities.formatDate(new Date(), TZ, 'yyyy') + '-' + String(r - 1).padStart(4, '0');
+    const blob = shot ? saveShot_(shot, ref, 'HRMIS server') : null;
+    const to = String(props.getProperty('HRMIS_HELP_EMAILS') || '').split(/[\s,;]+/).map(e => e.trim().toLowerCase())
+      .filter(e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+    const list = to.length ? to : alertEmails_();
+    let sent = '';
+    try {
+      if (list.length && typeof MailApp !== 'undefined' && MailApp.getRemainingDailyQuota() > 0) {
+        const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const lines = [['Ref No.', ref], ['From', msg.from], ['Office', msg.office], ['Contact', msg.contact], ['Topic', msg.topic],
+          ['HRMIS page', msg.page], ['HRMIS ref', msg.ref]].filter(l => l[1]);
+        const html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#202124">' +
+          '<p>A help message came in from the HRMIS "Need Help?" button.</p>' +
+          '<p style="white-space:pre-wrap;border-left:3px solid #0b4fa8;padding:6px 12px;background:#f3f6fb">' + e(msg.text) + '</p>' +
+          '<table style="border-collapse:collapse">' + lines.map(l => '<tr><td style="padding:3px 18px 3px 0;color:#5f6368">' + e(l[0]) +
+            '</td><td style="padding:3px 0">' + e(l[1]) + '</td></tr>').join('') + '</table>' +
+          '<p style="font-size:12px;color:#5f6368">Kept on the HRMIS Help tab of the ICT Inventory and PMS Sheet. Reply to the person directly; this address does not read replies.</p></div>';
+        const mail = { to: list.join(','), subject: 'HRMIS help ' + ref + ': ' + (msg.topic || 'Message') + ' (' + msg.from + ')',
+          body: msg.text + '\n\n' + lines.map(l => l[0] + ': ' + l[1]).join('\n'), htmlBody: html, name: 'TRC Dulag HRMIS Help' };
+        if (blob) mail.attachments = [blob];
+        MailApp.sendEmail(mail);
+        sent = list.join(', ');
+      }
+    } catch (err) {
+      audit_(ref, 'HRMIS HELP EMAIL NOT SENT', 'HRMIS', String(err.message || err).slice(0, 200), '');
+    }
+    sh.getRange(r, 1, 1, HRMIS_HELP_HEADERS.length).setNumberFormat('@')
+      .setValues([[ref, Utilities.formatDate(new Date(), TZ, 'MMM d, yyyy h:mm a'), msg.from, msg.office, msg.contact, msg.topic, msg.text, msg.page, msg.ref, sent]]);
+    audit_(ref, 'HRMIS HELP MESSAGE', 'HRMIS', msg.topic + ' from ' + msg.from + (sent ? '; emailed to ' + sent : '; not emailed'), 'HRMIS server');
+    const out = { ok: true, ref: ref, emailed: !!sent };
+    if (shot) out.screenshot = !!blob;
+    return out;
+  });
+}
+
+// ---------- screenshots sent with a request ----------
+// The Document Tracking help menu (submitJO) and the HRMIS Need Help? button (hrmisHelp) may send one picture:
+// screenshot: { name, type: 'image/png' | 'image/jpeg' | 'image/webp', data: base64 (a data: URL is fine) }.
+// It is saved in the Drive folder "ICT Job Order Screenshots" (Script property SHOT_FOLDER_ID), listed on the
+// "Screenshots" tab by its JO No. or HH No., attached to the alert email, and shown to ICTU in the app (joShot).
+// The file stays private to the app account. Never returned by a public action.
+const SHOTS = 'Screenshots';
+const SHOT_HEADERS = ['Ref No.', 'File ID', 'File Name', 'Type', 'Size (KB)', 'Saved At', 'From'];
+const SHOT_FOLDER = 'ICT Job Order Screenshots';
+const SHOT_MAX = 3 * 1024 * 1024;
+const SHOT_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
+
+// Checks the picture before anything is saved. Returns null when none was sent.
+function checkShot_(x) {
+  if (!x || !x.data) return null;
+  let data = String(x.data), type = String(x.type || '').toLowerCase();
+  const m = data.match(/^data:([\w/+.-]+);base64,/);
+  if (m) { type = type || m[1].toLowerCase(); data = data.slice(m[0].length); }
+  if (type === 'image/jpg') type = 'image/jpeg';
+  if (!SHOT_EXT[type]) throw new Error('The screenshot must be a PNG, JPG or WEBP picture.');
+  if (data.length > Math.ceil(SHOT_MAX * 4 / 3) + 8) throw new Error('The screenshot is too big. Please use a picture under 3 MB.');
+  let bytes;
+  try { bytes = Utilities.base64Decode(data.replace(/\s+/g, '')); } catch (err) { throw new Error('The screenshot could not be read. Please add it again.'); }
+  if (!bytes.length || bytes.length > SHOT_MAX) throw new Error('The screenshot is too big. Please use a picture under 3 MB.');
+  const b = i => (bytes[i] + 256) % 256, asc = (i, n) => String.fromCharCode.apply(null, bytes.slice(i, i + n).map((v, k) => b(i + k)));
+  const real = b(0) === 0x89 && asc(1, 3) === 'PNG' ? 'image/png' : b(0) === 0xFF && b(1) === 0xD8 && b(2) === 0xFF ? 'image/jpeg'
+    : asc(0, 4) === 'RIFF' && asc(8, 4) === 'WEBP' ? 'image/webp' : '';
+  if (!real) throw new Error('The screenshot is not a picture. Please add a PNG or JPG.');
+  return { bytes: bytes, type: real, size: bytes.length };
+}
+
+function shotFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('SHOT_FOLDER_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (err) {} }
+  const f = DriveApp.createFolder(SHOT_FOLDER);
+  props.setProperty('SHOT_FOLDER_ID', f.getId());
+  return f;
+}
+
+// Saves a checked picture under the request's number. Returns the blob for the email, or null if Drive failed
+// (the request itself is already saved, so it is not lost).
+function saveShot_(shot, ref, device) {
+  try {
+    const name = ref + ' screenshot ' + Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HHmmss') + '.' + SHOT_EXT[shot.type];
+    const blob = Utilities.newBlob(shot.bytes, shot.type, name);
+    const file = shotFolder_().createFile(blob);
+    const ss = SpreadsheetApp.getActive();
+    let sh = ss.getSheetByName(SHOTS);
+    if (!sh) {
+      sh = ss.insertSheet(SHOTS);
+      sh.getRange(1, 1, 1, SHOT_HEADERS.length).setValues([SHOT_HEADERS]).setFontWeight('bold');
+      sh.setFrozenRows(1);
+      protect_(sh);
+    }
+    const r = lastRow_(sh) + 1;
+    sh.getRange(r, 1, 1, SHOT_HEADERS.length).setNumberFormat('@').setValues([[ref, file.getId(), name, shot.type,
+      String(Math.round(shot.size / 1024)), Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), String(device || '').slice(0, 120)]]);
+    audit_(ref, 'SCREENSHOT SAVED', 'Requestor', name + ' (' + Math.round(shot.size / 1024) + ' KB)', device);
+    return blob;
+  } catch (err) {
+    audit_(ref, 'SCREENSHOT NOT SAVED', 'System', String(err.message || err).slice(0, 200), device);
+    return null;
+  }
+}
+
+// The numbers (JO No. / HH No.) that have a screenshot, for the app's job order list.
+function shotRefs_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHOTS);
+  if (!sh || lastRow_(sh) < 2) return [];
+  const seen = {};
+  sh.getRange(2, 1, lastRow_(sh) - 1, 1).getValues().forEach(v => { if (v[0]) seen[String(v[0])] = 1; });
+  return Object.keys(seen);
+}
+
+// ICTU (signed in): the screenshots of one job order or HRMIS help message, as pictures to show.
+function joShot_(ref) {
+  ref = clean_(ref);
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHOTS);
+  if (!ref || !sh || lastRow_(sh) < 2) return { ok: true, shots: [] };
+  const rows = sh.getRange(2, 1, lastRow_(sh) - 1, SHOT_HEADERS.length).getValues().filter(r => String(r[0]) === ref);
+  const shots = rows.map(r => {
+    try {
+      const blob = DriveApp.getFileById(String(r[1])).getBlob();
+      return { name: String(r[2]), saved: String(r[5]), url: 'data:' + r[3] + ';base64,' + Utilities.base64Encode(blob.getBytes()) };
+    } catch (err) { return { name: String(r[2]), saved: String(r[5]), missing: true }; }
+  });
+  return { ok: true, shots: shots };
 }
 
 // Head: send a sample email to check the setup.

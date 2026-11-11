@@ -1301,6 +1301,7 @@
         <label class="f">Courtesy of ICTU personnel<select id="jCsmC" class="csm"></select></label>
         <label class="f wide">Suggestions<input id="jSugg"></label>
       </div>
+      <div id="joShotWrap" class="hidden"><h4 style="margin:16px 0 6px">Screenshot from the requestor</h4><button class="btn ghost" type="button" id="joShotBtn">Show the screenshot</button><div id="joShotBox"></div></div>
       <div id="joHistWrap" class="hidden"><h4 style="margin:16px 0 6px">History</h4><div class="hist" id="joHist"></div></div>
       <div class="msg" id="joMsg" role="status"></div>
     </div>
@@ -1782,9 +1783,16 @@ const LOGO_BP = "%%LOGO_BP%%";
 const SEAL_DOH = "%%LOGO_DOH_ROUND%%";
 const SEAL_TRC = "%%LOGO_TRC_ROUND%%";
 const WALLPAPER = "%%WALLPAPER%%";
-const APP_VERSION = "1.8.2";
+const APP_VERSION = "1.8.4";
 // The changelog, newest first. Shown under "What's new" in the menu and from the version on the sign-in card.
 const CHANGES = [
+  ["1.8.4", "Nov 11, 2026", [
+    "A request sent from the Document Tracking help menu, or from the HRMIS Need Help? button, can now carry a screenshot. It is attached to the alert email, and the job order shows a Show the screenshot button.",
+    "Screenshots are kept in a private Drive folder, ICT Job Order Screenshots, and listed on a new Screenshots tab in the Sheet."
+  ]],
+  ["1.8.3", "Nov 8, 2026", [
+    "Help messages written in the office HRMIS (its Need Help? button) now come to ICTU by email and are kept on a new HRMIS Help tab in the Sheet."
+  ]],
   ["1.8.2", "Nov 6, 2026", [
     "Bulletin board: add activities to the calendar from the app (technicians and the Head). They go to the Google Calendar, so they show on phones too. Activities added here can also be removed here.",
     "The calendar now shows Philippine holidays in red. The Head can turn them off in Calendar settings.",
@@ -3616,11 +3624,34 @@ function openJo(no, eqId) {
   $("joHistWrap").classList.toggle("hidden", !joCur);
   $("joHist").textContent = joCur ? (j.history || "") + (j.target ? "\nTarget: " + niceDt(j.target) + (j.withinTarget ? (j.withinTarget === "Yes" ? ", met" : ", missed") : "") : "") : "";
   $("joPrint").classList.toggle("hidden", !joCur);
+  $("joShotWrap").classList.toggle("hidden", !(joCur && (D.shots || []).includes(joCur.jo)));
+  $("joShotBox").textContent = ""; $("joShotBtn").classList.remove("hidden");
   joExtras(joCur);
   msg("joMsg", "");
   $("joDlg").showModal();
   (joCur ? $("jPriority") : $("jName")).focus();
 }
+// A screenshot sent with the request (Document Tracking help menu). Loaded only when asked, since it can be big.
+$("joShotBtn").onclick = async () => {
+  if (!joCur) return;
+  const box = $("joShotBox"), no = joCur.jo; box.textContent = "Loading...";
+  try {
+    const j = await api({ action: "joShot", ref: no });
+    if (!joCur || joCur.jo !== no) return;
+    if (!j.ok) throw new Error(j.error);
+    box.textContent = "";
+    if (!j.shots.length) { box.textContent = "No screenshot was found."; return; }
+    j.shots.forEach(x => {
+      if (x.missing) { const p = document.createElement("p"); p.className = "hint"; p.textContent = x.name + " is no longer in Drive."; box.appendChild(p); return; }
+      const a = document.createElement("a"); a.href = x.url; a.download = x.name; a.title = "Save " + x.name;
+      const im = document.createElement("img"); im.src = x.url; im.alt = "Screenshot sent with " + no;
+      im.style.cssText = "display:block;max-width:100%;max-height:60vh;margin-top:8px;border:1px solid var(--line,#ccd);border-radius:6px";
+      a.appendChild(im); box.appendChild(a);
+      const p = document.createElement("p"); p.className = "hint"; p.textContent = x.name + (x.saved ? ", saved " + x.saved : "") + ". Click the picture to save it."; box.appendChild(p);
+    });
+    $("joShotBtn").classList.add("hidden");
+  } catch (e) { box.textContent = errText(e); }
+};
 // The equipment code fills in the equipment fields from the masterlist.
 function fillJoEq() {
   const it = byId(codeOf($("jEq").value)); if (!it) return;

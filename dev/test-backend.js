@@ -620,9 +620,47 @@ ok(r.ok && r.jo, 'a failed email never stops the request');
 ok(be.gas._ss.getSheetByName('Audit Trail')._data.some(x => x[2] === 'ALERT EMAIL NOT SENT'), 'a failed email is noted in the Audit Trail');
 ok(call({ action: 'saveAlerts', emails: '' }).ok && !call({ action: 'listUsers' }).alerts.emails, 'blank turns the emails off');
 
+// HRMIS "Need Help?" messages (public action, shared key)
+ok(!pub({ action: 'hrmisHelp', key: 'x', msg: { from: 'A', text: 'B' } }).ok, 'HRMIS help is refused while no key is set');
+be.gas._props.HRMIS_HELP_KEY = 'k'.repeat(32);
+ok(pub({ action: 'hrmisHelp', key: 'wrong', msg: { from: 'A', text: 'B' } }).error === 'Not allowed.', 'a wrong HRMIS key is refused');
+ok(!pub({ action: 'hrmisHelp', key: 'k'.repeat(32), msg: { from: 'A', text: '' } }).ok, 'an empty HRMIS message is refused');
+be.gas._props.HRMIS_HELP_EMAILS = 'ictu@example.com';
+mails0 = be.gas._mails.length;
+r = pub({ action: 'hrmisHelp', key: 'k'.repeat(32), msg: { from: 'Juan Tester', office: 'HRDU', topic: 'Account or password', text: 'Locked <out>', page: '/x', ref: 'HM-2026-0001' } });
+const hm = be.gas._mails[be.gas._mails.length - 1];
+ok(r.ok && /^HH-\d{4}-0001$/.test(r.ref) && r.emailed && be.gas._mails.length === mails0 + 1 && hm.to === 'ictu@example.com' && /Locked &lt;out&gt;/.test(hm.htmlBody), 'an HRMIS help message is kept and emailed: ' + JSON.stringify(r));
+ok(be.gas._ss.getSheetByName('HRMIS Help')._data.some(x => x[2] === 'Juan Tester' && x[0] === r.ref), 'the HRMIS Help tab has the message');
+ok(!JSON.stringify(r).includes('ictu@example.com'), 'the reply never shows the ICTU addresses');
+
+// Screenshots sent with a request (Document Tracking help menu, HRMIS Need Help?)
+const PNGB64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+ok(call({ action: 'saveAlerts', emails: 'ictu@example.com' }).ok, 'alert emails on again');
+const shotJo = { lastName: 'Santos', firstName: 'Maria', unit: 'HR', description: 'Cannot log in', others: 'Document Tracking help menu: Sign-in' };
+const joN = () => (be.gas._ss.getSheetByName('JO Log')._data || []).length;
+let before = joN();
+ok(/PNG, JPG or WEBP/.test(pub({ action: 'submitJO', jo: shotJo, screenshot: { type: 'application/pdf', data: PNGB64 } }).error) && joN() === before, 'a non-picture type is refused before a JO No. is used');
+ok(/not a picture/.test(pub({ action: 'submitJO', jo: shotJo, screenshot: { type: 'image/png', data: Buffer.from('hello there').toString('base64') } }).error) && joN() === before, 'a fake picture is refused');
+ok(/too big/.test(pub({ action: 'submitJO', jo: shotJo, screenshot: { type: 'image/png', data: 'A'.repeat(4300000) } }).error), 'a picture over 3 MB is refused');
+mails0 = be.gas._mails.length;
+r = pub({ action: 'submitJO', jo: shotJo, screenshot: { name: 'x.png', type: 'image/png', data: 'data:image/png;base64,' + PNGB64 } });
+const sm = be.gas._mails[be.gas._mails.length - 1];
+ok(r.ok && r.jo && r.screenshot === true && be.gas._mails.length === mails0 + 1 && sm.attachments && sm.attachments.length === 1 && /screenshot/.test(sm.htmlBody), 'a JO with a screenshot is saved and the picture is attached to the alert: ' + JSON.stringify(r).slice(0, 200));
+const shotRow = be.gas._ss.getSheetByName('Screenshots')._data.find(x => x[0] === r.jo);
+ok(shotRow && be.gas._files[shotRow[1]] && shotRow[3] === 'image/png' && !JSON.stringify(r).includes(shotRow[1]), 'the Screenshots tab lists it by JO No.; the reply never shows the Drive file');
+ok(call({ action: 'load' }).shots.includes(r.jo), 'load lists the JO numbers with a screenshot');
+let js = asTech({ action: 'joShot', ref: r.jo });
+ok(js.ok && js.shots.length === 1 && js.shots[0].url === 'data:image/png;base64,' + PNGB64, 'ICTU sees the screenshot in the app');
+ok(pub({ action: 'joShot', ref: r.jo }).signIn === true, 'the public cannot open screenshots');
+ok(asTech({ action: 'joShot', ref: 'JO-NONE' }).shots.length === 0, 'no screenshot, empty list');
+r = pub({ action: 'submitJO', jo: shotJo });
+ok(r.ok && r.screenshot === undefined, 'a JO without a screenshot works as before');
+r = pub({ action: 'hrmisHelp', key: 'k'.repeat(32), msg: { from: 'Juan Tester', text: 'See picture', screenshot: { type: 'image/png', data: PNGB64 } } });
+ok(r.ok && r.screenshot === true && be.gas._mails[be.gas._mails.length - 1].attachments.length === 1 && asTech({ action: 'joShot', ref: r.ref }).shots.length === 1, 'an HRMIS help message can carry a screenshot');
+
 const aud4 = be.gas._ss.getSheetByName('Audit Trail')._data.map(r => r[2]);
 ['USER ADDED', 'USER UPDATED', 'SIGNED IN', 'SIGN-IN FAILED', 'PASSWORD CHANGED', 'CSM RATING', 'TRANSFER', 'STOCK ITEM ADDED', 'STOCK RECEIVED', 'STOCK ISSUED',
- 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED', 'ALERT EMAILS CHANGED', 'ALERT EMAIL TEST'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
+ 'INCIDENT ADDED', 'INCIDENT UPDATED', 'NETWORK ITEM ADDED', 'BACKUP', 'EQUIPMENT IMPORTED', 'PM IMPORTED', 'ALERT EMAILS CHANGED', 'ALERT EMAIL TEST', 'HRMIS HELP MESSAGE', 'SCREENSHOT SAVED'].forEach(a => ok(aud4.includes(a), 'audit has ' + a));
 const byCol = be.gas._ss.getSheetByName('Audit Trail')._data.filter(r => r[2] === 'TRANSFER').map(r => r[3]);
 ok(byCol[0] === 'Argie R. Lopez', 'audit names the signed-in person, not what the page sends');
 console.log('backend: ' + n + ' checks passed');
